@@ -27,6 +27,9 @@ public sealed class LineTokens(int[] packed)
 
     public int Start(int index) => _packed[index * 2];
 
+    /// <summary>TextMate's standard token type: 0 other, 1 comment, 2 string, 3 regex.</summary>
+    public int TokenType(int index) => (int)EncodedTokenAttributes.GetTokenType(_packed[index * 2 + 1]);
+
     public int Foreground(int index) => EncodedTokenAttributes.GetForeground(_packed[index * 2 + 1]);
 
     /// <summary>TextMate's font style bits (1 italic, 2 bold, 4 underline, 8 strikethrough), which <see cref="TokenStyle"/> mirrors.</summary>
