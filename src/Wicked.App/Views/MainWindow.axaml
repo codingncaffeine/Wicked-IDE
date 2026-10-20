@@ -7,6 +7,7 @@
         x:DataType="vm:ShellViewModel"
         Title="{Binding Title}"
         Width="1440" Height="900" MinWidth="900" MinHeight="560"
+        Icon="/Assets/logo.png"
         ExtendClientAreaToDecorationsHint="True"
         WindowDecorations="None">
 
@@ -16,16 +17,7 @@
       <!-- ── Title bar: the mark, the command centre in the middle, the layout toggles and the caption buttons. ── -->
       <Grid Name="TitleBar" Background="{DynamicResource Brush.Ground}" ColumnDefinitions="*,Auto,*">
         <StackPanel Orientation="Horizontal" Spacing="9" Margin="14,0,0,0" VerticalAlignment="Center">
-          <Border Width="22" Height="22" CornerRadius="6">
-            <Border.Background>
-              <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
-                <GradientStop Offset="0" Color="#A194FA" />
-                <GradientStop Offset="1" Color="#6E5CF0" />
-              </LinearGradientBrush>
-            </Border.Background>
-            <shell:Icon Data="{StaticResource Mark.Wicked}" Size="16" StrokeWidth="2.6"
-                        Foreground="{DynamicResource Brush.Text.OnAccent}" />
-          </Border>
+          <Image Source="/Assets/logo.png" Width="22" Height="22" RenderOptions.BitmapInterpolationMode="HighQuality" />
           <TextBlock Text="Wicked" FontWeight="SemiBold" VerticalAlignment="Center" />
         </StackPanel>
 

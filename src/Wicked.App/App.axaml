@@ -9,7 +9,6 @@
       <ResourceDictionary.MergedDictionaries>
         <ResourceInclude Source="/Themes/Tokens.axaml" />
         <ResourceInclude Source="/Themes/Icons.axaml" />
-        <ResourceInclude Source="/Themes/Marks.axaml" />
       </ResourceDictionary.MergedDictionaries>
     </ResourceDictionary>
   </Application.Resources>

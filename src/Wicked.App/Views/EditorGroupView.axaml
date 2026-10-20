@@ -38,15 +38,7 @@
       <ContentControl Name="Host" />
       <!-- An empty group shows the welcome. -->
       <StackPanel Name="Welcome" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" MaxWidth="460">
-        <Border Width="64" Height="64" CornerRadius="16" HorizontalAlignment="Center">
-          <Border.Background>
-            <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
-              <GradientStop Offset="0" Color="#A194FA" />
-              <GradientStop Offset="1" Color="#6E5CF0" />
-            </LinearGradientBrush>
-          </Border.Background>
-          <shell:Icon Data="{StaticResource Mark.Wicked}" Size="44" StrokeWidth="2.4" Foreground="{DynamicResource Brush.Text.OnAccent}" />
-        </Border>
+        <Image Source="/Assets/logo.png" Width="96" Height="96" HorizontalAlignment="Center" RenderOptions.BitmapInterpolationMode="HighQuality" />
         <TextBlock Text="Wicked" FontSize="28" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,6,0,0" />
         <TextBlock Classes="secondary" TextAlignment="Center" TextWrapping="Wrap"
                    Text="Local models that stay up to date, and a real editor around them." />
