@@ -128,6 +128,31 @@ public partial class MainWindow : Window, IWorkbenchDialogs
         return _dialog.Task;
     }
 
+    public async Task<bool> ConfirmAsync(string message, string detail, string confirm)
+    {
+        var saveLabel = DialogSave.Content;
+        DialogSave.Content = confirm;
+        DialogDontSave.IsVisible = false;
+        try
+        {
+            return await AskSaveAsync(message, detail) == SaveChoice.Save;
+        }
+        finally
+        {
+            DialogSave.Content = saveLabel;
+            DialogDontSave.IsVisible = true;
+        }
+    }
+
+    public Task<string?> AskNameAsync(string prompt, string initial)
+    {
+        var answer = new TaskCompletionSource<string?>();
+        if (_shell is null) return Task.FromResult<string?>(null);
+        _shell.QuickInput.OpenPrompt(prompt, initial, text => answer.TrySetResult(text));
+        Avalonia.Threading.Dispatcher.UIThread.Post(Palette.FocusQuery);
+        return answer.Task;
+    }
+
     private void Answer(SaveChoice choice)
     {
         DialogLayer.IsVisible = false;

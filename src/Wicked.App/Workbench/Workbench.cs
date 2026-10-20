@@ -27,6 +27,12 @@ public interface IWorkbenchDialogs
     Task<IReadOnlyList<string>> PickFilesAsync();
 
     Task<string?> PickSaveFileAsync(string suggestedName);
+
+    /// <summary>A yes-or-cancel question with the action named on its button ("Move to Trash").</summary>
+    Task<bool> ConfirmAsync(string message, string detail, string confirm);
+
+    /// <summary>A name typed by the user (a new file's, a rename's), or null when cancelled.</summary>
+    Task<string?> AskNameAsync(string prompt, string initial);
 }
 
 /// <summary>
@@ -52,6 +58,9 @@ public sealed partial class Workbench : ObservableObject, IDisposable
 
     public IWorkbenchDialogs? Dialogs { get; set; }
 
+    /// <summary>Where the Trash is looked up (XDG_DATA_HOME); tests point it into their own folder.</summary>
+    public Func<string, string?> TrashEnvironment { get; set; } = Environment.GetEnvironmentVariable;
+
     /// <summary>The settings in force; the shell sets them at start and whenever they change.</summary>
     public Wicked.Core.Settings.WickedSettings Settings { get; set; } = new();
 
@@ -64,7 +73,11 @@ public sealed partial class Workbench : ObservableObject, IDisposable
     private string? _root;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(RootName))]
     private ExplorerNode? _explorerRoot;
+
+    /// <summary>The open folder's name, in capitals, as the explorer heads its tree.</summary>
+    public string RootName => ExplorerRoot?.Name.ToUpperInvariant() ?? "";
 
     /// <summary>The workspace's files for quick open, rebuilt on a worker after changes.</summary>
     public FileIndex? Index { get; private set; }
@@ -399,6 +412,138 @@ public sealed partial class Workbench : ObservableObject, IDisposable
         }
 
         return true;
+    }
+
+    // ── Files in the explorer ────────────────────────────────────────────────────────────────────
+
+    /// <summary>A name the file system will take: not empty, no separators, not "." or "..".</summary>
+    public static string? CheckName(string name)
+    {
+        name = name.Trim();
+        if (name.Length == 0) return "A name is needed";
+        if (name is "." or "..") return "That name is reserved";
+        if (name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || name.Contains('/') || name.Contains('\\')) return "A name cannot contain / or other reserved characters";
+        return null;
+    }
+
+    /// <summary>New File in a folder: asks a name, makes the file on a worker, opens it.</summary>
+    public async Task NewFileAsync(string folder)
+    {
+        if (Dialogs is null || await Dialogs.AskNameAsync("Name of the new file", "") is not { } name) return;
+        if (CheckName(name) is { } problem) { _notices.Post(new Notice("files", problem, NoticeKind.Warning)); return; }
+        var path = Path.Combine(folder, name.Trim());
+        try
+        {
+            await Task.Run(() =>
+            {
+                if (File.Exists(path) || Directory.Exists(path)) throw new IOException($"{name} already exists");
+                File.WriteAllBytes(path, []);
+            });
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _notices.Post(new Notice("files", ex.Message, NoticeKind.Error));
+            return;
+        }
+
+        await OpenAsync(path);
+    }
+
+    public async Task NewFolderAsync(string folder)
+    {
+        if (Dialogs is null || await Dialogs.AskNameAsync("Name of the new folder", "") is not { } name) return;
+        if (CheckName(name) is { } problem) { _notices.Post(new Notice("files", problem, NoticeKind.Warning)); return; }
+        var path = Path.Combine(folder, name.Trim());
+        try
+        {
+            await Task.Run(() =>
+            {
+                if (File.Exists(path) || Directory.Exists(path)) throw new IOException($"{name} already exists");
+                Directory.CreateDirectory(path);
+            });
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _notices.Post(new Notice("files", ex.Message, NoticeKind.Error));
+        }
+    }
+
+    /// <summary>Open to the Side: the file in the group to the right, made when there is none.</summary>
+    public async Task OpenToSideAsync(string path)
+    {
+        var at = Groups.IndexOf(ActiveGroup);
+        EditorGroup side;
+        if (at + 1 < Groups.Count) side = Groups[at + 1];
+        else
+        {
+            side = new EditorGroup(this);
+            Groups.Add(side);
+        }
+
+        await OpenAsync(path, preview: false, group: side);
+    }
+
+    /// <summary>Shows a file or folder in the desktop's file manager, without waiting for it.</summary>
+    public static void Reveal(string path) => _ = Task.Run(() =>
+    {
+        try
+        {
+            var folder = Directory.Exists(path) ? path : Path.GetDirectoryName(path)!;
+            var start = OperatingSystem.IsWindows() ? new System.Diagnostics.ProcessStartInfo("explorer.exe", $"/select,\"{path}\"")
+                : OperatingSystem.IsMacOS() ? new System.Diagnostics.ProcessStartInfo("open", ["-R", path])
+                : new System.Diagnostics.ProcessStartInfo("xdg-open", [folder]);
+            start.UseShellExecute = false;
+            using var process = System.Diagnostics.Process.Start(start);
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException)
+        {
+            Log.Warn($"Could not show {path} in the file manager: {ex.Message}");
+        }
+    });
+
+    /// <summary>F2: renames on a worker; open tabs of the file (or of files inside a renamed folder) follow it.</summary>
+    public async Task RenameAsync(string path)
+    {
+        var name = Path.GetFileName(path);
+        if (Dialogs is null || await Dialogs.AskNameAsync($"Rename {name}", name) is not { } newName || newName.Trim() == name) return;
+        if (CheckName(newName) is { } problem) { _notices.Post(new Notice("files", problem, NoticeKind.Warning)); return; }
+        var target = Path.Combine(Path.GetDirectoryName(path)!, newName.Trim());
+        try
+        {
+            await Task.Run(() =>
+            {
+                if (File.Exists(target) || Directory.Exists(target)) throw new IOException($"{newName} already exists");
+                if (Directory.Exists(path)) Directory.Move(path, target);
+                else File.Move(path, target);
+            });
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _notices.Post(new Notice("files", ex.Message, NoticeKind.Error));
+            return;
+        }
+
+        foreach (var tab in AllTabs.Where(t => t.Path is not null).ToList())
+        {
+            if (tab.Path == path) tab.Renamed(target);
+            else if (tab.Path!.StartsWith(path + Path.DirectorySeparatorChar, StringComparison.Ordinal)) tab.Renamed(target + tab.Path[path.Length..]);
+        }
+    }
+
+    /// <summary>Delete: asks, then moves the file or folder to the Trash on a worker (restorable, as in every file manager).</summary>
+    public async Task TrashAsync(string path)
+    {
+        var name = Path.GetFileName(path);
+        if (Dialogs is null || !await Dialogs.ConfirmAsync($"Move “{name}” to the Trash?", "You can restore it from the Trash.", "Move to Trash")) return;
+        try
+        {
+            var env = TrashEnvironment;
+            await Task.Run(() => Trash.MoveToTrashAsync(path, env));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            _notices.Post(new Notice("files", $"{name} could not be moved to the Trash: {ex.Message}", NoticeKind.Error));
+        }
     }
 
     // ── Groups ───────────────────────────────────────────────────────────────────────────────────

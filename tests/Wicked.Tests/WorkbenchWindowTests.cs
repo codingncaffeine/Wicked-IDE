@@ -267,3 +267,52 @@ public sealed class FindWindowTests
         });
     }
 }
+
+/// <summary>The explorer's file actions through the window.</summary>
+public sealed class ExplorerActionsTests
+{
+    [Fact]
+    public async Task NewFileRenameAndDeleteFromTheExplorer()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "the freedesktop Trash");
+        using var profile = new TempProfile();
+        var root = Path.Combine(profile.Root, "proj");
+        Directory.CreateDirectory(root);
+        File.WriteAllText(Path.Combine(root, "keep.txt"), "");
+        await Ui.Run(() =>
+        {
+            var (window, shell) = Ui.Start(profile.Paths);
+            shell.Workbench.TrashEnvironment = v => v == "XDG_DATA_HOME" ? Path.Combine(profile.Root, "xdg") : null;
+            var open = shell.OpenFolderAndRememberAsync(root);
+            Assert.True(Ui.PumpUntil(() => open.IsCompleted, 5));
+
+            // New File from the toolbar: a name typed into the prompt, the file made and opened.
+            Input.Click(window, window.GetVisualDescendants().OfType<Avalonia.Controls.Button>().First(b => b.Name == "NewFileButton"));
+            Assert.True(shell.QuickInput.IsOpen);
+            window.KeyTextInput("hello.py");
+            window.KeyPress(Avalonia.Input.Key.Enter, Avalonia.Input.RawInputModifiers.None, Avalonia.Input.PhysicalKey.Enter, null);
+            Assert.True(Ui.PumpUntil(() => shell.Workbench.ActiveTab?.Title == "hello.py", 5), "the new file did not open");
+            Assert.True(File.Exists(Path.Combine(root, "hello.py")));
+
+            // Rename: the open tab follows the file.
+            var rename = shell.Workbench.RenameAsync(Path.Combine(root, "hello.py"));
+            Ui.Pump(0.1);
+            shell.QuickInput.Query = "world.py";
+            window.KeyPress(Avalonia.Input.Key.Enter, Avalonia.Input.RawInputModifiers.None, Avalonia.Input.PhysicalKey.Enter, null);
+            Assert.True(Ui.PumpUntil(() => rename.IsCompleted, 5));
+            Assert.True(File.Exists(Path.Combine(root, "world.py")));
+            Assert.Equal("world.py", shell.Workbench.ActiveTab?.Title);
+
+            // Delete: asked, then into the Trash (the test's own).
+            var trash = shell.Workbench.TrashAsync(Path.Combine(root, "keep.txt"));
+            Ui.Pump(0.1);
+            Assert.Equal("Move to Trash", window.FindControl<Avalonia.Controls.Button>("DialogSave")!.Content);
+            Input.Click(window, window.FindControl<Avalonia.Controls.Button>("DialogSave")!);
+            Assert.True(Ui.PumpUntil(() => trash.IsCompleted, 5));
+            Assert.False(File.Exists(Path.Combine(root, "keep.txt")));
+            Assert.True(File.Exists(Path.Combine(profile.Root, "xdg", "Trash", "files", "keep.txt")));
+            window.Close();
+            return 0;
+        });
+    }
+}

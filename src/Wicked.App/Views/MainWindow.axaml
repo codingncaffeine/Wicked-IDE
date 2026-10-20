@@ -93,8 +93,6 @@
           <DockPanel>
             <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="14,12,10,8">
               <TextBlock Classes="heading" Text="{Binding PanelTitle}" VerticalAlignment="Center" />
-              <TextBlock Grid.Column="1" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" Text="{Binding WorkspaceName}"
-                         IsVisible="{Binding IsExplorer}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="160" />
             </Grid>
             <Panel>
               <views:ExplorerView DataContext="{Binding Workbench}" IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).IsExplorer}" />

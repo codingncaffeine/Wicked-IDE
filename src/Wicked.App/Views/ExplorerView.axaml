@@ -5,7 +5,7 @@
              x:Class="Wicked.App.Views.ExplorerView"
              x:DataType="wb:Workbench">
   <Panel>
-    <!-- No folder yet: open one, or a recent one. -->
+    <!-- No folder yet: open one. -->
     <StackPanel Margin="14,4" Spacing="8" IsVisible="{Binding ExplorerRoot, Converter={x:Static ObjectConverters.IsNull}}">
       <TextBlock Classes="muted" Text="Open a folder to see its files here." TextWrapping="Wrap" />
       <Button Name="OpenFolderButton" Classes="accent-soft" HorizontalAlignment="Stretch" Click="OnOpenFolder">
@@ -16,21 +16,41 @@
       </Button>
     </StackPanel>
 
-    <TreeView Name="Tree" ItemsSource="{Binding ExplorerRoot.Children}" IsVisible="{Binding ExplorerRoot, Converter={x:Static ObjectConverters.IsNotNull}}"
-              Classes="explorer" SelectionMode="Single">
-      <TreeView.Styles>
-        <Style Selector="TreeViewItem" x:DataType="wb:ExplorerNode">
-          <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
-        </Style>
-      </TreeView.Styles>
-      <TreeView.ItemTemplate>
-        <TreeDataTemplate DataType="wb:ExplorerNode" ItemsSource="{Binding Children}">
-          <StackPanel Orientation="Horizontal" Spacing="6" Background="Transparent" ToolTip.Tip="{Binding FullPath}">
-            <shell:Icon Size="15" Data="{Binding IconKey, Converter={x:Static shell:FileIcons.Instance}}" />
-            <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
-          </StackPanel>
-        </TreeDataTemplate>
-      </TreeView.ItemTemplate>
-    </TreeView>
+    <DockPanel IsVisible="{Binding ExplorerRoot, Converter={x:Static ObjectConverters.IsNotNull}}">
+      <!-- The folder's name and toolbar, as VS Code puts them above the tree. -->
+      <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="14,0,8,4">
+        <TextBlock Classes="heading" Text="{Binding RootName}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="0">
+        <Button Name="NewFileButton" Classes="quiet" Padding="5" ToolTip.Tip="New File..." Click="OnNewFile">
+          <shell:Icon Data="{StaticResource Icon.FilePlus}" Size="15" />
+        </Button>
+        <Button Name="NewFolderButton" Classes="quiet" Padding="5" ToolTip.Tip="New Folder..." Click="OnNewFolder">
+          <shell:Icon Data="{StaticResource Icon.FolderPlus}" Size="15" />
+        </Button>
+        <Button Classes="quiet" Padding="5" ToolTip.Tip="Refresh Explorer" Click="OnRefresh">
+          <shell:Icon Data="{StaticResource Icon.RefreshCw}" Size="15" />
+        </Button>
+        <Button Classes="quiet" Padding="5" ToolTip.Tip="Collapse Folders in Explorer" Click="OnCollapseAll">
+          <shell:Icon Data="{StaticResource Icon.ChevronsDownUp}" Size="15" />
+        </Button>
+      </StackPanel>
+      </Grid>
+
+      <TreeView Name="Tree" ItemsSource="{Binding ExplorerRoot.Children}" Classes="explorer" SelectionMode="Single">
+        <TreeView.Styles>
+          <Style Selector="TreeViewItem" x:DataType="wb:ExplorerNode">
+            <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+          </Style>
+        </TreeView.Styles>
+        <TreeView.ItemTemplate>
+          <TreeDataTemplate DataType="wb:ExplorerNode" ItemsSource="{Binding Children}">
+            <StackPanel Orientation="Horizontal" Spacing="6" Background="Transparent" ToolTip.Tip="{Binding FullPath}">
+              <shell:Icon Size="15" Data="{Binding IconKey, Converter={x:Static shell:FileIcons.Instance}}" />
+              <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
+            </StackPanel>
+          </TreeDataTemplate>
+        </TreeView.ItemTemplate>
+      </TreeView>
+    </DockPanel>
   </Panel>
 </UserControl>

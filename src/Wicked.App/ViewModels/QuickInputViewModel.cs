@@ -34,9 +34,23 @@ public sealed partial class QuickInputViewModel(ShellViewModel shell) : Observab
 
     private IReadOnlyList<QuickItem>? _list;
     private Action? _onCancel;
+    private Action<string>? _prompt;
+
+    /// <summary>A line of text to type (a new file's name): Enter accepts it, Escape gives null.</summary>
+    public void OpenPrompt(string placeholder, string initial, Action<string?> done)
+    {
+        _list = null;
+        _prompt = text => done(text);
+        _onCancel = () => done(null);
+        IsOpen = true;
+        Query = initial;
+        Placeholder = placeholder;
+        _ = RefreshAsync();
+    }
 
     public void Open(string prefix)
     {
+        _prompt = null;
         _list = null;
         _onCancel = null;
         IsOpen = true;
@@ -47,6 +61,7 @@ public sealed partial class QuickInputViewModel(ShellViewModel shell) : Observab
     /// <summary>A list of choices of the caller's own (a theme picker): filtered by what is typed; Escape calls <paramref name="onCancel"/>.</summary>
     public void OpenList(string placeholder, IReadOnlyList<QuickItem> items, int selected, Action? onCancel)
     {
+        _prompt = null;
         _list = items;
         _onCancel = onCancel;
         IsOpen = true;
@@ -80,6 +95,16 @@ public sealed partial class QuickInputViewModel(ShellViewModel shell) : Observab
 
     public async Task ChooseAsync(int index = -1)
     {
+        if (_prompt is { } prompt)
+        {
+            var text = Query;
+            _onCancel = null;
+            _prompt = null;
+            Close();
+            prompt(text);
+            return;
+        }
+
         index = index < 0 ? Selected : index;
         if (index < 0 || index >= Items.Count) return;
         var item = Items[index];
@@ -95,7 +120,11 @@ public sealed partial class QuickInputViewModel(ShellViewModel shell) : Observab
         var cts = _search = new CancellationTokenSource();
         var query = Query;
         List<QuickItem> items;
-        if (_list is { } list)
+        if (_prompt is not null)
+        {
+            items = [new QuickItem("Press Enter to confirm, or Escape to cancel", "", "", () => Task.CompletedTask)];
+        }
+        else if (_list is { } list)
         {
             items = query.Length == 0 ? [.. list] : [.. list.Select(i => (Item: i, Score: FuzzyMatch.Score(query, i.Label))).Where(p => p.Score >= 0).OrderByDescending(p => p.Score).Select(p => p.Item)];
         }
