@@ -1,0 +1,272 @@
+{
+  "families": [
+    {
+      "id": "qwen3.8", "name": "Qwen3.8", "publisher": "Qwen",
+      "description": "Alibaba's newest general model: strong reasoning and agentic coding, sees images.",
+      "models": [
+        {
+          "id": "qwen3.8-27b", "name": "Qwen3.8 27B", "repo": "bartowski/Qwen3.8-27B-GGUF",
+          "quants": ["IQ4_XS", "Q4_K_M", "Q5_K_M", "Q6_K", "Q8_0"], "mmproj": "-f16",
+          "capabilities": ["chat", "tools", "reasoning", "vision"],
+          "parameters": { "total": 27.3 }, "released": "2026-08-13",
+          "scores": { "everyday": 93, "coding": 95 },
+          "supersedes": ["qwen3.6-27b"],
+          "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+          "basis": "Model card vs Qwen3.6-27B: GPQA Diamond 89.2 vs 87.8, LiveCodeBench v6 90.3 vs 83.9, Terminal Bench 2.1 73.0 vs 63.4."
+        }
+      ]
+    },
+    {
+      "id": "qwen3.6", "name": "Qwen3.6", "publisher": "Qwen",
+      "description": "The previous Qwen generation: a fast 35B mixture-of-experts and a 27B dense model.",
+      "models": [
+        {
+          "id": "qwen3.6-35b-a3b", "name": "Qwen3.6 35B-A3B", "repo": "bartowski/Qwen_Qwen3.6-35B-A3B-GGUF",
+          "quants": ["IQ4_XS", "Q4_K_M", "Q5_K_M", "Q6_K", "Q8_0"], "mmproj": "-f16",
+          "capabilities": ["chat", "tools", "reasoning", "vision"],
+          "parameters": { "total": 35.5, "active": 3.0 }, "released": "2026-04-16",
+          "scores": { "everyday": 87, "coding": 86, "fast": 82 },
+          "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+          "basis": "Model card: SWE-bench Verified 73.4, MMLU-Pro in the mid-80s; only 3B parameters active, so it is quick even when it spills into RAM."
+        },
+        {
+          "id": "qwen3.6-27b", "name": "Qwen3.6 27B", "repo": "unsloth/Qwen3.6-27B-GGUF",
+          "quants": ["IQ4_XS", "Q4_K_M", "Q5_K_M", "Q6_K", "Q8_0"], "mmproj": "-f16",
+          "capabilities": ["chat", "tools", "reasoning", "vision"],
+          "parameters": { "total": 26.9 }, "released": "2026-04-22",
+          "scores": { "everyday": 89, "coding": 90 },
+          "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+          "basis": "Model card: SWE-bench Verified 77.2, MMLU-Pro 86+."
+        }
+      ]
+    },
+    {
+      "id": "qwen3-coder", "name": "Qwen3-Coder", "publisher": "Qwen",
+      "description": "Coding-specialised Qwen models; the 30B-A3B also does fill-in-the-middle completion.",
+      "models": [
+        {
+          "id": "qwen3-coder-next", "name": "Qwen3-Coder-Next 80B-A3B", "repo": "bartowski/Qwen_Qwen3-Coder-Next-GGUF",
+          "quants": ["IQ4_XS", "Q4_K_M", "Q5_K_M", "Q6_K"],
+          "capabilities": ["chat", "tools"],
+          "parameters": { "total": 79.7, "active": 3.0 }, "released": "2026-02-03",
+          "scores": { "everyday": 74, "coding": 84 },
+          "supersedes": ["qwen3-coder-30b-a3b"],
+          "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+          "basis": "Model card claims parity with models of 10-20x more active parameters on agentic coding; no directly comparable table, so the least certain score here."
+        },
+        {
+          "id": "qwen3-coder-30b-a3b", "name": "Qwen3-Coder 30B-A3B", "repo": "unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF",
+          "quants": ["IQ4_XS", "Q4_K_M", "Q5_K_M", "Q6_K", "Q8_0"],
+          "capabilities": ["chat", "tools", "fim"],
+          "parameters": { "total": 30.5, "active": 3.3 }, "released": "2025-07-31",
+          "scores": { "everyday": 58, "coding": 68, "fast": 76, "fim": 82 },
+          "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+          "basis": "SWE-bench Verified about 52 at launch; superseded for chat by the 3.6/3.8 models but the best local fill-in-the-middle model here."
+        }
+      ]
+    },
+    {
+      "id": "gemma-4", "name": "Gemma 4", "publisher": "Google",
+      "description": "Google's open multimodal models, from phone-sized to a 26B mixture-of-experts; Apache 2.0.",
+      "models": [
+        {
+          "id": "gemma-4-26b-a4b", "name": "Gemma 4 26B-A4B", "repo": "bartowski/google_gemma-4-26B-A4B-it-GGUF",
+          "quants": ["IQ4_XS", "Q4_K_M", "Q5_K_M", "Q6_K", "Q8_0"], "mmproj": "-f16",
+          "capabilities": ["chat", "tools", "reasoning", "vision"],
+          "parameters": { "total": 25.2, "active": 3.8 }, "released": "2026-04-01",
+          "scores": { "everyday": 82, "coding": 58, "fast": 80 },
+          "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+          "basis": "Model card: MMLU-Pro 82.6, GPQA 82.3, LiveCodeBench v6 77.1; but SWE-bench Verified only 17.4 in Qwen's comparison table, so it is scored low for agentic coding."
+        },
+        {
+          "id": "gemma-4-12b", "name": "Gemma 4 12B", "repo": "unsloth/gemma-4-12b-it-GGUF",
+          "quants": ["IQ4_XS", "Q4_K_M", "Q5_K_M", "Q6_K", "Q8_0"], "mmproj": "-f16",
+          "capabilities": ["chat", "tools", "reasoning", "vision"],
+          "parameters": { "total": 11.9 }, "released": "2026-05-29",
+          "scores": { "everyday": 74, "coding": 52, "fast": 72 },
+          "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+          "basis": "Model card: MMLU-Pro 77.2, GPQA 78.8, LiveCodeBench v6 72.0."
+        },
+        {
+          "id": "gemma-4-e4b", "name": "Gemma 4 E4B", "repo": "bartowski/google_gemma-4-E4B-it-GGUF",
+          "quants": ["IQ4_XS", "Q4_K_M", "Q5_K_M", "Q6_K", "Q8_0"], "mmproj": "-f16",
+          "capabilities": ["chat", "tools", "reasoning", "vision"],
+          "parameters": { "total": 7.5, "active": 4.0 }, "released": "2026-04-01",
+          "scores": { "everyday": 58, "coding": 38, "fast": 85 },
+          "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+          "basis": "Model card: MMLU-Pro 69.4, LiveCodeBench v6 52.0."
+        },
+        {
+          "id": "gemma-4-e2b", "name": "Gemma 4 E2B", "repo": "bartowski/google_gemma-4-E2B-it-GGUF",
+          "quants": ["IQ4_XS", "Q4_K_M", "Q5_K_M", "Q6_K", "Q8_0"], "mmproj": "-f16",
+          "capabilities": ["chat", "tools", "vision"],
+          "parameters": { "total": 4.6, "active": 2.0 }, "released": "2026-04-01",
+          "scores": { "everyday": 45, "coding": 28, "fast": 90 },
+          "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+          "basis": "Model card: MMLU-Pro 60.0, LiveCodeBench v6 44.0."
+        }
+      ]
+    },
+    {
+      "id": "glm", "name": "GLM", "publisher": "Z.ai",
+      "description": "Zhipu's GLM Flash line: a 30B mixture-of-experts with reasoning and tool calls; MIT licence.",
+      "models": [
+        {
+          "id": "glm-4.7-flash", "name": "GLM-4.7 Flash 30B-A3B", "repo": "unsloth/GLM-4.7-Flash-GGUF",
+          "quants": ["IQ4_XS", "Q4_K_M", "Q5_K_M", "Q6_K", "Q8_0"],
+          "capabilities": ["chat", "tools", "reasoning"],
+          "parameters": { "total": 29.9, "active": 3.0 }, "released": "2026-01-20",
+          "scores": { "everyday": 74, "coding": 68, "fast": 74 },
+          "licenseUrl": "https://opensource.org/license/mit",
+          "basis": "Model card: SWE-bench Verified 59.2, GPQA 75.2."
+        }
+      ]
+    },
+    {
+      "id": "gpt-oss", "name": "gpt-oss", "publisher": "OpenAI",
+      "description": "OpenAI's open-weight reasoning models, shipped in 4-bit (MXFP4); Apache 2.0.",
+      "models": [
+        {
+          "id": "gpt-oss-20b", "name": "gpt-oss 20B", "repo": "ggml-org/gpt-oss-20b-GGUF", "filePrefix": "gpt-oss-",
+          "quants": ["MXFP4"],
+          "capabilities": ["chat", "tools", "reasoning"],
+          "parameters": { "total": 20.9, "active": 3.6 }, "released": "2025-08-05",
+          "scores": { "everyday": 74, "coding": 62, "fast": 80 },
+          "shape": { "fullLayers": 12, "windowLayers": 12, "window": 128 },
+          "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+          "basis": "Model card: 21B total / 3.6B active, GPQA 71.5, runs in 16 GB; SWE-bench Verified about 60 with tools."
+        },
+        {
+          "id": "gpt-oss-120b", "name": "gpt-oss 120B", "repo": "ggml-org/gpt-oss-120b-GGUF", "filePrefix": "gpt-oss-",
+          "quants": ["MXFP4"],
+          "capabilities": ["chat", "tools", "reasoning"],
+          "parameters": { "total": 116.8, "active": 5.1 }, "released": "2025-08-05",
+          "scores": { "everyday": 85, "coding": 74 },
+          "shape": { "fullLayers": 18, "windowLayers": 18, "window": 128 },
+          "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+          "basis": "Model card: 117B total / 5.1B active, GPQA 80+; needs about 64 GB of memory."
+        }
+      ]
+    },
+    {
+      "id": "mistral", "name": "Mistral", "publisher": "Mistral AI",
+      "description": "Devstral (software engineering) and Ministral 3 (small general models, with vision); Apache 2.0.",
+      "models": [
+        {
+          "id": "devstral-small-2-24b", "name": "Devstral Small 2 24B", "repo": "bartowski/mistralai_Devstral-Small-2-24B-Instruct-2512-GGUF",
+          "quants": ["IQ4_XS", "Q4_K_M", "Q5_K_M", "Q6_K", "Q8_0"],
+          "capabilities": ["chat", "tools"],
+          "parameters": { "total": 23.6 }, "released": "2025-12-09",
+          "scores": { "everyday": 62, "coding": 78 },
+          "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+          "basis": "Model card: SWE-bench Verified 68.0, Terminal Bench 2 22.5."
+        },
+        {
+          "id": "ministral-3-14b", "name": "Ministral 3 14B", "repo": "unsloth/Ministral-3-14B-Instruct-2512-GGUF",
+          "quants": ["IQ4_XS", "Q4_K_M", "Q5_K_M", "Q6_K", "Q8_0"], "mmproj": "-f16",
+          "capabilities": ["chat", "tools", "vision"],
+          "parameters": { "total": 13.5 }, "released": "2025-12-02",
+          "scores": { "everyday": 66, "coding": 52, "fast": 62 },
+          "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+          "basis": "Judged from size and the vendor's model-card comparison; no cross-family table was available."
+        },
+        {
+          "id": "ministral-3-8b", "name": "Ministral 3 8B", "repo": "unsloth/Ministral-3-8B-Instruct-2512-GGUF",
+          "quants": ["IQ4_XS", "Q4_K_M", "Q5_K_M", "Q6_K", "Q8_0"], "mmproj": "-f16",
+          "capabilities": ["chat", "tools", "vision"],
+          "parameters": { "total": 8.5 }, "released": "2025-12-02",
+          "scores": { "everyday": 58, "coding": 45, "fast": 72 },
+          "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+          "basis": "Judged from size and the vendor's model-card comparison."
+        },
+        {
+          "id": "ministral-3-3b", "name": "Ministral 3 3B", "repo": "unsloth/Ministral-3-3B-Instruct-2512-GGUF",
+          "quants": ["IQ4_XS", "Q4_K_M", "Q5_K_M", "Q6_K", "Q8_0"], "mmproj": "-f16",
+          "capabilities": ["chat", "tools", "vision"],
+          "parameters": { "total": 3.4 }, "released": "2025-12-02",
+          "scores": { "everyday": 42, "coding": 32, "fast": 82 },
+          "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+          "basis": "Judged from size and the vendor's model-card comparison."
+        }
+      ]
+    },
+    {
+      "id": "phi", "name": "Phi", "publisher": "Microsoft",
+      "description": "Microsoft's small, efficient models; MIT licence.",
+      "models": [
+        {
+          "id": "phi-4", "name": "Phi-4 14B", "repo": "unsloth/phi-4-GGUF",
+          "quants": ["Q4_K_M", "Q5_K_M", "Q6_K", "Q8_0"],
+          "capabilities": ["chat"],
+          "parameters": { "total": 14.7 }, "released": "2024-12-12",
+          "scores": { "everyday": 60, "coding": 50 },
+          "licenseUrl": "https://opensource.org/license/mit",
+          "basis": "Older (16k context); kept as a compact reasoning-leaning option. Judged from the model card's GPQA 56.1."
+        },
+        {
+          "id": "phi-4-mini", "name": "Phi-4 mini 3.8B", "repo": "unsloth/Phi-4-mini-instruct-GGUF",
+          "quants": ["Q4_K_M", "Q5_K_M", "Q6_K", "Q8_0"],
+          "capabilities": ["chat", "tools"],
+          "parameters": { "total": 3.8 }, "released": "2025-02-26",
+          "scores": { "everyday": 44, "coding": 38, "fast": 78 },
+          "licenseUrl": "https://opensource.org/license/mit",
+          "basis": "Judged from size and age."
+        }
+      ]
+    },
+    {
+      "id": "deepseek-r1", "name": "DeepSeek R1", "publisher": "DeepSeek",
+      "description": "R1's reasoning distilled into a Qwen3 8B; MIT licence.",
+      "models": [
+        {
+          "id": "deepseek-r1-0528-qwen3-8b", "name": "DeepSeek R1 0528 (Qwen3 8B)", "repo": "unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF",
+          "quants": ["IQ4_XS", "Q4_K_M", "Q5_K_M", "Q6_K", "Q8_0"],
+          "capabilities": ["chat", "reasoning"],
+          "parameters": { "total": 8.2 }, "released": "2025-05-29",
+          "scores": { "everyday": 64, "coding": 58, "fast": 55 },
+          "licenseUrl": "https://opensource.org/license/mit",
+          "basis": "Judged from the distill's published AIME and LiveCodeBench results at 8B; older than the other picks."
+        }
+      ]
+    },
+    {
+      "id": "qwen2.5-coder", "name": "Qwen2.5-Coder", "publisher": "Qwen",
+      "description": "Small code models used for inline completion (fill-in-the-middle) next to a chat model.",
+      "models": [
+        {
+          "id": "qwen2.5-coder-7b", "name": "Qwen2.5-Coder 7B (completion)", "repo": "ggml-org/Qwen2.5-Coder-7B-Q8_0-GGUF",
+          "quants": ["Q8_0"],
+          "capabilities": ["fim"],
+          "parameters": { "total": 7.6 }, "released": "2024-09-17",
+          "scores": { "fim": 76 },
+          "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+          "basis": "llama.cpp ships a FIM preset for this model; judged from the Qwen2.5-Coder technical report's FIM results."
+        },
+        {
+          "id": "qwen2.5-coder-1.5b", "name": "Qwen2.5-Coder 1.5B (completion)", "repo": "ggml-org/Qwen2.5-Coder-1.5B-Q8_0-GGUF",
+          "quants": ["Q8_0"],
+          "capabilities": ["fim"],
+          "parameters": { "total": 1.5 }, "released": "2024-09-17",
+          "scores": { "fim": 62 },
+          "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+          "basis": "llama.cpp ships a FIM preset for this model; small enough to sit beside any chat model."
+        }
+      ]
+    },
+    {
+      "id": "embeddinggemma", "name": "EmbeddingGemma", "publisher": "Google",
+      "description": "A compact text embedding model for searching code and documents; Apache 2.0.",
+      "models": [
+        {
+          "id": "embeddinggemma-2", "name": "EmbeddingGemma 2", "repo": "ggml-org/embeddinggemma-2-GGUF",
+          "quants": ["Q8_0"],
+          "capabilities": ["embeddings"],
+          "parameters": { "total": 0.74 }, "released": "2026-10-06",
+          "scores": {},
+          "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+          "basis": "Model card; not ranked for chat roles."
+        }
+      ]
+    }
+  ]
+}

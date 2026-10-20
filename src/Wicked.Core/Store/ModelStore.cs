@@ -297,7 +297,7 @@ public sealed partial class ModelStore(string root)
 
         // Files whose names carry no quant (a hand-copied "Qwen3-8B.gguf") are still models.
         var covered = variants.SelectMany(v => v.Files).Select(f => f.Path).ToHashSet(StringComparer.Ordinal);
-        foreach (var file in files.Where(f => !covered.Contains(f.Full) && !GgufNames.Parse(f.Relative).IsMmproj))
+        foreach (var file in files.Where(f => !covered.Contains(f.Full) && GgufNames.Parse(f.Relative) is { IsMmproj: false, IsSidecar: false }))
         {
             var info = await ReadInfoAsync(file.Full, ct).ConfigureAwait(false);
             var stem = Path.GetFileNameWithoutExtension(file.Full);

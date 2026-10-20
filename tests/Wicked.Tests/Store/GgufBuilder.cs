@@ -21,6 +21,8 @@ internal sealed class GgufBuilder
 
     public GgufBuilder I32Array(string key, params int[] values) => Add(key, GgufType.Array, values, GgufType.Int32);
 
+    public GgufBuilder BoolArray(string key, params bool[] values) => Add(key, GgufType.Array, values, GgufType.Bool);
+
     public GgufBuilder StringArray(string key, params string[] values) => Add(key, GgufType.Array, values, GgufType.String);
 
     public GgufBuilder Llama(string arch = "llama", uint context = 8192, uint layers = 32, uint embedding = 4096, uint heads = 32, uint kvHeads = 8) =>
@@ -77,7 +79,12 @@ internal sealed class GgufBuilder
             case GgufType.Bool: w.Write((byte)((bool)value ? 1 : 0)); break;
             case GgufType.Array:
                 w.Write((uint)element!);
-                if (value is int[] ints)
+                if (value is bool[] flags)
+                {
+                    w.Write((ulong)flags.Length);
+                    foreach (var f in flags) w.Write((byte)(f ? 1 : 0));
+                }
+                else if (value is int[] ints)
                 {
                     w.Write((ulong)ints.Length);
                     foreach (var i in ints) w.Write(i);

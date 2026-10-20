@@ -24,6 +24,7 @@ public sealed record GgufValue(GgufType Type, object? Value, GgufType? ElementTy
     {
         float f => f,
         double d => d,
+        bool b => b ? 1 : 0,
         _ => AsInt64(),
     };
 
@@ -122,7 +123,7 @@ public static class GgufReader
                 var length = await r.U64().ConfigureAwait(false);
                 if (length > long.MaxValue) throw new InvalidDataException("Implausible array length");
                 var numeric = element is not (GgufType.String or GgufType.Array);
-                var keep = numeric && element != GgufType.Bool && (long)length <= MaxKeptArray;
+                var keep = numeric && (long)length <= MaxKeptArray;
                 var kept = keep ? new double[length] : null;
                 for (long i = 0; i < (long)length; i++)
                 {
@@ -166,7 +167,10 @@ public static class GgufReader
 /// <summary>
 /// The facts about a model that fit and listing code need, taken from the well-known GGUF keys. <c>HeadCountKv</c> is the
 /// average number of key/value heads per layer (grouped-query attention): exact when the file gives one number, a mean when
-/// it gives one per layer.
+/// it gives one per layer. The attention layout fields describe models whose layers do not all keep a full-context cache:
+/// <c>SlidingPattern</c> (true = windowed layer, as Gemma writes it), <c>RecurrentLayers</c> (true = no KV cache, linear
+/// attention), <c>FullAttentionInterval</c> (every Nth layer is full attention, as Qwen's hybrids write it) and
+/// <c>SharedKvLayers</c> (trailing layers that reuse earlier layers' cache).
 /// </summary>
 public sealed record GgufInfo(
     string? Architecture,
@@ -181,13 +185,21 @@ public sealed record GgufInfo(
     int? ExpertCount,
     int? ExpertUsedCount,
     int? SlidingWindow,
-    long? FileType)
+    long? FileType,
+    IReadOnlyList<bool>? SlidingPattern = null,
+    IReadOnlyList<bool>? RecurrentLayers = null,
+    int? FullAttentionInterval = null,
+    int? SharedKvLayers = null,
+    int? KeyLengthSwa = null,
+    int? ValueLengthSwa = null)
 {
     public static GgufInfo From(GgufHeader h)
     {
         var arch = h.String("general.architecture");
         long? Get(string suffix) => arch is null ? null : h.Int($"{arch}.{suffix}");
         int? GetInt(string suffix) => Get(suffix) is { } v ? (int)v : null;
+        IReadOnlyList<bool>? Flags(string suffix) =>
+            arch is not null && h.Numbers($"{arch}.{suffix}") is { Count: > 0 } n ? [.. n.Select(x => x != 0)] : null;
 
         double? kv = null;
         if (arch is not null)
@@ -218,7 +230,13 @@ public sealed record GgufInfo(
             GetInt("expert_count"),
             GetInt("expert_used_count"),
             GetInt("attention.sliding_window"),
-            h.Int("general.file_type"));
+            h.Int("general.file_type"),
+            Flags("attention.sliding_window_pattern"),
+            Flags("attention.recurrent_layers"),
+            GetInt("full_attention_interval"),
+            GetInt("attention.shared_kv_layers"),
+            GetInt("attention.key_length_swa"),
+            GetInt("attention.value_length_swa"));
     }
 
     /// <summary>Key (and value) width per head: stated in the file, else the embedding width divided by the head count.</summary>

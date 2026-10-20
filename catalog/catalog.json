@@ -1,0 +1,3790 @@
+{
+  "schema": 1,
+  "generated": "2026-10-20T22:17:29+00:00",
+  "families": [
+    {
+      "id": "qwen3.8",
+      "name": "Qwen3.8",
+      "publisher": "Qwen",
+      "description": "Alibaba\u0027s newest general model: strong reasoning and agentic coding, sees images.",
+      "models": [
+        {
+          "id": "qwen3.8-27b",
+          "name": "Qwen3.8 27B",
+          "repo": "bartowski/Qwen3.8-27B-GGUF",
+          "revision": "87410e7b9a5c21e6ca70c0c9cc5237de909fe621",
+          "licenseId": "apache-2.0",
+          "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+          "gated": false,
+          "capabilities": [
+            "chat",
+            "tools",
+            "reasoning",
+            "vision"
+          ],
+          "contextLength": 262144,
+          "parameters": {
+            "total": 27.3
+          },
+          "released": "2026-08-13",
+          "scores": {
+            "everyday": 93,
+            "coding": 95
+          },
+          "supersedes": [
+            "qwen3.6-27b"
+          ],
+          "shape": {
+            "layers": 65,
+            "fullLayers": 17,
+            "windowLayers": 0,
+            "window": 0,
+            "kvHeads": 4,
+            "keyLength": 256,
+            "valueLength": 256,
+            "windowKeyLength": 256,
+            "windowValueLength": 256
+          },
+          "tiers": [
+            {
+              "quant": "IQ4_XS",
+              "files": [
+                {
+                  "path": "Qwen3.8-27B-IQ4_XS.gguf",
+                  "size": 15475951328,
+                  "sha256": "4b927360fa7c4aa41a734302f0795ca45df0e8b8a258bc76cc5fbf9d98a484db"
+                }
+              ],
+              "quality": 87
+            },
+            {
+              "quant": "Q4_K_M",
+              "files": [
+                {
+                  "path": "Qwen3.8-27B-Q4_K_M.gguf",
+                  "size": 17442399968,
+                  "sha256": "880a52af8317974f7b4b064a6bc29ff49e188b91aa218e08eea3078b6b1cc673"
+                }
+              ],
+              "quality": 90
+            },
+            {
+              "quant": "Q5_K_M",
+              "files": [
+                {
+                  "path": "Qwen3.8-27B-Q5_K_M.gguf",
+                  "size": 20923877088,
+                  "sha256": "9f0a899d43b29285a02da149f9b62f007d7b5d5fd59afe9f46dda1b891636b0a"
+                }
+              ],
+              "quality": 95
+            },
+            {
+              "quant": "Q6_K",
+              "files": [
+                {
+                  "path": "Qwen3.8-27B-Q6_K.gguf",
+                  "size": 23860565728,
+                  "sha256": "539041d2cf400b02f53a53cae54339ea65103d276645a34a68eac1c8d69a9db3"
+                }
+              ],
+              "quality": 97
+            },
+            {
+              "quant": "Q8_0",
+              "files": [
+                {
+                  "path": "Qwen3.8-27B-Q8_0.gguf",
+                  "size": 29116388960,
+                  "sha256": "a830e736efa71ce29589ff20b8713333a427e0d46ab774723be23800ad54362d"
+                }
+              ],
+              "quality": 99
+            }
+          ],
+          "mmproj": {
+            "path": "mmproj-Qwen3.8-27B-f16.gguf",
+            "size": 927607008,
+            "sha256": "cb0a71fe9b84af2552fc6260acf8e9773a29d115c683aba01c72a7ac537b212b"
+          }
+        }
+      ]
+    },
+    {
+      "id": "qwen3.6",
+      "name": "Qwen3.6",
+      "publisher": "Qwen",
+      "description": "The previous Qwen generation: a fast 35B mixture-of-experts and a 27B dense model.",
+      "models": [
+        {
+          "id": "qwen3.6-35b-a3b",
+          "name": "Qwen3.6 35B-A3B",
+          "repo": "bartowski/Qwen_Qwen3.6-35B-A3B-GGUF",
+          "revision": "5c2410d71524f4f72b023ce8daf7a80528226d5f",
+          "licenseId": "apache-2.0",
+          "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+          "gated": false,
+          "capabilities": [
+            "chat",
+            "tools",
+            "reasoning",
+            "vision"
+          ],
+          "contextLength": 262144,
+          "parameters": {
+            "total": 35.5,
+            "active": 3
+          },
+          "released": "2026-04-16",
+          "scores": {
+            "everyday": 87,
+            "coding": 86,
+            "fast": 82
+          },
+          "supersedes": [],
+          "shape": {
+            "layers": 41,
+            "fullLayers": 10,
+            "windowLayers": 0,
+            "window": 0,
+            "kvHeads": 2,
+            "keyLength": 256,
+            "valueLength": 256,
+            "windowKeyLength": 256,
+            "windowValueLength": 256
+          },
+          "tiers": [
+            {
+              "quant": "IQ4_XS",
+              "files": [
+                {
+                  "path": "Qwen_Qwen3.6-35B-A3B-IQ4_XS.gguf",
+                  "size": 19699553920,
+                  "sha256": "afc7238af403ed454b7846454091b5e38b07575bdbb64c3e86777414dde4193c"
+                }
+              ],
+              "quality": 87
+            },
+            {
+              "quant": "Q4_K_M",
+              "files": [
+                {
+                  "path": "Qwen_Qwen3.6-35B-A3B-Q4_K_M.gguf",
+                  "size": 22285080192,
+                  "sha256": "b46fedd33e0bfb0cae308aa3c158d0a4b2c4a1d2185a1ed6f093cdaf39064772"
+                }
+              ],
+              "quality": 90
+            },
+            {
+              "quant": "Q5_K_M",
+              "files": [
+                {
+                  "path": "Qwen_Qwen3.6-35B-A3B-Q5_K_M.gguf",
+                  "size": 25913185920,
+                  "sha256": "ec438d1326eb11d8bb94785c54739cd4b60b01ae32bd8532e232a046b19d296d"
+                }
+              ],
+              "quality": 95
+            },
+            {
+              "quant": "Q6_K",
+              "files": [
+                {
+                  "path": "Qwen_Qwen3.6-35B-A3B-Q6_K.gguf",
+                  "size": 30947309184,
+                  "sha256": "a97ef79439194d8ec722bc0b6c316f0c41c0b477b35bbae8177c772ecbb0eb91"
+                }
+              ],
+              "quality": 97
+            },
+            {
+              "quant": "Q8_0",
+              "files": [
+                {
+                  "path": "Qwen_Qwen3.6-35B-A3B-Q8_0.gguf",
+                  "size": 37812647552,
+                  "sha256": "bc57de096ec30e45773aa86103f35a8a32cea01f2193a53a3c636d618e4434e9"
+                }
+              ],
+              "quality": 99
+            }
+          ],
+          "mmproj": {
+            "path": "mmproj-Qwen_Qwen3.6-35B-A3B-f16.gguf",
+            "size": 899283296,
+            "sha256": "67924785ff1885c2b34c15d0e52979e991acca64221694ba2cc3a6474a053fb4"
+          }
+        },
+        {
+          "id": "qwen3.6-27b",
+          "name": "Qwen3.6 27B",
+          "repo": "unsloth/Qwen3.6-27B-GGUF",
+          "revision": "82d411acf4a06cfb8d9b073a5211bf410bfc29bf",
+          "licenseId": "apache-2.0",
+          "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+          "gated": false,
+          "capabilities": [
+            "chat",
+            "tools",
+            "reasoning",
+            "vision"
+          ],
+          "contextLength": 262144,
+          "parameters": {
+            "total": 26.9
+          },
+          "released": "2026-04-22",
+          "scores": {
+            "everyday": 89,
+            "coding": 90
+          },
+          "supersedes": [],
+          "shape": {
+            "layers": 64,
+            "fullLayers": 16,
+            "windowLayers": 0,
+            "window": 0,
+            "kvHeads": 4,
+            "keyLength": 256,
+            "valueLength": 256,
+            "windowKeyLength": 256,
+            "windowValueLength": 256
+          },
+          "tiers": [
+            {
+              "quant": "IQ4_XS",
+              "files": [
+                {
+                  "path": "Qwen3.6-27B-IQ4_XS.gguf",
+                  "size": 15440005344,
+                  "sha256": "8a3365759dc1b33b52c4e7d91d5a67d5ee1418e8408aa54196f04a98da53e5dc"
+                }
+              ],
+              "quality": 87
+            },
+            {
+              "quant": "Q4_K_M",
+              "files": [
+                {
+                  "path": "Qwen3.6-27B-Q4_K_M.gguf",
+                  "size": 16817244384,
+                  "sha256": "5ed60d0af4650a854b1755bd392f9aef4872643dc25a254bc68043fa638392a0"
+                }
+              ],
+              "quality": 90
+            },
+            {
+              "quant": "Q5_K_M",
+              "files": [
+                {
+                  "path": "Qwen3.6-27B-Q5_K_M.gguf",
+                  "size": 19509790944,
+                  "sha256": "cfecab168156269f25d5ffe9e13cf2a401ca2f43a9693fa00bcd1625316ccbde"
+                }
+              ],
+              "quality": 95
+            },
+            {
+              "quant": "Q6_K",
+              "files": [
+                {
+                  "path": "Qwen3.6-27B-Q6_K.gguf",
+                  "size": 22523238624,
+                  "sha256": "ec1805fe87e6519c461c1ed2d179865464a875ed241032ead65a354f979cfe14"
+                }
+              ],
+              "quality": 97
+            },
+            {
+              "quant": "Q8_0",
+              "files": [
+                {
+                  "path": "Qwen3.6-27B-Q8_0.gguf",
+                  "size": 28595763424,
+                  "sha256": "f93f517f38e696d35a1a7df2c0e3155a64f4c4dcd662107a146ae263f7fb14ce"
+                }
+              ],
+              "quality": 99
+            }
+          ],
+          "mmproj": {
+            "path": "mmproj-F16.gguf",
+            "size": 927607360,
+            "sha256": "eacf610d1ee4bd5ed0197a0777dd8f4fceb8eefa27009067c7d496cb68fbde45"
+          }
+        }
+      ]
+    },
+    {
+      "id": "qwen3-coder",
+      "name": "Qwen3-Coder",
+      "publisher": "Qwen",
+      "description": "Coding-specialised Qwen models; the 30B-A3B also does fill-in-the-middle completion.",
+      "models": [
+        {
+          "id": "qwen3-coder-next",
+          "name": "Qwen3-Coder-Next 80B-A3B",
+          "repo": "bartowski/Qwen_Qwen3-Coder-Next-GGUF",
+          "revision": "d32741c4b434bf1f927798d0c093564c7f4e92fd",
+          "licenseId": "apache-2.0",
+          "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+          "gated": false,
+          "capabilities": [
+            "chat",
+            "tools"
+          ],
+          "contextLength": 262144,
+          "parameters": {
+            "total": 79.7,
+            "active": 3
+          },
+          "released": "2026-02-03",
+          "scores": {
+            "everyday": 74,
+            "coding": 84
+          },
+          "supersedes": [
+            "qwen3-coder-30b-a3b"
+          ],
+          "shape": {
+            "layers": 48,
+            "fullLayers": 12,
+            "windowLayers": 0,
+            "window": 0,
+            "kvHeads": 2,
+            "keyLength": 256,
+            "valueLength": 256,
+            "windowKeyLength": 256,
+            "windowValueLength": 256
+          },
+          "tiers": [
+            {
+              "quant": "IQ4_XS",
+              "files": [
+                {
+                  "path": "Qwen_Qwen3-Coder-Next-IQ4_XS.gguf",
+                  "size": 42848224960,
+                  "sha256": "eab7983fe40daf4a29281fa66c830a80248a7ef694c483940eb28ec658f39a84"
+                }
+              ],
+              "quality": 87
+            },
+            {
+              "quant": "Q4_K_M",
+              "files": [
+                {
+                  "path": "Qwen_Qwen3-Coder-Next-Q4_K_M.gguf",
+                  "size": 48727680704,
+                  "sha256": "78f38fe85daaab51f0e1e5abd19c8721a4980ce49774d8c3d8569c1b8e5de1e4"
+                }
+              ],
+              "quality": 90
+            },
+            {
+              "quant": "Q5_K_M",
+              "files": [
+                {
+                  "path": "Qwen_Qwen3-Coder-Next-Q5_K_M/Qwen_Qwen3-Coder-Next-Q5_K_M-00001-of-00002.gguf",
+                  "size": 39982180256,
+                  "sha256": "36c0675fe354157c5d4f25bf9492e58cfd52b310644d316e74ecffe4590565cb"
+                },
+                {
+                  "path": "Qwen_Qwen3-Coder-Next-Q5_K_M/Qwen_Qwen3-Coder-Next-Q5_K_M-00002-of-00002.gguf",
+                  "size": 16998875136,
+                  "sha256": "4b1a8079c61b4b110dd59ac6d90318342cd90568a779fb24308626ab7a31d3e9"
+                }
+              ],
+              "quality": 95
+            },
+            {
+              "quant": "Q6_K",
+              "files": [
+                {
+                  "path": "Qwen_Qwen3-Coder-Next-Q6_K/Qwen_Qwen3-Coder-Next-Q6_K-00001-of-00002.gguf",
+                  "size": 39981161376,
+                  "sha256": "228031d721759b25a2452593252ffbb19864aee6fed43c7b26d5c152949cf40a"
+                },
+                {
+                  "path": "Qwen_Qwen3-Coder-Next-Q6_K/Qwen_Qwen3-Coder-Next-Q6_K-00002-of-00002.gguf",
+                  "size": 25810723808,
+                  "sha256": "572cde32620511cd674a6117c26d74b5c8e6dd04cde787c98114565db40cd06b"
+                }
+              ],
+              "quality": 97
+            }
+          ]
+        },
+        {
+          "id": "qwen3-coder-30b-a3b",
+          "name": "Qwen3-Coder 30B-A3B",
+          "repo": "unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF",
+          "revision": "b17cb02dd882d5b6ab62fc777ad2995f19668350",
+          "licenseId": "apache-2.0",
+          "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+          "gated": false,
+          "capabilities": [
+            "chat",
+            "tools",
+            "fim"
+          ],
+          "contextLength": 262144,
+          "parameters": {
+            "total": 30.5,
+            "active": 3.3
+          },
+          "released": "2025-07-31",
+          "scores": {
+            "everyday": 58,
+            "coding": 68,
+            "fast": 76,
+            "fim": 82
+          },
+          "supersedes": [],
+          "shape": {
+            "layers": 48,
+            "fullLayers": 48,
+            "windowLayers": 0,
+            "window": 0,
+            "kvHeads": 4,
+            "keyLength": 128,
+            "valueLength": 128,
+            "windowKeyLength": 128,
+            "windowValueLength": 128
+          },
+          "tiers": [
+            {
+              "quant": "IQ4_XS",
+              "files": [
+                {
+                  "path": "Qwen3-Coder-30B-A3B-Instruct-IQ4_XS.gguf",
+                  "size": 16378076320,
+                  "sha256": "26cd4fef3ada9de84c6c59c4b93f9bc5df4d69a71e18cfe8a17369c2f8374ce7"
+                }
+              ],
+              "quality": 87
+            },
+            {
+              "quant": "Q4_K_M",
+              "files": [
+                {
+                  "path": "Qwen3-Coder-30B-A3B-Instruct-Q4_K_M.gguf",
+                  "size": 18556689568,
+                  "sha256": "fadc3e5f8d42bf7e894a785b05082e47daee4df26680389817e2093056f088ad"
+                }
+              ],
+              "quality": 90
+            },
+            {
+              "quant": "Q5_K_M",
+              "files": [
+                {
+                  "path": "Qwen3-Coder-30B-A3B-Instruct-Q5_K_M.gguf",
+                  "size": 21725584544,
+                  "sha256": "4b78837bbec5ee248e4a5642bf608b6793721af41b92589e40c8da0bce58b907"
+                }
+              ],
+              "quality": 95
+            },
+            {
+              "quant": "Q6_K",
+              "files": [
+                {
+                  "path": "Qwen3-Coder-30B-A3B-Instruct-Q6_K.gguf",
+                  "size": 25092535456,
+                  "sha256": "100b5121d09553fb1af3b873b21fb3ec3da5c306fc5cb09bd338c48e21b10875"
+                }
+              ],
+              "quality": 97
+            },
+            {
+              "quant": "Q8_0",
+              "files": [
+                {
+                  "path": "Qwen3-Coder-30B-A3B-Instruct-Q8_0.gguf",
+                  "size": 32483935392,
+                  "sha256": "4ff1cff607804037bf6d2168249c570baa4e1621292b159c0e06591e0d7c3066"
+                }
+              ],
+              "quality": 99
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gemma-4",
+      "name": "Gemma 4",
+      "publisher": "Google",
+      "description": "Google\u0027s open multimodal models, from phone-sized to a 26B mixture-of-experts; Apache 2.0.",
+      "models": [
+        {
+          "id": "gemma-4-26b-a4b",
+          "name": "Gemma 4 26B-A4B",
+          "repo": "bartowski/google_gemma-4-26B-A4B-it-GGUF",
+          "revision": "10f3b41bcf8d3047f4e136e7197ffc2dd1654c9d",
+          "licenseId": "apache-2.0",
+          "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+          "gated": false,
+          "capabilities": [
+            "chat",
+            "tools",
+            "reasoning",
+            "vision"
+          ],
+          "contextLength": 262144,
+          "parameters": {
+            "total": 25.2,
+            "active": 3.8
+          },
+          "released": "2026-04-01",
+          "scores": {
+            "everyday": 82,
+            "coding": 58,
+            "fast": 80
+          },
+          "supersedes": [],
+          "shape": {
+            "layers": 30,
+            "fullLayers": 5,
+            "windowLayers": 25,
+            "window": 1024,
+            "kvHeads": 7,
+            "keyLength": 512,
+            "valueLength": 512,
+            "windowKeyLength": 256,
+            "windowValueLength": 256
+          },
+          "tiers": [
+            {
+              "quant": "IQ4_XS",
+              "files": [
+                {
+                  "path": "google_gemma-4-26B-A4B-it-IQ4_XS.gguf",
+                  "size": 14205004928,
+                  "sha256": "86f0f6ca5f622bca4506f7849eee3459d0cac867b919630132145efd452ee8b9"
+                }
+              ],
+              "quality": 87
+            },
+            {
+              "quant": "Q4_K_M",
+              "files": [
+                {
+                  "path": "google_gemma-4-26B-A4B-it-Q4_K_M.gguf",
+                  "size": 17035039872,
+                  "sha256": "a07f72221e8e3f77455ab0d7f7652d01a9f63c262b954aa6932a53275a0e895a"
+                }
+              ],
+              "quality": 90
+            },
+            {
+              "quant": "Q5_K_M",
+              "files": [
+                {
+                  "path": "google_gemma-4-26B-A4B-it-Q5_K_M.gguf",
+                  "size": 19319198848,
+                  "sha256": "6b4f8074239f72543997a950ff6ae4509553c599f5b432748309ff3438416493"
+                }
+              ],
+              "quality": 95
+            },
+            {
+              "quant": "Q6_K",
+              "files": [
+                {
+                  "path": "google_gemma-4-26B-A4B-it-Q6_K.gguf",
+                  "size": 22862577280,
+                  "sha256": "dd9f8a9f4646258bd97e1241899ecd875ad51572bcf6de44d09dab30662983f1"
+                }
+              ],
+              "quality": 97
+            },
+            {
+              "quant": "Q8_0",
+              "files": [
+                {
+                  "path": "google_gemma-4-26B-A4B-it-Q8_0.gguf",
+                  "size": 26859861120,
+                  "sha256": "1bb7fdb37fbd542ba972b3eb83ae87752bb9063aff560402e0e2f64235c85226"
+                }
+              ],
+              "quality": 99
+            }
+          ],
+          "mmproj": {
+            "path": "mmproj-google_gemma-4-26B-A4B-it-f16.gguf",
+            "size": 1193058528,
+            "sha256": "41cdabd1e8066e983ee6c288eb0117777376223ee0279cadcd67b2295e4d975f"
+          }
+        },
+        {
+          "id": "gemma-4-12b",
+          "name": "Gemma 4 12B",
+          "repo": "unsloth/gemma-4-12b-it-GGUF",
+          "revision": "fc034cfff751157913579611efad8462ac1be606",
+          "licenseId": "apache-2.0",
+          "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+          "gated": false,
+          "capabilities": [
+            "chat",
+            "tools",
+            "reasoning",
+            "vision"
+          ],
+          "contextLength": 262144,
+          "parameters": {
+            "total": 11.9
+          },
+          "released": "2026-05-29",
+          "scores": {
+            "everyday": 74,
+            "coding": 52,
+            "fast": 72
+          },
+          "supersedes": [],
+          "shape": {
+            "layers": 48,
+            "fullLayers": 8,
+            "windowLayers": 40,
+            "window": 1024,
+            "kvHeads": 6.833333333333333,
+            "keyLength": 512,
+            "valueLength": 512,
+            "windowKeyLength": 256,
+            "windowValueLength": 256
+          },
+          "tiers": [
+            {
+              "quant": "IQ4_XS",
+              "files": [
+                {
+                  "path": "gemma-4-12b-it-IQ4_XS.gguf",
+                  "size": 6375734080,
+                  "sha256": "b0037d0e0de0290177045ca214b2a0fb1079d18bde57842b3ca32f5b0cd76774"
+                }
+              ],
+              "quality": 87
+            },
+            {
+              "quant": "Q4_K_M",
+              "files": [
+                {
+                  "path": "gemma-4-12b-it-Q4_K_M.gguf",
+                  "size": 7121861440,
+                  "sha256": "0a270ec9fe6b34f4a0d33992b6135117b484ebc4766ab76b51d4ae8c457e4c42"
+                }
+              ],
+              "quality": 90
+            },
+            {
+              "quant": "Q5_K_M",
+              "files": [
+                {
+                  "path": "gemma-4-12b-it-Q5_K_M.gguf",
+                  "size": 8413576000,
+                  "sha256": "32c554c7d1338a23837ae39b3db482213a4a642f96df3b2619f516a2375d16cd"
+                }
+              ],
+              "quality": 95
+            },
+            {
+              "quant": "Q6_K",
+              "files": [
+                {
+                  "path": "gemma-4-12b-it-Q6_K.gguf",
+                  "size": 9786022720,
+                  "sha256": "6f394336500bb5409bd68c31aa9d75097b5e6104f6cf30c82a09a7b64df41faf"
+                }
+              ],
+              "quality": 97
+            },
+            {
+              "quant": "Q8_0",
+              "files": [
+                {
+                  "path": "gemma-4-12b-it-Q8_0.gguf",
+                  "size": 12669647680,
+                  "sha256": "f20e7ff1be28c283eeeb18fc895733791c56a5851d5cd3fe9691b7f7d12afa72"
+                }
+              ],
+              "quality": 99
+            }
+          ],
+          "mmproj": {
+            "path": "mmproj-F16.gguf",
+            "size": 175115840,
+            "sha256": "91f086971e56d7a7d8d39e271873fccdb49541bd259d6e02c401a4f1cb7a219e"
+          }
+        },
+        {
+          "id": "gemma-4-e4b",
+          "name": "Gemma 4 E4B",
+          "repo": "bartowski/google_gemma-4-E4B-it-GGUF",
+          "revision": "029e94146666900b08caf49a3b47b413dfa8ec66",
+          "licenseId": "apache-2.0",
+          "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+          "gated": false,
+          "capabilities": [
+            "chat",
+            "tools",
+            "reasoning",
+            "vision"
+          ],
+          "contextLength": 131072,
+          "parameters": {
+            "total": 7.5,
+            "active": 4
+          },
+          "released": "2026-04-01",
+          "scores": {
+            "everyday": 58,
+            "coding": 38,
+            "fast": 85
+          },
+          "supersedes": [],
+          "shape": {
+            "layers": 42,
+            "fullLayers": 4,
+            "windowLayers": 20,
+            "window": 512,
+            "kvHeads": 2,
+            "keyLength": 512,
+            "valueLength": 512,
+            "windowKeyLength": 256,
+            "windowValueLength": 256
+          },
+          "tiers": [
+            {
+              "quant": "IQ4_XS",
+              "files": [
+                {
+                  "path": "google_gemma-4-E4B-it-IQ4_XS.gguf",
+                  "size": 5112828384,
+                  "sha256": "a24429604e6f680e7bdf087b863a6cecc90f80b3d908f95d888f4f05003fdee3"
+                }
+              ],
+              "quality": 87
+            },
+            {
+              "quant": "Q4_K_M",
+              "files": [
+                {
+                  "path": "google_gemma-4-E4B-it-Q4_K_M.gguf",
+                  "size": 5405170144,
+                  "sha256": "d35a3aa7a6d47de237fd488bb6f7f3efd62908d828f85a63da0ee93acdbefe9f"
+                }
+              ],
+              "quality": 90
+            },
+            {
+              "quant": "Q5_K_M",
+              "files": [
+                {
+                  "path": "google_gemma-4-E4B-it-Q5_K_M.gguf",
+                  "size": 5820883424,
+                  "sha256": "1c57b87a06a7c0fd1b9fa8f5d5e505b720c15099648e0dcdc78acd857f72a7cc"
+                }
+              ],
+              "quality": 95
+            },
+            {
+              "quant": "Q6_K",
+              "files": [
+                {
+                  "path": "google_gemma-4-E4B-it-Q6_K.gguf",
+                  "size": 6329954784,
+                  "sha256": "bea1c94443c91fff61a722d9da5cd3f1cf0196d1e914798ee89d3c00ea365df9"
+                }
+              ],
+              "quality": 97
+            },
+            {
+              "quant": "Q8_0",
+              "files": [
+                {
+                  "path": "google_gemma-4-E4B-it-Q8_0.gguf",
+                  "size": 8031242720,
+                  "sha256": "6a6eba0d36a051b5d924211a889c1436717006e7c5d413830c47caa1d46cb598"
+                }
+              ],
+              "quality": 99
+            }
+          ],
+          "mmproj": {
+            "path": "mmproj-google_gemma-4-E4B-it-f16.gguf",
+            "size": 990372352,
+            "sha256": "fd29ffa385f51ed8df3e8f48a865c7997ff6d01ed50c11bed2ae90f0d75f104e"
+          }
+        },
+        {
+          "id": "gemma-4-e2b",
+          "name": "Gemma 4 E2B",
+          "repo": "bartowski/google_gemma-4-E2B-it-GGUF",
+          "revision": "81012ba3538e061d5ee003f11f25335b17f82e2d",
+          "licenseId": "apache-2.0",
+          "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+          "gated": false,
+          "capabilities": [
+            "chat",
+            "tools",
+            "vision"
+          ],
+          "contextLength": 131072,
+          "parameters": {
+            "total": 4.6,
+            "active": 2
+          },
+          "released": "2026-04-01",
+          "scores": {
+            "everyday": 45,
+            "coding": 28,
+            "fast": 90
+          },
+          "supersedes": [],
+          "shape": {
+            "layers": 35,
+            "fullLayers": 3,
+            "windowLayers": 12,
+            "window": 512,
+            "kvHeads": 1,
+            "keyLength": 512,
+            "valueLength": 512,
+            "windowKeyLength": 256,
+            "windowValueLength": 256
+          },
+          "tiers": [
+            {
+              "quant": "IQ4_XS",
+              "files": [
+                {
+                  "path": "google_gemma-4-E2B-it-IQ4_XS.gguf",
+                  "size": 3324311008,
+                  "sha256": "41326b0d673997e4791153a96f6e452bc70460a760ed92994c24ca187ae8c6c2"
+                }
+              ],
+              "quality": 87
+            },
+            {
+              "quant": "Q4_K_M",
+              "files": [
+                {
+                  "path": "google_gemma-4-E2B-it-Q4_K_M.gguf",
+                  "size": 3462680032,
+                  "sha256": "923c4c86177d2ee173a7f5b4fa3d0ac65f5962ab15e6d6a5bc250aec4fd7bf7e"
+                }
+              ],
+              "quality": 90
+            },
+            {
+              "quant": "Q5_K_M",
+              "files": [
+                {
+                  "path": "google_gemma-4-E2B-it-Q5_K_M.gguf",
+                  "size": 3658384864,
+                  "sha256": "e0400afe4c2cc8069238bff9f6e990cd4e087f76aa8fc35a6f076874d0d6dac7"
+                }
+              ],
+              "quality": 95
+            },
+            {
+              "quant": "Q6_K",
+              "files": [
+                {
+                  "path": "google_gemma-4-E2B-it-Q6_K.gguf",
+                  "size": 3898486240,
+                  "sha256": "d7ea8cdd30d8e15bf11e5a37e8c141a600ad161d847165591fe86ab0288fb9d4"
+                }
+              ],
+              "quality": 97
+            },
+            {
+              "quant": "Q8_0",
+              "files": [
+                {
+                  "path": "google_gemma-4-E2B-it-Q8_0.gguf",
+                  "size": 4967497184,
+                  "sha256": "bb145c0e8c2ede3b6992b881f7eefe6b33275eeb9998f450b5c72f4eb1d78732"
+                }
+              ],
+              "quality": 99
+            }
+          ],
+          "mmproj": {
+            "path": "mmproj-google_gemma-4-E2B-it-f16.gguf",
+            "size": 985653760,
+            "sha256": "3397f2e15859d268dc91782e92e70c485c7780448d57d622d145374390168f71"
+          }
+        }
+      ]
+    },
+    {
+      "id": "glm",
+      "name": "GLM",
+      "publisher": "Z.ai",
+      "description": "Zhipu\u0027s GLM Flash line: a 30B mixture-of-experts with reasoning and tool calls; MIT licence.",
+      "models": [
+        {
+          "id": "glm-4.7-flash",
+          "name": "GLM-4.7 Flash 30B-A3B",
+          "repo": "unsloth/GLM-4.7-Flash-GGUF",
+          "revision": "0d32489ecb9db6d2a4fc93bd27ef01519f95474d",
+          "licenseId": "mit",
+          "licenseUrl": "https://opensource.org/license/mit",
+          "gated": false,
+          "capabilities": [
+            "chat",
+            "tools",
+            "reasoning"
+          ],
+          "contextLength": 202752,
+          "parameters": {
+            "total": 29.9,
+            "active": 3
+          },
+          "released": "2026-01-20",
+          "scores": {
+            "everyday": 74,
+            "coding": 68,
+            "fast": 74
+          },
+          "supersedes": [],
+          "shape": {
+            "layers": 47,
+            "fullLayers": 47,
+            "windowLayers": 0,
+            "window": 0,
+            "kvHeads": 1,
+            "keyLength": 576,
+            "valueLength": 512,
+            "windowKeyLength": 576,
+            "windowValueLength": 512
+          },
+          "tiers": [
+            {
+              "quant": "IQ4_XS",
+              "files": [
+                {
+                  "path": "GLM-4.7-Flash-IQ4_XS.gguf",
+                  "size": 16271360352,
+                  "sha256": "44ad6ab1885f3fd2282b1b684df729868ef2da65fd8adeab4eb848b25ac3925b"
+                }
+              ],
+              "quality": 87
+            },
+            {
+              "quant": "Q4_K_M",
+              "files": [
+                {
+                  "path": "GLM-4.7-Flash-Q4_K_M.gguf",
+                  "size": 18312339808,
+                  "sha256": "29837ed2c0fc5f51981adf8ac8083fcf80743c598381f13e9f06cbad0498b174"
+                }
+              ],
+              "quality": 90
+            },
+            {
+              "quant": "Q5_K_M",
+              "files": [
+                {
+                  "path": "GLM-4.7-Flash-Q5_K_M.gguf",
+                  "size": 21408850272,
+                  "sha256": "167848c4b460887d7a52c44c378d3996a0d38b3302ac2045494dc8b50869a893"
+                }
+              ],
+              "quality": 95
+            },
+            {
+              "quant": "Q6_K",
+              "files": [
+                {
+                  "path": "GLM-4.7-Flash-Q6_K.gguf",
+                  "size": 24693098848,
+                  "sha256": "f5bdc431802d7a3dab3be5a50ad0848a5569fd45c98c5e2ad83412c87cd887dc"
+                }
+              ],
+              "quality": 97
+            },
+            {
+              "quant": "Q8_0",
+              "files": [
+                {
+                  "path": "GLM-4.7-Flash-Q8_0.gguf",
+                  "size": 31842799968,
+                  "sha256": "8c0922b03326932a40315ce92bbee01cc836ad18664268019143c898bdd7dd0b"
+                }
+              ],
+              "quality": 99
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gpt-oss",
+      "name": "gpt-oss",
+      "publisher": "OpenAI",
+      "description": "OpenAI\u0027s open-weight reasoning models, shipped in 4-bit (MXFP4); Apache 2.0.",
+      "models": [
+        {
+          "id": "gpt-oss-20b",
+          "name": "gpt-oss 20B",
+          "repo": "ggml-org/gpt-oss-20b-GGUF",
+          "revision": "15dcfc7e7c608c6161507211ed43c5b590801b4b",
+          "licenseId": "apache-2.0",
+          "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+          "gated": false,
+          "capabilities": [
+            "chat",
+            "tools",
+            "reasoning"
+          ],
+          "contextLength": 131072,
+          "parameters": {
+            "total": 20.9,
+            "active": 3.6
+          },
+          "released": "2025-08-05",
+          "scores": {
+            "everyday": 74,
+            "coding": 62,
+            "fast": 80
+          },
+          "supersedes": [],
+          "shape": {
+            "layers": 24,
+            "fullLayers": 12,
+            "windowLayers": 12,
+            "window": 128,
+            "kvHeads": 8,
+            "keyLength": 64,
+            "valueLength": 64,
+            "windowKeyLength": 64,
+            "windowValueLength": 64
+          },
+          "tiers": [
+            {
+              "quant": "MXFP4",
+              "files": [
+                {
+                  "path": "gpt-oss-20b-MXFP4.gguf",
+                  "size": 12109566624,
+                  "sha256": "27cd6c432c7672cb812a92f611cf3ba7bbc35928262bb1e1253ff4ee6ae35901"
+                }
+              ],
+              "quality": 92
+            }
+          ]
+        },
+        {
+          "id": "gpt-oss-120b",
+          "name": "gpt-oss 120B",
+          "repo": "ggml-org/gpt-oss-120b-GGUF",
+          "revision": "7200b74bea78b0a2964ef9f3897eefa401e890ff",
+          "licenseId": "apache-2.0",
+          "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+          "gated": false,
+          "capabilities": [
+            "chat",
+            "tools",
+            "reasoning"
+          ],
+          "contextLength": 131072,
+          "parameters": {
+            "total": 116.8,
+            "active": 5.1
+          },
+          "released": "2025-08-05",
+          "scores": {
+            "everyday": 85,
+            "coding": 74
+          },
+          "supersedes": [],
+          "shape": {
+            "layers": 36,
+            "fullLayers": 18,
+            "windowLayers": 18,
+            "window": 128,
+            "kvHeads": 8,
+            "keyLength": 64,
+            "valueLength": 64,
+            "windowKeyLength": 64,
+            "windowValueLength": 64
+          },
+          "tiers": [
+            {
+              "quant": "MXFP4",
+              "files": [
+                {
+                  "path": "gpt-oss-120b-MXFP4.gguf",
+                  "size": 63387346208,
+                  "sha256": "582bd40f6886200101f4c4ed9f25f3fe80cc14c86e9e2b37746cd8904a0c622d"
+                }
+              ],
+              "quality": 92
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mistral",
+      "name": "Mistral",
+      "publisher": "Mistral AI",
+      "description": "Devstral (software engineering) and Ministral 3 (small general models, with vision); Apache 2.0.",
+      "models": [
+        {
+          "id": "devstral-small-2-24b",
+          "name": "Devstral Small 2 24B",
+          "repo": "bartowski/mistralai_Devstral-Small-2-24B-Instruct-2512-GGUF",
+          "revision": "027695770ae1de77c2f6fb19f8e1ba9d65fcd15d",
+          "licenseId": "apache-2.0",
+          "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+          "gated": false,
+          "capabilities": [
+            "chat",
+            "tools"
+          ],
+          "contextLength": 393216,
+          "parameters": {
+            "total": 23.6
+          },
+          "released": "2025-12-09",
+          "scores": {
+            "everyday": 62,
+            "coding": 78
+          },
+          "supersedes": [],
+          "shape": {
+            "layers": 40,
+            "fullLayers": 40,
+            "windowLayers": 0,
+            "window": 0,
+            "kvHeads": 8,
+            "keyLength": 128,
+            "valueLength": 128,
+            "windowKeyLength": 128,
+            "windowValueLength": 128
+          },
+          "tiers": [
+            {
+              "quant": "IQ4_XS",
+              "files": [
+                {
+                  "path": "mistralai_Devstral-Small-2-24B-Instruct-2512-IQ4_XS.gguf",
+                  "size": 12759444352,
+                  "sha256": "5c6b371fb28e229985294b68cd7d9d2ab926790b9c12960160370f54602fad72"
+                }
+              ],
+              "quality": 87
+            },
+            {
+              "quant": "Q4_K_M",
+              "files": [
+                {
+                  "path": "mistralai_Devstral-Small-2-24B-Instruct-2512-Q4_K_M.gguf",
+                  "size": 14334438272,
+                  "sha256": "bfd11c8679c6b81eb43763505465d7dcfa72e460ab1c220ecc235a3efadd7f7f"
+                }
+              ],
+              "quality": 90
+            },
+            {
+              "quant": "Q5_K_M",
+              "files": [
+                {
+                  "path": "mistralai_Devstral-Small-2-24B-Instruct-2512-Q5_K_M.gguf",
+                  "size": 16764513152,
+                  "sha256": "e1a2d4b849f12a0efe6a92bb93d33e27ef5fddf859da7bfdbc7cc5bc58cf42ff"
+                }
+              ],
+              "quality": 95
+            },
+            {
+              "quant": "Q6_K",
+              "files": [
+                {
+                  "path": "mistralai_Devstral-Small-2-24B-Instruct-2512-Q6_K.gguf",
+                  "size": 19346467712,
+                  "sha256": "a3e7b51f00baac8d9a840d1ae2277dab3c0aa7e91087548c40cfb1ccc18a923d"
+                }
+              ],
+              "quality": 97
+            },
+            {
+              "quant": "Q8_0",
+              "files": [
+                {
+                  "path": "mistralai_Devstral-Small-2-24B-Instruct-2512-Q8_0.gguf",
+                  "size": 25055308672,
+                  "sha256": "dadb95350140abe130ad3bada05380afbd6855ca621548a1fe9c31f72c6509c0"
+                }
+              ],
+              "quality": 99
+            }
+          ]
+        },
+        {
+          "id": "ministral-3-14b",
+          "name": "Ministral 3 14B",
+          "repo": "unsloth/Ministral-3-14B-Instruct-2512-GGUF",
+          "revision": "9b948841b705cc11285ff274b84ba6c885908b19",
+          "licenseId": "apache-2.0",
+          "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+          "gated": false,
+          "capabilities": [
+            "chat",
+            "tools",
+            "vision"
+          ],
+          "contextLength": 262144,
+          "parameters": {
+            "total": 13.5
+          },
+          "released": "2025-12-02",
+          "scores": {
+            "everyday": 66,
+            "coding": 52,
+            "fast": 62
+          },
+          "supersedes": [],
+          "shape": {
+            "layers": 40,
+            "fullLayers": 40,
+            "windowLayers": 0,
+            "window": 0,
+            "kvHeads": 8,
+            "keyLength": 128,
+            "valueLength": 128,
+            "windowKeyLength": 128,
+            "windowValueLength": 128
+          },
+          "tiers": [
+            {
+              "quant": "IQ4_XS",
+              "files": [
+                {
+                  "path": "Ministral-3-14B-Instruct-2512-IQ4_XS.gguf",
+                  "size": 7432155840,
+                  "sha256": "7513d3ded17367a7ddbef0c733e8244621eef52ba762f703acb3bf0834013ca0"
+                }
+              ],
+              "quality": 87
+            },
+            {
+              "quant": "Q4_K_M",
+              "files": [
+                {
+                  "path": "Ministral-3-14B-Instruct-2512-Q4_K_M.gguf",
+                  "size": 8239067840,
+                  "sha256": "76ce697c065f2e40f1e8e958118b02cab38e2c10a6015f7d7908036a292dc8c8"
+                }
+              ],
+              "quality": 90
+            },
+            {
+              "quant": "Q5_K_M",
+              "files": [
+                {
+                  "path": "Ministral-3-14B-Instruct-2512-Q5_K_M.gguf",
+                  "size": 9620566720,
+                  "sha256": "4b97b4b19859f3959e9f80367bcb0ec31a3ab27ace99e37d9220dbebf09f3da9"
+                }
+              ],
+              "quality": 95
+            },
+            {
+              "quant": "Q6_K",
+              "files": [
+                {
+                  "path": "Ministral-3-14B-Instruct-2512-Q6_K.gguf",
+                  "size": 11088409280,
+                  "sha256": "4052c1aa81dee9151efc51ccdc90de584e926bac487b5098f296fb440d990c73"
+                }
+              ],
+              "quality": 97
+            },
+            {
+              "quant": "Q8_0",
+              "files": [
+                {
+                  "path": "Ministral-3-14B-Instruct-2512-Q8_0.gguf",
+                  "size": 14359311040,
+                  "sha256": "29b33688b32cd953d330554b1ef36e84ed1d37043d6ac805c842c43bfbd0f0da"
+                }
+              ],
+              "quality": 99
+            }
+          ],
+          "mmproj": {
+            "path": "mmproj-F16.gguf",
+            "size": 878053536,
+            "sha256": "b0d2d17d39fa1fff5c1177b672c351cac55fb15b9794f03a8a551df185bffc10"
+          }
+        },
+        {
+          "id": "ministral-3-8b",
+          "name": "Ministral 3 8B",
+          "repo": "unsloth/Ministral-3-8B-Instruct-2512-GGUF",
+          "revision": "3731507ec3e867db16d620f73e14d689125758f4",
+          "licenseId": "apache-2.0",
+          "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+          "gated": false,
+          "capabilities": [
+            "chat",
+            "tools",
+            "vision"
+          ],
+          "contextLength": 262144,
+          "parameters": {
+            "total": 8.5
+          },
+          "released": "2025-12-02",
+          "scores": {
+            "everyday": 58,
+            "coding": 45,
+            "fast": 72
+          },
+          "supersedes": [],
+          "shape": {
+            "layers": 34,
+            "fullLayers": 34,
+            "windowLayers": 0,
+            "window": 0,
+            "kvHeads": 8,
+            "keyLength": 128,
+            "valueLength": 128,
+            "windowKeyLength": 128,
+            "windowValueLength": 128
+          },
+          "tiers": [
+            {
+              "quant": "IQ4_XS",
+              "files": [
+                {
+                  "path": "Ministral-3-8B-Instruct-2512-IQ4_XS.gguf",
+                  "size": 4713190944,
+                  "sha256": "3943e2774dd4a5c8b3bd2268cc5eced94f317ec97f611d71cb6f21940d4da8bc"
+                }
+              ],
+              "quality": 87
+            },
+            {
+              "quant": "Q4_K_M",
+              "files": [
+                {
+                  "path": "Ministral-3-8B-Instruct-2512-Q4_K_M.gguf",
+                  "size": 5198386720,
+                  "sha256": "5dbc3647eb563b9f8d3c70ec3d906cce84b86bb35c5e0b8a36e7df3937ab7174"
+                }
+              ],
+              "quality": 90
+            },
+            {
+              "quant": "Q5_K_M",
+              "files": [
+                {
+                  "path": "Ministral-3-8B-Instruct-2512-Q5_K_M.gguf",
+                  "size": 6058743328,
+                  "sha256": "5cab98d37c333fb4c59dabf7d2467e10d1dd6c7478e3db2284705b59bc6f10f8"
+                }
+              ],
+              "quality": 95
+            },
+            {
+              "quant": "Q6_K",
+              "files": [
+                {
+                  "path": "Ministral-3-8B-Instruct-2512-Q6_K.gguf",
+                  "size": 6972872224,
+                  "sha256": "c2d0939ba8c980b445097ed00bd3029cfbb937185f3c9a31e26fb62f332c134b"
+                }
+              ],
+              "quality": 97
+            },
+            {
+              "quant": "Q8_0",
+              "files": [
+                {
+                  "path": "Ministral-3-8B-Instruct-2512-Q8_0.gguf",
+                  "size": 9028867616,
+                  "sha256": "7fce9a253a25197d72ccc5898fe0789ac7fc7e17cbe7a62560b304163a894a92"
+                }
+              ],
+              "quality": 99
+            }
+          ],
+          "mmproj": {
+            "path": "mmproj-F16.gguf",
+            "size": 857077920,
+            "sha256": "35f84351450a8935b4bb8f683c123f9a4949699baaf9e206db7816cd7b78f74d"
+          }
+        },
+        {
+          "id": "ministral-3-3b",
+          "name": "Ministral 3 3B",
+          "repo": "unsloth/Ministral-3-3B-Instruct-2512-GGUF",
+          "revision": "7564922f37fa5bbb62b87f09a55c12f1f91d7a6a",
+          "licenseId": "apache-2.0",
+          "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+          "gated": false,
+          "capabilities": [
+            "chat",
+            "tools",
+            "vision"
+          ],
+          "contextLength": 262144,
+          "parameters": {
+            "total": 3.4
+          },
+          "released": "2025-12-02",
+          "scores": {
+            "everyday": 42,
+            "coding": 32,
+            "fast": 82
+          },
+          "supersedes": [],
+          "shape": {
+            "layers": 26,
+            "fullLayers": 26,
+            "windowLayers": 0,
+            "window": 0,
+            "kvHeads": 8,
+            "keyLength": 128,
+            "valueLength": 128,
+            "windowKeyLength": 128,
+            "windowValueLength": 128
+          },
+          "tiers": [
+            {
+              "quant": "IQ4_XS",
+              "files": [
+                {
+                  "path": "Ministral-3-3B-Instruct-2512-IQ4_XS.gguf",
+                  "size": 1959277856,
+                  "sha256": "d847cdafe9459948337183eb0eeca2ee3ce0c1aed45066580e01e5751dcf3476"
+                }
+              ],
+              "quality": 87
+            },
+            {
+              "quant": "Q4_K_M",
+              "files": [
+                {
+                  "path": "Ministral-3-3B-Instruct-2512-Q4_K_M.gguf",
+                  "size": 2146497824,
+                  "sha256": "fd46fc371ff0509bfa8657ac956b7de8534d7d9baaa4947975c0648c3aa397f4"
+                }
+              ],
+              "quality": 90
+            },
+            {
+              "quant": "Q5_K_M",
+              "files": [
+                {
+                  "path": "Ministral-3-3B-Instruct-2512-Q5_K_M.gguf",
+                  "size": 2473653536,
+                  "sha256": "8f208f4a8785aa1bdd8b506e36b036ac60c7f7a7fb144e3353781c74c58a33db"
+                }
+              ],
+              "quality": 95
+            },
+            {
+              "quant": "Q6_K",
+              "files": [
+                {
+                  "path": "Ministral-3-3B-Instruct-2512-Q6_K.gguf",
+                  "size": 2821256480,
+                  "sha256": "ca22c676b97aad1d50952416f44ddd6d8130e24c11c474aed5e8865dd7e35297"
+                }
+              ],
+              "quality": 97
+            },
+            {
+              "quant": "Q8_0",
+              "files": [
+                {
+                  "path": "Ministral-3-3B-Instruct-2512-Q8_0.gguf",
+                  "size": 3651679520,
+                  "sha256": "920163471715241a9d99367d507e2ad94d1ebc34d0d169d25e5d97a49ec72556"
+                }
+              ],
+              "quality": 99
+            }
+          ],
+          "mmproj": {
+            "path": "mmproj-F16.gguf",
+            "size": 840296608,
+            "sha256": "5ddb0f568242657aa527c6dadafd5d0fd55438d68d7b40830dc502b8d7231b88"
+          }
+        }
+      ]
+    },
+    {
+      "id": "phi",
+      "name": "Phi",
+      "publisher": "Microsoft",
+      "description": "Microsoft\u0027s small, efficient models; MIT licence.",
+      "models": [
+        {
+          "id": "phi-4",
+          "name": "Phi-4 14B",
+          "repo": "unsloth/phi-4-GGUF",
+          "revision": "5110b7771e8166d5530e73346a15aea096a8cb99",
+          "licenseId": "mit",
+          "licenseUrl": "https://opensource.org/license/mit",
+          "gated": false,
+          "capabilities": [
+            "chat"
+          ],
+          "contextLength": 16384,
+          "parameters": {
+            "total": 14.7
+          },
+          "released": "2024-12-12",
+          "scores": {
+            "everyday": 60,
+            "coding": 50
+          },
+          "supersedes": [],
+          "shape": {
+            "layers": 40,
+            "fullLayers": 40,
+            "windowLayers": 0,
+            "window": 0,
+            "kvHeads": 10,
+            "keyLength": 128,
+            "valueLength": 128,
+            "windowKeyLength": 128,
+            "windowValueLength": 128
+          },
+          "tiers": [
+            {
+              "quant": "Q4_K_M",
+              "files": [
+                {
+                  "path": "phi-4-Q4_K_M.gguf",
+                  "size": 8890306112,
+                  "sha256": "01e1f25b3e6931054c6c2227b06f4969828434eebc299e8e171f55dab6814485"
+                }
+              ],
+              "quality": 90
+            },
+            {
+              "quant": "Q5_K_M",
+              "files": [
+                {
+                  "path": "phi-4-Q5_K_M.gguf",
+                  "size": 10412707392,
+                  "sha256": "6eae537ae21292e8c8092dafe423ac019c1b5c210b39007f16b7b03b8194673c"
+                }
+              ],
+              "quality": 95
+            },
+            {
+              "quant": "Q6_K",
+              "files": [
+                {
+                  "path": "phi-4-Q6_K.gguf",
+                  "size": 12030258752,
+                  "sha256": "71c576487f2ce6a72c2d4999ce7aad23236680b201cda02df67991c772dedaed"
+                }
+              ],
+              "quality": 97
+            },
+            {
+              "quant": "Q8_0",
+              "files": [
+                {
+                  "path": "phi-4-Q8_0.gguf",
+                  "size": 15580507712,
+                  "sha256": "f7c4d1a18c24db12b981c6956581e3daac9bee064a373a46bd5e6ecbc2471b6d"
+                }
+              ],
+              "quality": 99
+            }
+          ]
+        },
+        {
+          "id": "phi-4-mini",
+          "name": "Phi-4 mini 3.8B",
+          "repo": "unsloth/Phi-4-mini-instruct-GGUF",
+          "revision": "78eb92a46fc37e6b524df991ed9aca9bc6aa7b80",
+          "licenseId": "mit",
+          "licenseUrl": "https://opensource.org/license/mit",
+          "gated": false,
+          "capabilities": [
+            "chat",
+            "tools"
+          ],
+          "contextLength": 131072,
+          "parameters": {
+            "total": 3.8
+          },
+          "released": "2025-02-26",
+          "scores": {
+            "everyday": 44,
+            "coding": 38,
+            "fast": 78
+          },
+          "supersedes": [],
+          "shape": {
+            "layers": 32,
+            "fullLayers": 32,
+            "windowLayers": 0,
+            "window": 262144,
+            "kvHeads": 8,
+            "keyLength": 128,
+            "valueLength": 128,
+            "windowKeyLength": 128,
+            "windowValueLength": 128
+          },
+          "tiers": [
+            {
+              "quant": "Q4_K_M",
+              "files": [
+                {
+                  "path": "Phi-4-mini-instruct-Q4_K_M.gguf",
+                  "size": 2491874272,
+                  "sha256": "88c00229914083cd112853aab84ed51b87bdf6b9ce42f532d8c85c7c63b1730a"
+                }
+              ],
+              "quality": 90
+            },
+            {
+              "quant": "Q5_K_M",
+              "files": [
+                {
+                  "path": "Phi-4-mini-instruct-Q5_K_M.gguf",
+                  "size": 2848127968,
+                  "sha256": "b5a981febb25f218762d52411f5a4af6aad8b3a203bb1004a576545350ad08e3"
+                }
+              ],
+              "quality": 95
+            },
+            {
+              "quant": "Q6_K",
+              "files": [
+                {
+                  "path": "Phi-4-mini-instruct-Q6_K.gguf",
+                  "size": 3155622880,
+                  "sha256": "72b8446a3db55617950bef48d296659050867cca41bd7a7be4622010c9589400"
+                }
+              ],
+              "quality": 97
+            },
+            {
+              "quant": "Q8_0",
+              "files": [
+                {
+                  "path": "Phi-4-mini-instruct.Q8_0.gguf",
+                  "size": 4084611040,
+                  "sha256": "26188c6050d525376a88b04514c236c5e28a36730f1e936f2a00314212b7ba42"
+                }
+              ],
+              "quality": 99
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "deepseek-r1",
+      "name": "DeepSeek R1",
+      "publisher": "DeepSeek",
+      "description": "R1\u0027s reasoning distilled into a Qwen3 8B; MIT licence.",
+      "models": [
+        {
+          "id": "deepseek-r1-0528-qwen3-8b",
+          "name": "DeepSeek R1 0528 (Qwen3 8B)",
+          "repo": "unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF",
+          "revision": "eb48357c179d34dbf515983f798dfb8752a0f261",
+          "licenseId": "mit",
+          "licenseUrl": "https://opensource.org/license/mit",
+          "gated": false,
+          "capabilities": [
+            "chat",
+            "reasoning"
+          ],
+          "contextLength": 131072,
+          "parameters": {
+            "total": 8.2
+          },
+          "released": "2025-05-29",
+          "scores": {
+            "everyday": 64,
+            "coding": 58,
+            "fast": 55
+          },
+          "supersedes": [],
+          "shape": {
+            "layers": 36,
+            "fullLayers": 36,
+            "windowLayers": 0,
+            "window": 0,
+            "kvHeads": 8,
+            "keyLength": 128,
+            "valueLength": 128,
+            "windowKeyLength": 128,
+            "windowValueLength": 128
+          },
+          "tiers": [
+            {
+              "quant": "IQ4_XS",
+              "files": [
+                {
+                  "path": "DeepSeek-R1-0528-Qwen3-8B-IQ4_XS.gguf",
+                  "size": 4581288448,
+                  "sha256": "111db362d89e14694a5b61838c81c3e46ddbf3150616038f999756148fb8db45"
+                }
+              ],
+              "quality": 87
+            },
+            {
+              "quant": "Q4_K_M",
+              "files": [
+                {
+                  "path": "DeepSeek-R1-0528-Qwen3-8B-Q4_K_M.gguf",
+                  "size": 5027785216,
+                  "sha256": "a86349a4180c4e6bb43f874c29c404fa2be3f90b15509bd6d86f697dba724ec1"
+                }
+              ],
+              "quality": 90
+            },
+            {
+              "quant": "Q5_K_M",
+              "files": [
+                {
+                  "path": "DeepSeek-R1-0528-Qwen3-8B-Q5_K_M.gguf",
+                  "size": 5851113984,
+                  "sha256": "044519a2d9821f9a91fbc8bda4eb2333180842bf56845d130e71144c11a1140e"
+                }
+              ],
+              "quality": 95
+            },
+            {
+              "quant": "Q6_K",
+              "files": [
+                {
+                  "path": "DeepSeek-R1-0528-Qwen3-8B-Q6_K.gguf",
+                  "size": 6725900800,
+                  "sha256": "a012051e59aec617951defa167d3e3658196fe32a8842df4f2d1e2678b30ab40"
+                }
+              ],
+              "quality": 97
+            },
+            {
+              "quant": "Q8_0",
+              "files": [
+                {
+                  "path": "DeepSeek-R1-0528-Qwen3-8B-Q8_0.gguf",
+                  "size": 8709519872,
+                  "sha256": "8d6f3bdd8853aa5af98412f2d001c4cc4d33e1ffb85a8361963e79b5573f4856"
+                }
+              ],
+              "quality": 99
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "qwen2.5-coder",
+      "name": "Qwen2.5-Coder",
+      "publisher": "Qwen",
+      "description": "Small code models used for inline completion (fill-in-the-middle) next to a chat model.",
+      "models": [
+        {
+          "id": "qwen2.5-coder-7b",
+          "name": "Qwen2.5-Coder 7B (completion)",
+          "repo": "ggml-org/Qwen2.5-Coder-7B-Q8_0-GGUF",
+          "revision": "bca77e0a8c88fc224882bcc404170c3ef17efacc",
+          "licenseId": "apache-2.0",
+          "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+          "gated": false,
+          "capabilities": [
+            "fim"
+          ],
+          "contextLength": 32768,
+          "parameters": {
+            "total": 7.6
+          },
+          "released": "2024-09-17",
+          "scores": {
+            "fim": 76
+          },
+          "supersedes": [],
+          "shape": {
+            "layers": 28,
+            "fullLayers": 28,
+            "windowLayers": 0,
+            "window": 0,
+            "kvHeads": 4,
+            "keyLength": 128,
+            "valueLength": 128,
+            "windowKeyLength": 128,
+            "windowValueLength": 128
+          },
+          "tiers": [
+            {
+              "quant": "Q8_0",
+              "files": [
+                {
+                  "path": "qwen2.5-coder-7b-q8_0.gguf",
+                  "size": 8098525600,
+                  "sha256": "0ef48dc94a3c551a6736ac2601de38413dc9aa9318534b16e8baee08290a4aaf"
+                }
+              ],
+              "quality": 99
+            }
+          ]
+        },
+        {
+          "id": "qwen2.5-coder-1.5b",
+          "name": "Qwen2.5-Coder 1.5B (completion)",
+          "repo": "ggml-org/Qwen2.5-Coder-1.5B-Q8_0-GGUF",
+          "revision": "8be1b8a895a84beea772817caaa71eba6b6e0d07",
+          "licenseId": "apache-2.0",
+          "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+          "gated": false,
+          "capabilities": [
+            "fim"
+          ],
+          "contextLength": 32768,
+          "parameters": {
+            "total": 1.5
+          },
+          "released": "2024-09-17",
+          "scores": {
+            "fim": 62
+          },
+          "supersedes": [],
+          "shape": {
+            "layers": 28,
+            "fullLayers": 28,
+            "windowLayers": 0,
+            "window": 0,
+            "kvHeads": 2,
+            "keyLength": 128,
+            "valueLength": 128,
+            "windowKeyLength": 128,
+            "windowValueLength": 128
+          },
+          "tiers": [
+            {
+              "quant": "Q8_0",
+              "files": [
+                {
+                  "path": "qwen2.5-coder-1.5b-q8_0.gguf",
+                  "size": 1646573056,
+                  "sha256": "29871c94d15727a6e243f79a37113d4ae625a6215b5e800bf41a23af2da32832"
+                }
+              ],
+              "quality": 99
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "embeddinggemma",
+      "name": "EmbeddingGemma",
+      "publisher": "Google",
+      "description": "A compact text embedding model for searching code and documents; Apache 2.0.",
+      "models": [
+        {
+          "id": "embeddinggemma-2",
+          "name": "EmbeddingGemma 2",
+          "repo": "ggml-org/embeddinggemma-2-GGUF",
+          "revision": "58faf90940886df2d62be555c8765d00dac362c5",
+          "licenseId": "apache-2.0",
+          "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+          "gated": false,
+          "capabilities": [
+            "embeddings"
+          ],
+          "contextLength": 262144,
+          "parameters": {
+            "total": 0.74
+          },
+          "released": "2026-10-06",
+          "scores": {},
+          "supersedes": [],
+          "shape": {
+            "layers": 24,
+            "fullLayers": 4,
+            "windowLayers": 20,
+            "window": 1024,
+            "kvHeads": 1.8333333333333333,
+            "keyLength": 512,
+            "valueLength": 512,
+            "windowKeyLength": 256,
+            "windowValueLength": 256
+          },
+          "tiers": [
+            {
+              "quant": "Q8_0",
+              "files": [
+                {
+                  "path": "embeddinggemma-2-Q8_0.gguf",
+                  "size": 309855456,
+                  "sha256": "2188ac1deca4b77dffefd603c2776a9d76d9d74ec01841392982ebb840b09135"
+                }
+              ],
+              "quality": 99
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "models": [
+    {
+      "id": "qwen3.8-27b",
+      "name": "Qwen3.8 27B",
+      "repo": "bartowski/Qwen3.8-27B-GGUF",
+      "revision": "87410e7b9a5c21e6ca70c0c9cc5237de909fe621",
+      "licenseId": "apache-2.0",
+      "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+      "gated": false,
+      "capabilities": [
+        "chat",
+        "tools",
+        "reasoning",
+        "vision"
+      ],
+      "contextLength": 262144,
+      "parameters": {
+        "total": 27.3
+      },
+      "released": "2026-08-13",
+      "scores": {
+        "everyday": 93,
+        "coding": 95
+      },
+      "supersedes": [
+        "qwen3.6-27b"
+      ],
+      "shape": {
+        "layers": 65,
+        "fullLayers": 17,
+        "windowLayers": 0,
+        "window": 0,
+        "kvHeads": 4,
+        "keyLength": 256,
+        "valueLength": 256,
+        "windowKeyLength": 256,
+        "windowValueLength": 256
+      },
+      "tiers": [
+        {
+          "quant": "IQ4_XS",
+          "files": [
+            {
+              "path": "Qwen3.8-27B-IQ4_XS.gguf",
+              "size": 15475951328,
+              "sha256": "4b927360fa7c4aa41a734302f0795ca45df0e8b8a258bc76cc5fbf9d98a484db"
+            }
+          ],
+          "quality": 87
+        },
+        {
+          "quant": "Q4_K_M",
+          "files": [
+            {
+              "path": "Qwen3.8-27B-Q4_K_M.gguf",
+              "size": 17442399968,
+              "sha256": "880a52af8317974f7b4b064a6bc29ff49e188b91aa218e08eea3078b6b1cc673"
+            }
+          ],
+          "quality": 90
+        },
+        {
+          "quant": "Q5_K_M",
+          "files": [
+            {
+              "path": "Qwen3.8-27B-Q5_K_M.gguf",
+              "size": 20923877088,
+              "sha256": "9f0a899d43b29285a02da149f9b62f007d7b5d5fd59afe9f46dda1b891636b0a"
+            }
+          ],
+          "quality": 95
+        },
+        {
+          "quant": "Q6_K",
+          "files": [
+            {
+              "path": "Qwen3.8-27B-Q6_K.gguf",
+              "size": 23860565728,
+              "sha256": "539041d2cf400b02f53a53cae54339ea65103d276645a34a68eac1c8d69a9db3"
+            }
+          ],
+          "quality": 97
+        },
+        {
+          "quant": "Q8_0",
+          "files": [
+            {
+              "path": "Qwen3.8-27B-Q8_0.gguf",
+              "size": 29116388960,
+              "sha256": "a830e736efa71ce29589ff20b8713333a427e0d46ab774723be23800ad54362d"
+            }
+          ],
+          "quality": 99
+        }
+      ],
+      "mmproj": {
+        "path": "mmproj-Qwen3.8-27B-f16.gguf",
+        "size": 927607008,
+        "sha256": "cb0a71fe9b84af2552fc6260acf8e9773a29d115c683aba01c72a7ac537b212b"
+      }
+    },
+    {
+      "id": "qwen3.6-35b-a3b",
+      "name": "Qwen3.6 35B-A3B",
+      "repo": "bartowski/Qwen_Qwen3.6-35B-A3B-GGUF",
+      "revision": "5c2410d71524f4f72b023ce8daf7a80528226d5f",
+      "licenseId": "apache-2.0",
+      "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+      "gated": false,
+      "capabilities": [
+        "chat",
+        "tools",
+        "reasoning",
+        "vision"
+      ],
+      "contextLength": 262144,
+      "parameters": {
+        "total": 35.5,
+        "active": 3
+      },
+      "released": "2026-04-16",
+      "scores": {
+        "everyday": 87,
+        "coding": 86,
+        "fast": 82
+      },
+      "supersedes": [],
+      "shape": {
+        "layers": 41,
+        "fullLayers": 10,
+        "windowLayers": 0,
+        "window": 0,
+        "kvHeads": 2,
+        "keyLength": 256,
+        "valueLength": 256,
+        "windowKeyLength": 256,
+        "windowValueLength": 256
+      },
+      "tiers": [
+        {
+          "quant": "IQ4_XS",
+          "files": [
+            {
+              "path": "Qwen_Qwen3.6-35B-A3B-IQ4_XS.gguf",
+              "size": 19699553920,
+              "sha256": "afc7238af403ed454b7846454091b5e38b07575bdbb64c3e86777414dde4193c"
+            }
+          ],
+          "quality": 87
+        },
+        {
+          "quant": "Q4_K_M",
+          "files": [
+            {
+              "path": "Qwen_Qwen3.6-35B-A3B-Q4_K_M.gguf",
+              "size": 22285080192,
+              "sha256": "b46fedd33e0bfb0cae308aa3c158d0a4b2c4a1d2185a1ed6f093cdaf39064772"
+            }
+          ],
+          "quality": 90
+        },
+        {
+          "quant": "Q5_K_M",
+          "files": [
+            {
+              "path": "Qwen_Qwen3.6-35B-A3B-Q5_K_M.gguf",
+              "size": 25913185920,
+              "sha256": "ec438d1326eb11d8bb94785c54739cd4b60b01ae32bd8532e232a046b19d296d"
+            }
+          ],
+          "quality": 95
+        },
+        {
+          "quant": "Q6_K",
+          "files": [
+            {
+              "path": "Qwen_Qwen3.6-35B-A3B-Q6_K.gguf",
+              "size": 30947309184,
+              "sha256": "a97ef79439194d8ec722bc0b6c316f0c41c0b477b35bbae8177c772ecbb0eb91"
+            }
+          ],
+          "quality": 97
+        },
+        {
+          "quant": "Q8_0",
+          "files": [
+            {
+              "path": "Qwen_Qwen3.6-35B-A3B-Q8_0.gguf",
+              "size": 37812647552,
+              "sha256": "bc57de096ec30e45773aa86103f35a8a32cea01f2193a53a3c636d618e4434e9"
+            }
+          ],
+          "quality": 99
+        }
+      ],
+      "mmproj": {
+        "path": "mmproj-Qwen_Qwen3.6-35B-A3B-f16.gguf",
+        "size": 899283296,
+        "sha256": "67924785ff1885c2b34c15d0e52979e991acca64221694ba2cc3a6474a053fb4"
+      }
+    },
+    {
+      "id": "qwen3.6-27b",
+      "name": "Qwen3.6 27B",
+      "repo": "unsloth/Qwen3.6-27B-GGUF",
+      "revision": "82d411acf4a06cfb8d9b073a5211bf410bfc29bf",
+      "licenseId": "apache-2.0",
+      "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+      "gated": false,
+      "capabilities": [
+        "chat",
+        "tools",
+        "reasoning",
+        "vision"
+      ],
+      "contextLength": 262144,
+      "parameters": {
+        "total": 26.9
+      },
+      "released": "2026-04-22",
+      "scores": {
+        "everyday": 89,
+        "coding": 90
+      },
+      "supersedes": [],
+      "shape": {
+        "layers": 64,
+        "fullLayers": 16,
+        "windowLayers": 0,
+        "window": 0,
+        "kvHeads": 4,
+        "keyLength": 256,
+        "valueLength": 256,
+        "windowKeyLength": 256,
+        "windowValueLength": 256
+      },
+      "tiers": [
+        {
+          "quant": "IQ4_XS",
+          "files": [
+            {
+              "path": "Qwen3.6-27B-IQ4_XS.gguf",
+              "size": 15440005344,
+              "sha256": "8a3365759dc1b33b52c4e7d91d5a67d5ee1418e8408aa54196f04a98da53e5dc"
+            }
+          ],
+          "quality": 87
+        },
+        {
+          "quant": "Q4_K_M",
+          "files": [
+            {
+              "path": "Qwen3.6-27B-Q4_K_M.gguf",
+              "size": 16817244384,
+              "sha256": "5ed60d0af4650a854b1755bd392f9aef4872643dc25a254bc68043fa638392a0"
+            }
+          ],
+          "quality": 90
+        },
+        {
+          "quant": "Q5_K_M",
+          "files": [
+            {
+              "path": "Qwen3.6-27B-Q5_K_M.gguf",
+              "size": 19509790944,
+              "sha256": "cfecab168156269f25d5ffe9e13cf2a401ca2f43a9693fa00bcd1625316ccbde"
+            }
+          ],
+          "quality": 95
+        },
+        {
+          "quant": "Q6_K",
+          "files": [
+            {
+              "path": "Qwen3.6-27B-Q6_K.gguf",
+              "size": 22523238624,
+              "sha256": "ec1805fe87e6519c461c1ed2d179865464a875ed241032ead65a354f979cfe14"
+            }
+          ],
+          "quality": 97
+        },
+        {
+          "quant": "Q8_0",
+          "files": [
+            {
+              "path": "Qwen3.6-27B-Q8_0.gguf",
+              "size": 28595763424,
+              "sha256": "f93f517f38e696d35a1a7df2c0e3155a64f4c4dcd662107a146ae263f7fb14ce"
+            }
+          ],
+          "quality": 99
+        }
+      ],
+      "mmproj": {
+        "path": "mmproj-F16.gguf",
+        "size": 927607360,
+        "sha256": "eacf610d1ee4bd5ed0197a0777dd8f4fceb8eefa27009067c7d496cb68fbde45"
+      }
+    },
+    {
+      "id": "qwen3-coder-next",
+      "name": "Qwen3-Coder-Next 80B-A3B",
+      "repo": "bartowski/Qwen_Qwen3-Coder-Next-GGUF",
+      "revision": "d32741c4b434bf1f927798d0c093564c7f4e92fd",
+      "licenseId": "apache-2.0",
+      "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+      "gated": false,
+      "capabilities": [
+        "chat",
+        "tools"
+      ],
+      "contextLength": 262144,
+      "parameters": {
+        "total": 79.7,
+        "active": 3
+      },
+      "released": "2026-02-03",
+      "scores": {
+        "everyday": 74,
+        "coding": 84
+      },
+      "supersedes": [
+        "qwen3-coder-30b-a3b"
+      ],
+      "shape": {
+        "layers": 48,
+        "fullLayers": 12,
+        "windowLayers": 0,
+        "window": 0,
+        "kvHeads": 2,
+        "keyLength": 256,
+        "valueLength": 256,
+        "windowKeyLength": 256,
+        "windowValueLength": 256
+      },
+      "tiers": [
+        {
+          "quant": "IQ4_XS",
+          "files": [
+            {
+              "path": "Qwen_Qwen3-Coder-Next-IQ4_XS.gguf",
+              "size": 42848224960,
+              "sha256": "eab7983fe40daf4a29281fa66c830a80248a7ef694c483940eb28ec658f39a84"
+            }
+          ],
+          "quality": 87
+        },
+        {
+          "quant": "Q4_K_M",
+          "files": [
+            {
+              "path": "Qwen_Qwen3-Coder-Next-Q4_K_M.gguf",
+              "size": 48727680704,
+              "sha256": "78f38fe85daaab51f0e1e5abd19c8721a4980ce49774d8c3d8569c1b8e5de1e4"
+            }
+          ],
+          "quality": 90
+        },
+        {
+          "quant": "Q5_K_M",
+          "files": [
+            {
+              "path": "Qwen_Qwen3-Coder-Next-Q5_K_M/Qwen_Qwen3-Coder-Next-Q5_K_M-00001-of-00002.gguf",
+              "size": 39982180256,
+              "sha256": "36c0675fe354157c5d4f25bf9492e58cfd52b310644d316e74ecffe4590565cb"
+            },
+            {
+              "path": "Qwen_Qwen3-Coder-Next-Q5_K_M/Qwen_Qwen3-Coder-Next-Q5_K_M-00002-of-00002.gguf",
+              "size": 16998875136,
+              "sha256": "4b1a8079c61b4b110dd59ac6d90318342cd90568a779fb24308626ab7a31d3e9"
+            }
+          ],
+          "quality": 95
+        },
+        {
+          "quant": "Q6_K",
+          "files": [
+            {
+              "path": "Qwen_Qwen3-Coder-Next-Q6_K/Qwen_Qwen3-Coder-Next-Q6_K-00001-of-00002.gguf",
+              "size": 39981161376,
+              "sha256": "228031d721759b25a2452593252ffbb19864aee6fed43c7b26d5c152949cf40a"
+            },
+            {
+              "path": "Qwen_Qwen3-Coder-Next-Q6_K/Qwen_Qwen3-Coder-Next-Q6_K-00002-of-00002.gguf",
+              "size": 25810723808,
+              "sha256": "572cde32620511cd674a6117c26d74b5c8e6dd04cde787c98114565db40cd06b"
+            }
+          ],
+          "quality": 97
+        }
+      ]
+    },
+    {
+      "id": "qwen3-coder-30b-a3b",
+      "name": "Qwen3-Coder 30B-A3B",
+      "repo": "unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF",
+      "revision": "b17cb02dd882d5b6ab62fc777ad2995f19668350",
+      "licenseId": "apache-2.0",
+      "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+      "gated": false,
+      "capabilities": [
+        "chat",
+        "tools",
+        "fim"
+      ],
+      "contextLength": 262144,
+      "parameters": {
+        "total": 30.5,
+        "active": 3.3
+      },
+      "released": "2025-07-31",
+      "scores": {
+        "everyday": 58,
+        "coding": 68,
+        "fast": 76,
+        "fim": 82
+      },
+      "supersedes": [],
+      "shape": {
+        "layers": 48,
+        "fullLayers": 48,
+        "windowLayers": 0,
+        "window": 0,
+        "kvHeads": 4,
+        "keyLength": 128,
+        "valueLength": 128,
+        "windowKeyLength": 128,
+        "windowValueLength": 128
+      },
+      "tiers": [
+        {
+          "quant": "IQ4_XS",
+          "files": [
+            {
+              "path": "Qwen3-Coder-30B-A3B-Instruct-IQ4_XS.gguf",
+              "size": 16378076320,
+              "sha256": "26cd4fef3ada9de84c6c59c4b93f9bc5df4d69a71e18cfe8a17369c2f8374ce7"
+            }
+          ],
+          "quality": 87
+        },
+        {
+          "quant": "Q4_K_M",
+          "files": [
+            {
+              "path": "Qwen3-Coder-30B-A3B-Instruct-Q4_K_M.gguf",
+              "size": 18556689568,
+              "sha256": "fadc3e5f8d42bf7e894a785b05082e47daee4df26680389817e2093056f088ad"
+            }
+          ],
+          "quality": 90
+        },
+        {
+          "quant": "Q5_K_M",
+          "files": [
+            {
+              "path": "Qwen3-Coder-30B-A3B-Instruct-Q5_K_M.gguf",
+              "size": 21725584544,
+              "sha256": "4b78837bbec5ee248e4a5642bf608b6793721af41b92589e40c8da0bce58b907"
+            }
+          ],
+          "quality": 95
+        },
+        {
+          "quant": "Q6_K",
+          "files": [
+            {
+              "path": "Qwen3-Coder-30B-A3B-Instruct-Q6_K.gguf",
+              "size": 25092535456,
+              "sha256": "100b5121d09553fb1af3b873b21fb3ec3da5c306fc5cb09bd338c48e21b10875"
+            }
+          ],
+          "quality": 97
+        },
+        {
+          "quant": "Q8_0",
+          "files": [
+            {
+              "path": "Qwen3-Coder-30B-A3B-Instruct-Q8_0.gguf",
+              "size": 32483935392,
+              "sha256": "4ff1cff607804037bf6d2168249c570baa4e1621292b159c0e06591e0d7c3066"
+            }
+          ],
+          "quality": 99
+        }
+      ]
+    },
+    {
+      "id": "gemma-4-26b-a4b",
+      "name": "Gemma 4 26B-A4B",
+      "repo": "bartowski/google_gemma-4-26B-A4B-it-GGUF",
+      "revision": "10f3b41bcf8d3047f4e136e7197ffc2dd1654c9d",
+      "licenseId": "apache-2.0",
+      "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+      "gated": false,
+      "capabilities": [
+        "chat",
+        "tools",
+        "reasoning",
+        "vision"
+      ],
+      "contextLength": 262144,
+      "parameters": {
+        "total": 25.2,
+        "active": 3.8
+      },
+      "released": "2026-04-01",
+      "scores": {
+        "everyday": 82,
+        "coding": 58,
+        "fast": 80
+      },
+      "supersedes": [],
+      "shape": {
+        "layers": 30,
+        "fullLayers": 5,
+        "windowLayers": 25,
+        "window": 1024,
+        "kvHeads": 7,
+        "keyLength": 512,
+        "valueLength": 512,
+        "windowKeyLength": 256,
+        "windowValueLength": 256
+      },
+      "tiers": [
+        {
+          "quant": "IQ4_XS",
+          "files": [
+            {
+              "path": "google_gemma-4-26B-A4B-it-IQ4_XS.gguf",
+              "size": 14205004928,
+              "sha256": "86f0f6ca5f622bca4506f7849eee3459d0cac867b919630132145efd452ee8b9"
+            }
+          ],
+          "quality": 87
+        },
+        {
+          "quant": "Q4_K_M",
+          "files": [
+            {
+              "path": "google_gemma-4-26B-A4B-it-Q4_K_M.gguf",
+              "size": 17035039872,
+              "sha256": "a07f72221e8e3f77455ab0d7f7652d01a9f63c262b954aa6932a53275a0e895a"
+            }
+          ],
+          "quality": 90
+        },
+        {
+          "quant": "Q5_K_M",
+          "files": [
+            {
+              "path": "google_gemma-4-26B-A4B-it-Q5_K_M.gguf",
+              "size": 19319198848,
+              "sha256": "6b4f8074239f72543997a950ff6ae4509553c599f5b432748309ff3438416493"
+            }
+          ],
+          "quality": 95
+        },
+        {
+          "quant": "Q6_K",
+          "files": [
+            {
+              "path": "google_gemma-4-26B-A4B-it-Q6_K.gguf",
+              "size": 22862577280,
+              "sha256": "dd9f8a9f4646258bd97e1241899ecd875ad51572bcf6de44d09dab30662983f1"
+            }
+          ],
+          "quality": 97
+        },
+        {
+          "quant": "Q8_0",
+          "files": [
+            {
+              "path": "google_gemma-4-26B-A4B-it-Q8_0.gguf",
+              "size": 26859861120,
+              "sha256": "1bb7fdb37fbd542ba972b3eb83ae87752bb9063aff560402e0e2f64235c85226"
+            }
+          ],
+          "quality": 99
+        }
+      ],
+      "mmproj": {
+        "path": "mmproj-google_gemma-4-26B-A4B-it-f16.gguf",
+        "size": 1193058528,
+        "sha256": "41cdabd1e8066e983ee6c288eb0117777376223ee0279cadcd67b2295e4d975f"
+      }
+    },
+    {
+      "id": "gemma-4-12b",
+      "name": "Gemma 4 12B",
+      "repo": "unsloth/gemma-4-12b-it-GGUF",
+      "revision": "fc034cfff751157913579611efad8462ac1be606",
+      "licenseId": "apache-2.0",
+      "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+      "gated": false,
+      "capabilities": [
+        "chat",
+        "tools",
+        "reasoning",
+        "vision"
+      ],
+      "contextLength": 262144,
+      "parameters": {
+        "total": 11.9
+      },
+      "released": "2026-05-29",
+      "scores": {
+        "everyday": 74,
+        "coding": 52,
+        "fast": 72
+      },
+      "supersedes": [],
+      "shape": {
+        "layers": 48,
+        "fullLayers": 8,
+        "windowLayers": 40,
+        "window": 1024,
+        "kvHeads": 6.833333333333333,
+        "keyLength": 512,
+        "valueLength": 512,
+        "windowKeyLength": 256,
+        "windowValueLength": 256
+      },
+      "tiers": [
+        {
+          "quant": "IQ4_XS",
+          "files": [
+            {
+              "path": "gemma-4-12b-it-IQ4_XS.gguf",
+              "size": 6375734080,
+              "sha256": "b0037d0e0de0290177045ca214b2a0fb1079d18bde57842b3ca32f5b0cd76774"
+            }
+          ],
+          "quality": 87
+        },
+        {
+          "quant": "Q4_K_M",
+          "files": [
+            {
+              "path": "gemma-4-12b-it-Q4_K_M.gguf",
+              "size": 7121861440,
+              "sha256": "0a270ec9fe6b34f4a0d33992b6135117b484ebc4766ab76b51d4ae8c457e4c42"
+            }
+          ],
+          "quality": 90
+        },
+        {
+          "quant": "Q5_K_M",
+          "files": [
+            {
+              "path": "gemma-4-12b-it-Q5_K_M.gguf",
+              "size": 8413576000,
+              "sha256": "32c554c7d1338a23837ae39b3db482213a4a642f96df3b2619f516a2375d16cd"
+            }
+          ],
+          "quality": 95
+        },
+        {
+          "quant": "Q6_K",
+          "files": [
+            {
+              "path": "gemma-4-12b-it-Q6_K.gguf",
+              "size": 9786022720,
+              "sha256": "6f394336500bb5409bd68c31aa9d75097b5e6104f6cf30c82a09a7b64df41faf"
+            }
+          ],
+          "quality": 97
+        },
+        {
+          "quant": "Q8_0",
+          "files": [
+            {
+              "path": "gemma-4-12b-it-Q8_0.gguf",
+              "size": 12669647680,
+              "sha256": "f20e7ff1be28c283eeeb18fc895733791c56a5851d5cd3fe9691b7f7d12afa72"
+            }
+          ],
+          "quality": 99
+        }
+      ],
+      "mmproj": {
+        "path": "mmproj-F16.gguf",
+        "size": 175115840,
+        "sha256": "91f086971e56d7a7d8d39e271873fccdb49541bd259d6e02c401a4f1cb7a219e"
+      }
+    },
+    {
+      "id": "gemma-4-e4b",
+      "name": "Gemma 4 E4B",
+      "repo": "bartowski/google_gemma-4-E4B-it-GGUF",
+      "revision": "029e94146666900b08caf49a3b47b413dfa8ec66",
+      "licenseId": "apache-2.0",
+      "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+      "gated": false,
+      "capabilities": [
+        "chat",
+        "tools",
+        "reasoning",
+        "vision"
+      ],
+      "contextLength": 131072,
+      "parameters": {
+        "total": 7.5,
+        "active": 4
+      },
+      "released": "2026-04-01",
+      "scores": {
+        "everyday": 58,
+        "coding": 38,
+        "fast": 85
+      },
+      "supersedes": [],
+      "shape": {
+        "layers": 42,
+        "fullLayers": 4,
+        "windowLayers": 20,
+        "window": 512,
+        "kvHeads": 2,
+        "keyLength": 512,
+        "valueLength": 512,
+        "windowKeyLength": 256,
+        "windowValueLength": 256
+      },
+      "tiers": [
+        {
+          "quant": "IQ4_XS",
+          "files": [
+            {
+              "path": "google_gemma-4-E4B-it-IQ4_XS.gguf",
+              "size": 5112828384,
+              "sha256": "a24429604e6f680e7bdf087b863a6cecc90f80b3d908f95d888f4f05003fdee3"
+            }
+          ],
+          "quality": 87
+        },
+        {
+          "quant": "Q4_K_M",
+          "files": [
+            {
+              "path": "google_gemma-4-E4B-it-Q4_K_M.gguf",
+              "size": 5405170144,
+              "sha256": "d35a3aa7a6d47de237fd488bb6f7f3efd62908d828f85a63da0ee93acdbefe9f"
+            }
+          ],
+          "quality": 90
+        },
+        {
+          "quant": "Q5_K_M",
+          "files": [
+            {
+              "path": "google_gemma-4-E4B-it-Q5_K_M.gguf",
+              "size": 5820883424,
+              "sha256": "1c57b87a06a7c0fd1b9fa8f5d5e505b720c15099648e0dcdc78acd857f72a7cc"
+            }
+          ],
+          "quality": 95
+        },
+        {
+          "quant": "Q6_K",
+          "files": [
+            {
+              "path": "google_gemma-4-E4B-it-Q6_K.gguf",
+              "size": 6329954784,
+              "sha256": "bea1c94443c91fff61a722d9da5cd3f1cf0196d1e914798ee89d3c00ea365df9"
+            }
+          ],
+          "quality": 97
+        },
+        {
+          "quant": "Q8_0",
+          "files": [
+            {
+              "path": "google_gemma-4-E4B-it-Q8_0.gguf",
+              "size": 8031242720,
+              "sha256": "6a6eba0d36a051b5d924211a889c1436717006e7c5d413830c47caa1d46cb598"
+            }
+          ],
+          "quality": 99
+        }
+      ],
+      "mmproj": {
+        "path": "mmproj-google_gemma-4-E4B-it-f16.gguf",
+        "size": 990372352,
+        "sha256": "fd29ffa385f51ed8df3e8f48a865c7997ff6d01ed50c11bed2ae90f0d75f104e"
+      }
+    },
+    {
+      "id": "gemma-4-e2b",
+      "name": "Gemma 4 E2B",
+      "repo": "bartowski/google_gemma-4-E2B-it-GGUF",
+      "revision": "81012ba3538e061d5ee003f11f25335b17f82e2d",
+      "licenseId": "apache-2.0",
+      "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+      "gated": false,
+      "capabilities": [
+        "chat",
+        "tools",
+        "vision"
+      ],
+      "contextLength": 131072,
+      "parameters": {
+        "total": 4.6,
+        "active": 2
+      },
+      "released": "2026-04-01",
+      "scores": {
+        "everyday": 45,
+        "coding": 28,
+        "fast": 90
+      },
+      "supersedes": [],
+      "shape": {
+        "layers": 35,
+        "fullLayers": 3,
+        "windowLayers": 12,
+        "window": 512,
+        "kvHeads": 1,
+        "keyLength": 512,
+        "valueLength": 512,
+        "windowKeyLength": 256,
+        "windowValueLength": 256
+      },
+      "tiers": [
+        {
+          "quant": "IQ4_XS",
+          "files": [
+            {
+              "path": "google_gemma-4-E2B-it-IQ4_XS.gguf",
+              "size": 3324311008,
+              "sha256": "41326b0d673997e4791153a96f6e452bc70460a760ed92994c24ca187ae8c6c2"
+            }
+          ],
+          "quality": 87
+        },
+        {
+          "quant": "Q4_K_M",
+          "files": [
+            {
+              "path": "google_gemma-4-E2B-it-Q4_K_M.gguf",
+              "size": 3462680032,
+              "sha256": "923c4c86177d2ee173a7f5b4fa3d0ac65f5962ab15e6d6a5bc250aec4fd7bf7e"
+            }
+          ],
+          "quality": 90
+        },
+        {
+          "quant": "Q5_K_M",
+          "files": [
+            {
+              "path": "google_gemma-4-E2B-it-Q5_K_M.gguf",
+              "size": 3658384864,
+              "sha256": "e0400afe4c2cc8069238bff9f6e990cd4e087f76aa8fc35a6f076874d0d6dac7"
+            }
+          ],
+          "quality": 95
+        },
+        {
+          "quant": "Q6_K",
+          "files": [
+            {
+              "path": "google_gemma-4-E2B-it-Q6_K.gguf",
+              "size": 3898486240,
+              "sha256": "d7ea8cdd30d8e15bf11e5a37e8c141a600ad161d847165591fe86ab0288fb9d4"
+            }
+          ],
+          "quality": 97
+        },
+        {
+          "quant": "Q8_0",
+          "files": [
+            {
+              "path": "google_gemma-4-E2B-it-Q8_0.gguf",
+              "size": 4967497184,
+              "sha256": "bb145c0e8c2ede3b6992b881f7eefe6b33275eeb9998f450b5c72f4eb1d78732"
+            }
+          ],
+          "quality": 99
+        }
+      ],
+      "mmproj": {
+        "path": "mmproj-google_gemma-4-E2B-it-f16.gguf",
+        "size": 985653760,
+        "sha256": "3397f2e15859d268dc91782e92e70c485c7780448d57d622d145374390168f71"
+      }
+    },
+    {
+      "id": "glm-4.7-flash",
+      "name": "GLM-4.7 Flash 30B-A3B",
+      "repo": "unsloth/GLM-4.7-Flash-GGUF",
+      "revision": "0d32489ecb9db6d2a4fc93bd27ef01519f95474d",
+      "licenseId": "mit",
+      "licenseUrl": "https://opensource.org/license/mit",
+      "gated": false,
+      "capabilities": [
+        "chat",
+        "tools",
+        "reasoning"
+      ],
+      "contextLength": 202752,
+      "parameters": {
+        "total": 29.9,
+        "active": 3
+      },
+      "released": "2026-01-20",
+      "scores": {
+        "everyday": 74,
+        "coding": 68,
+        "fast": 74
+      },
+      "supersedes": [],
+      "shape": {
+        "layers": 47,
+        "fullLayers": 47,
+        "windowLayers": 0,
+        "window": 0,
+        "kvHeads": 1,
+        "keyLength": 576,
+        "valueLength": 512,
+        "windowKeyLength": 576,
+        "windowValueLength": 512
+      },
+      "tiers": [
+        {
+          "quant": "IQ4_XS",
+          "files": [
+            {
+              "path": "GLM-4.7-Flash-IQ4_XS.gguf",
+              "size": 16271360352,
+              "sha256": "44ad6ab1885f3fd2282b1b684df729868ef2da65fd8adeab4eb848b25ac3925b"
+            }
+          ],
+          "quality": 87
+        },
+        {
+          "quant": "Q4_K_M",
+          "files": [
+            {
+              "path": "GLM-4.7-Flash-Q4_K_M.gguf",
+              "size": 18312339808,
+              "sha256": "29837ed2c0fc5f51981adf8ac8083fcf80743c598381f13e9f06cbad0498b174"
+            }
+          ],
+          "quality": 90
+        },
+        {
+          "quant": "Q5_K_M",
+          "files": [
+            {
+              "path": "GLM-4.7-Flash-Q5_K_M.gguf",
+              "size": 21408850272,
+              "sha256": "167848c4b460887d7a52c44c378d3996a0d38b3302ac2045494dc8b50869a893"
+            }
+          ],
+          "quality": 95
+        },
+        {
+          "quant": "Q6_K",
+          "files": [
+            {
+              "path": "GLM-4.7-Flash-Q6_K.gguf",
+              "size": 24693098848,
+              "sha256": "f5bdc431802d7a3dab3be5a50ad0848a5569fd45c98c5e2ad83412c87cd887dc"
+            }
+          ],
+          "quality": 97
+        },
+        {
+          "quant": "Q8_0",
+          "files": [
+            {
+              "path": "GLM-4.7-Flash-Q8_0.gguf",
+              "size": 31842799968,
+              "sha256": "8c0922b03326932a40315ce92bbee01cc836ad18664268019143c898bdd7dd0b"
+            }
+          ],
+          "quality": 99
+        }
+      ]
+    },
+    {
+      "id": "gpt-oss-20b",
+      "name": "gpt-oss 20B",
+      "repo": "ggml-org/gpt-oss-20b-GGUF",
+      "revision": "15dcfc7e7c608c6161507211ed43c5b590801b4b",
+      "licenseId": "apache-2.0",
+      "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+      "gated": false,
+      "capabilities": [
+        "chat",
+        "tools",
+        "reasoning"
+      ],
+      "contextLength": 131072,
+      "parameters": {
+        "total": 20.9,
+        "active": 3.6
+      },
+      "released": "2025-08-05",
+      "scores": {
+        "everyday": 74,
+        "coding": 62,
+        "fast": 80
+      },
+      "supersedes": [],
+      "shape": {
+        "layers": 24,
+        "fullLayers": 12,
+        "windowLayers": 12,
+        "window": 128,
+        "kvHeads": 8,
+        "keyLength": 64,
+        "valueLength": 64,
+        "windowKeyLength": 64,
+        "windowValueLength": 64
+      },
+      "tiers": [
+        {
+          "quant": "MXFP4",
+          "files": [
+            {
+              "path": "gpt-oss-20b-MXFP4.gguf",
+              "size": 12109566624,
+              "sha256": "27cd6c432c7672cb812a92f611cf3ba7bbc35928262bb1e1253ff4ee6ae35901"
+            }
+          ],
+          "quality": 92
+        }
+      ]
+    },
+    {
+      "id": "gpt-oss-120b",
+      "name": "gpt-oss 120B",
+      "repo": "ggml-org/gpt-oss-120b-GGUF",
+      "revision": "7200b74bea78b0a2964ef9f3897eefa401e890ff",
+      "licenseId": "apache-2.0",
+      "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+      "gated": false,
+      "capabilities": [
+        "chat",
+        "tools",
+        "reasoning"
+      ],
+      "contextLength": 131072,
+      "parameters": {
+        "total": 116.8,
+        "active": 5.1
+      },
+      "released": "2025-08-05",
+      "scores": {
+        "everyday": 85,
+        "coding": 74
+      },
+      "supersedes": [],
+      "shape": {
+        "layers": 36,
+        "fullLayers": 18,
+        "windowLayers": 18,
+        "window": 128,
+        "kvHeads": 8,
+        "keyLength": 64,
+        "valueLength": 64,
+        "windowKeyLength": 64,
+        "windowValueLength": 64
+      },
+      "tiers": [
+        {
+          "quant": "MXFP4",
+          "files": [
+            {
+              "path": "gpt-oss-120b-MXFP4.gguf",
+              "size": 63387346208,
+              "sha256": "582bd40f6886200101f4c4ed9f25f3fe80cc14c86e9e2b37746cd8904a0c622d"
+            }
+          ],
+          "quality": 92
+        }
+      ]
+    },
+    {
+      "id": "devstral-small-2-24b",
+      "name": "Devstral Small 2 24B",
+      "repo": "bartowski/mistralai_Devstral-Small-2-24B-Instruct-2512-GGUF",
+      "revision": "027695770ae1de77c2f6fb19f8e1ba9d65fcd15d",
+      "licenseId": "apache-2.0",
+      "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+      "gated": false,
+      "capabilities": [
+        "chat",
+        "tools"
+      ],
+      "contextLength": 393216,
+      "parameters": {
+        "total": 23.6
+      },
+      "released": "2025-12-09",
+      "scores": {
+        "everyday": 62,
+        "coding": 78
+      },
+      "supersedes": [],
+      "shape": {
+        "layers": 40,
+        "fullLayers": 40,
+        "windowLayers": 0,
+        "window": 0,
+        "kvHeads": 8,
+        "keyLength": 128,
+        "valueLength": 128,
+        "windowKeyLength": 128,
+        "windowValueLength": 128
+      },
+      "tiers": [
+        {
+          "quant": "IQ4_XS",
+          "files": [
+            {
+              "path": "mistralai_Devstral-Small-2-24B-Instruct-2512-IQ4_XS.gguf",
+              "size": 12759444352,
+              "sha256": "5c6b371fb28e229985294b68cd7d9d2ab926790b9c12960160370f54602fad72"
+            }
+          ],
+          "quality": 87
+        },
+        {
+          "quant": "Q4_K_M",
+          "files": [
+            {
+              "path": "mistralai_Devstral-Small-2-24B-Instruct-2512-Q4_K_M.gguf",
+              "size": 14334438272,
+              "sha256": "bfd11c8679c6b81eb43763505465d7dcfa72e460ab1c220ecc235a3efadd7f7f"
+            }
+          ],
+          "quality": 90
+        },
+        {
+          "quant": "Q5_K_M",
+          "files": [
+            {
+              "path": "mistralai_Devstral-Small-2-24B-Instruct-2512-Q5_K_M.gguf",
+              "size": 16764513152,
+              "sha256": "e1a2d4b849f12a0efe6a92bb93d33e27ef5fddf859da7bfdbc7cc5bc58cf42ff"
+            }
+          ],
+          "quality": 95
+        },
+        {
+          "quant": "Q6_K",
+          "files": [
+            {
+              "path": "mistralai_Devstral-Small-2-24B-Instruct-2512-Q6_K.gguf",
+              "size": 19346467712,
+              "sha256": "a3e7b51f00baac8d9a840d1ae2277dab3c0aa7e91087548c40cfb1ccc18a923d"
+            }
+          ],
+          "quality": 97
+        },
+        {
+          "quant": "Q8_0",
+          "files": [
+            {
+              "path": "mistralai_Devstral-Small-2-24B-Instruct-2512-Q8_0.gguf",
+              "size": 25055308672,
+              "sha256": "dadb95350140abe130ad3bada05380afbd6855ca621548a1fe9c31f72c6509c0"
+            }
+          ],
+          "quality": 99
+        }
+      ]
+    },
+    {
+      "id": "ministral-3-14b",
+      "name": "Ministral 3 14B",
+      "repo": "unsloth/Ministral-3-14B-Instruct-2512-GGUF",
+      "revision": "9b948841b705cc11285ff274b84ba6c885908b19",
+      "licenseId": "apache-2.0",
+      "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+      "gated": false,
+      "capabilities": [
+        "chat",
+        "tools",
+        "vision"
+      ],
+      "contextLength": 262144,
+      "parameters": {
+        "total": 13.5
+      },
+      "released": "2025-12-02",
+      "scores": {
+        "everyday": 66,
+        "coding": 52,
+        "fast": 62
+      },
+      "supersedes": [],
+      "shape": {
+        "layers": 40,
+        "fullLayers": 40,
+        "windowLayers": 0,
+        "window": 0,
+        "kvHeads": 8,
+        "keyLength": 128,
+        "valueLength": 128,
+        "windowKeyLength": 128,
+        "windowValueLength": 128
+      },
+      "tiers": [
+        {
+          "quant": "IQ4_XS",
+          "files": [
+            {
+              "path": "Ministral-3-14B-Instruct-2512-IQ4_XS.gguf",
+              "size": 7432155840,
+              "sha256": "7513d3ded17367a7ddbef0c733e8244621eef52ba762f703acb3bf0834013ca0"
+            }
+          ],
+          "quality": 87
+        },
+        {
+          "quant": "Q4_K_M",
+          "files": [
+            {
+              "path": "Ministral-3-14B-Instruct-2512-Q4_K_M.gguf",
+              "size": 8239067840,
+              "sha256": "76ce697c065f2e40f1e8e958118b02cab38e2c10a6015f7d7908036a292dc8c8"
+            }
+          ],
+          "quality": 90
+        },
+        {
+          "quant": "Q5_K_M",
+          "files": [
+            {
+              "path": "Ministral-3-14B-Instruct-2512-Q5_K_M.gguf",
+              "size": 9620566720,
+              "sha256": "4b97b4b19859f3959e9f80367bcb0ec31a3ab27ace99e37d9220dbebf09f3da9"
+            }
+          ],
+          "quality": 95
+        },
+        {
+          "quant": "Q6_K",
+          "files": [
+            {
+              "path": "Ministral-3-14B-Instruct-2512-Q6_K.gguf",
+              "size": 11088409280,
+              "sha256": "4052c1aa81dee9151efc51ccdc90de584e926bac487b5098f296fb440d990c73"
+            }
+          ],
+          "quality": 97
+        },
+        {
+          "quant": "Q8_0",
+          "files": [
+            {
+              "path": "Ministral-3-14B-Instruct-2512-Q8_0.gguf",
+              "size": 14359311040,
+              "sha256": "29b33688b32cd953d330554b1ef36e84ed1d37043d6ac805c842c43bfbd0f0da"
+            }
+          ],
+          "quality": 99
+        }
+      ],
+      "mmproj": {
+        "path": "mmproj-F16.gguf",
+        "size": 878053536,
+        "sha256": "b0d2d17d39fa1fff5c1177b672c351cac55fb15b9794f03a8a551df185bffc10"
+      }
+    },
+    {
+      "id": "ministral-3-8b",
+      "name": "Ministral 3 8B",
+      "repo": "unsloth/Ministral-3-8B-Instruct-2512-GGUF",
+      "revision": "3731507ec3e867db16d620f73e14d689125758f4",
+      "licenseId": "apache-2.0",
+      "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+      "gated": false,
+      "capabilities": [
+        "chat",
+        "tools",
+        "vision"
+      ],
+      "contextLength": 262144,
+      "parameters": {
+        "total": 8.5
+      },
+      "released": "2025-12-02",
+      "scores": {
+        "everyday": 58,
+        "coding": 45,
+        "fast": 72
+      },
+      "supersedes": [],
+      "shape": {
+        "layers": 34,
+        "fullLayers": 34,
+        "windowLayers": 0,
+        "window": 0,
+        "kvHeads": 8,
+        "keyLength": 128,
+        "valueLength": 128,
+        "windowKeyLength": 128,
+        "windowValueLength": 128
+      },
+      "tiers": [
+        {
+          "quant": "IQ4_XS",
+          "files": [
+            {
+              "path": "Ministral-3-8B-Instruct-2512-IQ4_XS.gguf",
+              "size": 4713190944,
+              "sha256": "3943e2774dd4a5c8b3bd2268cc5eced94f317ec97f611d71cb6f21940d4da8bc"
+            }
+          ],
+          "quality": 87
+        },
+        {
+          "quant": "Q4_K_M",
+          "files": [
+            {
+              "path": "Ministral-3-8B-Instruct-2512-Q4_K_M.gguf",
+              "size": 5198386720,
+              "sha256": "5dbc3647eb563b9f8d3c70ec3d906cce84b86bb35c5e0b8a36e7df3937ab7174"
+            }
+          ],
+          "quality": 90
+        },
+        {
+          "quant": "Q5_K_M",
+          "files": [
+            {
+              "path": "Ministral-3-8B-Instruct-2512-Q5_K_M.gguf",
+              "size": 6058743328,
+              "sha256": "5cab98d37c333fb4c59dabf7d2467e10d1dd6c7478e3db2284705b59bc6f10f8"
+            }
+          ],
+          "quality": 95
+        },
+        {
+          "quant": "Q6_K",
+          "files": [
+            {
+              "path": "Ministral-3-8B-Instruct-2512-Q6_K.gguf",
+              "size": 6972872224,
+              "sha256": "c2d0939ba8c980b445097ed00bd3029cfbb937185f3c9a31e26fb62f332c134b"
+            }
+          ],
+          "quality": 97
+        },
+        {
+          "quant": "Q8_0",
+          "files": [
+            {
+              "path": "Ministral-3-8B-Instruct-2512-Q8_0.gguf",
+              "size": 9028867616,
+              "sha256": "7fce9a253a25197d72ccc5898fe0789ac7fc7e17cbe7a62560b304163a894a92"
+            }
+          ],
+          "quality": 99
+        }
+      ],
+      "mmproj": {
+        "path": "mmproj-F16.gguf",
+        "size": 857077920,
+        "sha256": "35f84351450a8935b4bb8f683c123f9a4949699baaf9e206db7816cd7b78f74d"
+      }
+    },
+    {
+      "id": "ministral-3-3b",
+      "name": "Ministral 3 3B",
+      "repo": "unsloth/Ministral-3-3B-Instruct-2512-GGUF",
+      "revision": "7564922f37fa5bbb62b87f09a55c12f1f91d7a6a",
+      "licenseId": "apache-2.0",
+      "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+      "gated": false,
+      "capabilities": [
+        "chat",
+        "tools",
+        "vision"
+      ],
+      "contextLength": 262144,
+      "parameters": {
+        "total": 3.4
+      },
+      "released": "2025-12-02",
+      "scores": {
+        "everyday": 42,
+        "coding": 32,
+        "fast": 82
+      },
+      "supersedes": [],
+      "shape": {
+        "layers": 26,
+        "fullLayers": 26,
+        "windowLayers": 0,
+        "window": 0,
+        "kvHeads": 8,
+        "keyLength": 128,
+        "valueLength": 128,
+        "windowKeyLength": 128,
+        "windowValueLength": 128
+      },
+      "tiers": [
+        {
+          "quant": "IQ4_XS",
+          "files": [
+            {
+              "path": "Ministral-3-3B-Instruct-2512-IQ4_XS.gguf",
+              "size": 1959277856,
+              "sha256": "d847cdafe9459948337183eb0eeca2ee3ce0c1aed45066580e01e5751dcf3476"
+            }
+          ],
+          "quality": 87
+        },
+        {
+          "quant": "Q4_K_M",
+          "files": [
+            {
+              "path": "Ministral-3-3B-Instruct-2512-Q4_K_M.gguf",
+              "size": 2146497824,
+              "sha256": "fd46fc371ff0509bfa8657ac956b7de8534d7d9baaa4947975c0648c3aa397f4"
+            }
+          ],
+          "quality": 90
+        },
+        {
+          "quant": "Q5_K_M",
+          "files": [
+            {
+              "path": "Ministral-3-3B-Instruct-2512-Q5_K_M.gguf",
+              "size": 2473653536,
+              "sha256": "8f208f4a8785aa1bdd8b506e36b036ac60c7f7a7fb144e3353781c74c58a33db"
+            }
+          ],
+          "quality": 95
+        },
+        {
+          "quant": "Q6_K",
+          "files": [
+            {
+              "path": "Ministral-3-3B-Instruct-2512-Q6_K.gguf",
+              "size": 2821256480,
+              "sha256": "ca22c676b97aad1d50952416f44ddd6d8130e24c11c474aed5e8865dd7e35297"
+            }
+          ],
+          "quality": 97
+        },
+        {
+          "quant": "Q8_0",
+          "files": [
+            {
+              "path": "Ministral-3-3B-Instruct-2512-Q8_0.gguf",
+              "size": 3651679520,
+              "sha256": "920163471715241a9d99367d507e2ad94d1ebc34d0d169d25e5d97a49ec72556"
+            }
+          ],
+          "quality": 99
+        }
+      ],
+      "mmproj": {
+        "path": "mmproj-F16.gguf",
+        "size": 840296608,
+        "sha256": "5ddb0f568242657aa527c6dadafd5d0fd55438d68d7b40830dc502b8d7231b88"
+      }
+    },
+    {
+      "id": "phi-4",
+      "name": "Phi-4 14B",
+      "repo": "unsloth/phi-4-GGUF",
+      "revision": "5110b7771e8166d5530e73346a15aea096a8cb99",
+      "licenseId": "mit",
+      "licenseUrl": "https://opensource.org/license/mit",
+      "gated": false,
+      "capabilities": [
+        "chat"
+      ],
+      "contextLength": 16384,
+      "parameters": {
+        "total": 14.7
+      },
+      "released": "2024-12-12",
+      "scores": {
+        "everyday": 60,
+        "coding": 50
+      },
+      "supersedes": [],
+      "shape": {
+        "layers": 40,
+        "fullLayers": 40,
+        "windowLayers": 0,
+        "window": 0,
+        "kvHeads": 10,
+        "keyLength": 128,
+        "valueLength": 128,
+        "windowKeyLength": 128,
+        "windowValueLength": 128
+      },
+      "tiers": [
+        {
+          "quant": "Q4_K_M",
+          "files": [
+            {
+              "path": "phi-4-Q4_K_M.gguf",
+              "size": 8890306112,
+              "sha256": "01e1f25b3e6931054c6c2227b06f4969828434eebc299e8e171f55dab6814485"
+            }
+          ],
+          "quality": 90
+        },
+        {
+          "quant": "Q5_K_M",
+          "files": [
+            {
+              "path": "phi-4-Q5_K_M.gguf",
+              "size": 10412707392,
+              "sha256": "6eae537ae21292e8c8092dafe423ac019c1b5c210b39007f16b7b03b8194673c"
+            }
+          ],
+          "quality": 95
+        },
+        {
+          "quant": "Q6_K",
+          "files": [
+            {
+              "path": "phi-4-Q6_K.gguf",
+              "size": 12030258752,
+              "sha256": "71c576487f2ce6a72c2d4999ce7aad23236680b201cda02df67991c772dedaed"
+            }
+          ],
+          "quality": 97
+        },
+        {
+          "quant": "Q8_0",
+          "files": [
+            {
+              "path": "phi-4-Q8_0.gguf",
+              "size": 15580507712,
+              "sha256": "f7c4d1a18c24db12b981c6956581e3daac9bee064a373a46bd5e6ecbc2471b6d"
+            }
+          ],
+          "quality": 99
+        }
+      ]
+    },
+    {
+      "id": "phi-4-mini",
+      "name": "Phi-4 mini 3.8B",
+      "repo": "unsloth/Phi-4-mini-instruct-GGUF",
+      "revision": "78eb92a46fc37e6b524df991ed9aca9bc6aa7b80",
+      "licenseId": "mit",
+      "licenseUrl": "https://opensource.org/license/mit",
+      "gated": false,
+      "capabilities": [
+        "chat",
+        "tools"
+      ],
+      "contextLength": 131072,
+      "parameters": {
+        "total": 3.8
+      },
+      "released": "2025-02-26",
+      "scores": {
+        "everyday": 44,
+        "coding": 38,
+        "fast": 78
+      },
+      "supersedes": [],
+      "shape": {
+        "layers": 32,
+        "fullLayers": 32,
+        "windowLayers": 0,
+        "window": 262144,
+        "kvHeads": 8,
+        "keyLength": 128,
+        "valueLength": 128,
+        "windowKeyLength": 128,
+        "windowValueLength": 128
+      },
+      "tiers": [
+        {
+          "quant": "Q4_K_M",
+          "files": [
+            {
+              "path": "Phi-4-mini-instruct-Q4_K_M.gguf",
+              "size": 2491874272,
+              "sha256": "88c00229914083cd112853aab84ed51b87bdf6b9ce42f532d8c85c7c63b1730a"
+            }
+          ],
+          "quality": 90
+        },
+        {
+          "quant": "Q5_K_M",
+          "files": [
+            {
+              "path": "Phi-4-mini-instruct-Q5_K_M.gguf",
+              "size": 2848127968,
+              "sha256": "b5a981febb25f218762d52411f5a4af6aad8b3a203bb1004a576545350ad08e3"
+            }
+          ],
+          "quality": 95
+        },
+        {
+          "quant": "Q6_K",
+          "files": [
+            {
+              "path": "Phi-4-mini-instruct-Q6_K.gguf",
+              "size": 3155622880,
+              "sha256": "72b8446a3db55617950bef48d296659050867cca41bd7a7be4622010c9589400"
+            }
+          ],
+          "quality": 97
+        },
+        {
+          "quant": "Q8_0",
+          "files": [
+            {
+              "path": "Phi-4-mini-instruct.Q8_0.gguf",
+              "size": 4084611040,
+              "sha256": "26188c6050d525376a88b04514c236c5e28a36730f1e936f2a00314212b7ba42"
+            }
+          ],
+          "quality": 99
+        }
+      ]
+    },
+    {
+      "id": "deepseek-r1-0528-qwen3-8b",
+      "name": "DeepSeek R1 0528 (Qwen3 8B)",
+      "repo": "unsloth/DeepSeek-R1-0528-Qwen3-8B-GGUF",
+      "revision": "eb48357c179d34dbf515983f798dfb8752a0f261",
+      "licenseId": "mit",
+      "licenseUrl": "https://opensource.org/license/mit",
+      "gated": false,
+      "capabilities": [
+        "chat",
+        "reasoning"
+      ],
+      "contextLength": 131072,
+      "parameters": {
+        "total": 8.2
+      },
+      "released": "2025-05-29",
+      "scores": {
+        "everyday": 64,
+        "coding": 58,
+        "fast": 55
+      },
+      "supersedes": [],
+      "shape": {
+        "layers": 36,
+        "fullLayers": 36,
+        "windowLayers": 0,
+        "window": 0,
+        "kvHeads": 8,
+        "keyLength": 128,
+        "valueLength": 128,
+        "windowKeyLength": 128,
+        "windowValueLength": 128
+      },
+      "tiers": [
+        {
+          "quant": "IQ4_XS",
+          "files": [
+            {
+              "path": "DeepSeek-R1-0528-Qwen3-8B-IQ4_XS.gguf",
+              "size": 4581288448,
+              "sha256": "111db362d89e14694a5b61838c81c3e46ddbf3150616038f999756148fb8db45"
+            }
+          ],
+          "quality": 87
+        },
+        {
+          "quant": "Q4_K_M",
+          "files": [
+            {
+              "path": "DeepSeek-R1-0528-Qwen3-8B-Q4_K_M.gguf",
+              "size": 5027785216,
+              "sha256": "a86349a4180c4e6bb43f874c29c404fa2be3f90b15509bd6d86f697dba724ec1"
+            }
+          ],
+          "quality": 90
+        },
+        {
+          "quant": "Q5_K_M",
+          "files": [
+            {
+              "path": "DeepSeek-R1-0528-Qwen3-8B-Q5_K_M.gguf",
+              "size": 5851113984,
+              "sha256": "044519a2d9821f9a91fbc8bda4eb2333180842bf56845d130e71144c11a1140e"
+            }
+          ],
+          "quality": 95
+        },
+        {
+          "quant": "Q6_K",
+          "files": [
+            {
+              "path": "DeepSeek-R1-0528-Qwen3-8B-Q6_K.gguf",
+              "size": 6725900800,
+              "sha256": "a012051e59aec617951defa167d3e3658196fe32a8842df4f2d1e2678b30ab40"
+            }
+          ],
+          "quality": 97
+        },
+        {
+          "quant": "Q8_0",
+          "files": [
+            {
+              "path": "DeepSeek-R1-0528-Qwen3-8B-Q8_0.gguf",
+              "size": 8709519872,
+              "sha256": "8d6f3bdd8853aa5af98412f2d001c4cc4d33e1ffb85a8361963e79b5573f4856"
+            }
+          ],
+          "quality": 99
+        }
+      ]
+    },
+    {
+      "id": "qwen2.5-coder-7b",
+      "name": "Qwen2.5-Coder 7B (completion)",
+      "repo": "ggml-org/Qwen2.5-Coder-7B-Q8_0-GGUF",
+      "revision": "bca77e0a8c88fc224882bcc404170c3ef17efacc",
+      "licenseId": "apache-2.0",
+      "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+      "gated": false,
+      "capabilities": [
+        "fim"
+      ],
+      "contextLength": 32768,
+      "parameters": {
+        "total": 7.6
+      },
+      "released": "2024-09-17",
+      "scores": {
+        "fim": 76
+      },
+      "supersedes": [],
+      "shape": {
+        "layers": 28,
+        "fullLayers": 28,
+        "windowLayers": 0,
+        "window": 0,
+        "kvHeads": 4,
+        "keyLength": 128,
+        "valueLength": 128,
+        "windowKeyLength": 128,
+        "windowValueLength": 128
+      },
+      "tiers": [
+        {
+          "quant": "Q8_0",
+          "files": [
+            {
+              "path": "qwen2.5-coder-7b-q8_0.gguf",
+              "size": 8098525600,
+              "sha256": "0ef48dc94a3c551a6736ac2601de38413dc9aa9318534b16e8baee08290a4aaf"
+            }
+          ],
+          "quality": 99
+        }
+      ]
+    },
+    {
+      "id": "qwen2.5-coder-1.5b",
+      "name": "Qwen2.5-Coder 1.5B (completion)",
+      "repo": "ggml-org/Qwen2.5-Coder-1.5B-Q8_0-GGUF",
+      "revision": "8be1b8a895a84beea772817caaa71eba6b6e0d07",
+      "licenseId": "apache-2.0",
+      "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+      "gated": false,
+      "capabilities": [
+        "fim"
+      ],
+      "contextLength": 32768,
+      "parameters": {
+        "total": 1.5
+      },
+      "released": "2024-09-17",
+      "scores": {
+        "fim": 62
+      },
+      "supersedes": [],
+      "shape": {
+        "layers": 28,
+        "fullLayers": 28,
+        "windowLayers": 0,
+        "window": 0,
+        "kvHeads": 2,
+        "keyLength": 128,
+        "valueLength": 128,
+        "windowKeyLength": 128,
+        "windowValueLength": 128
+      },
+      "tiers": [
+        {
+          "quant": "Q8_0",
+          "files": [
+            {
+              "path": "qwen2.5-coder-1.5b-q8_0.gguf",
+              "size": 1646573056,
+              "sha256": "29871c94d15727a6e243f79a37113d4ae625a6215b5e800bf41a23af2da32832"
+            }
+          ],
+          "quality": 99
+        }
+      ]
+    },
+    {
+      "id": "embeddinggemma-2",
+      "name": "EmbeddingGemma 2",
+      "repo": "ggml-org/embeddinggemma-2-GGUF",
+      "revision": "58faf90940886df2d62be555c8765d00dac362c5",
+      "licenseId": "apache-2.0",
+      "licenseUrl": "https://www.apache.org/licenses/LICENSE-2.0",
+      "gated": false,
+      "capabilities": [
+        "embeddings"
+      ],
+      "contextLength": 262144,
+      "parameters": {
+        "total": 0.74
+      },
+      "released": "2026-10-06",
+      "scores": {},
+      "supersedes": [],
+      "shape": {
+        "layers": 24,
+        "fullLayers": 4,
+        "windowLayers": 20,
+        "window": 1024,
+        "kvHeads": 1.8333333333333333,
+        "keyLength": 512,
+        "valueLength": 512,
+        "windowKeyLength": 256,
+        "windowValueLength": 256
+      },
+      "tiers": [
+        {
+          "quant": "Q8_0",
+          "files": [
+            {
+              "path": "embeddinggemma-2-Q8_0.gguf",
+              "size": 309855456,
+              "sha256": "2188ac1deca4b77dffefd603c2776a9d76d9d74ec01841392982ebb840b09135"
+            }
+          ],
+          "quality": 99
+        }
+      ]
+    }
+  ]
+}

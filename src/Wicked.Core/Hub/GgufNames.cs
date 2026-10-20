@@ -2,13 +2,15 @@ using System.Text.RegularExpressions;
 
 namespace Wicked.Core.Hub;
 
-/// <summary>What a GGUF file name says about itself.</summary>
-/// <param name="Quant">Upper-case quant such as <c>Q4_K_M</c>, <c>IQ4_XS</c>, <c>Q8_0</c>, <c>BF16</c>, or null when the name has none.</param>
-/// <param name="Dynamic">Unsloth's <c>UD-</c> dynamic quants (the prefix is not part of <see cref="Quant"/>).</param>
-/// <param name="Part">1-based shard number of a <c>-00001-of-00003</c> file, else null.</param>
-/// <param name="PartCount">Total shards, else null.</param>
-/// <param name="IsMmproj">A multimodal projector (the router requires the name to start with <c>mmproj</c>).</param>
-public sealed record GgufName(string? Quant, bool Dynamic, int? Part, int? PartCount, bool IsMmproj);
+/// <summary>
+/// What a GGUF file name says about itself. <c>Quant</c> is the upper-case quant (<c>Q4_K_M</c>, <c>IQ4_XS</c>, <c>Q8_0</c>,
+/// <c>BF16</c>) or null; <c>Dynamic</c> marks Unsloth's <c>UD-</c> dynamic quants (the prefix is not part of the quant);
+/// <c>Part</c> and <c>PartCount</c> are the 1-based shard number and total of a <c>-00001-of-00003</c> file;
+/// <c>IsMmproj</c> marks a multimodal projector (the router requires the name to start with <c>mmproj</c>); <c>IsSidecar</c>
+/// marks the other helper files the router knows (<c>mtp-</c>, <c>eagle3-</c>, <c>dflash-</c>, <c>dspark-</c>, <c>draft-</c>
+/// prefixes: speculative-decoding heads that are not models on their own).
+/// </summary>
+public sealed record GgufName(string? Quant, bool Dynamic, int? Part, int? PartCount, bool IsMmproj, bool IsSidecar = false);
 
 /// <summary>One downloadable choice in a repo: a quant, its files (all shards) and their total size.</summary>
 public sealed record GgufVariant(string Quant, bool Dynamic, IReadOnlyList<HubFile> Files, long TotalSize)
@@ -41,8 +43,11 @@ public static partial class GgufNames
             dynamic,
             shard.Success ? int.Parse(shard.Groups["n"].Value, System.Globalization.CultureInfo.InvariantCulture) : null,
             shard.Success ? int.Parse(shard.Groups["m"].Value, System.Globalization.CultureInfo.InvariantCulture) : null,
-            file.StartsWith("mmproj", StringComparison.OrdinalIgnoreCase));
+            file.StartsWith("mmproj", StringComparison.OrdinalIgnoreCase),
+            SidecarPrefixes.Any(p => file.StartsWith(p, StringComparison.OrdinalIgnoreCase)));
     }
+
+    private static readonly string[] SidecarPrefixes = ["mtp-", "eagle3-", "dflash-", "dspark-", "draft-"];
 
     private static (string? Quant, bool Dynamic) FindQuant(string text)
     {
@@ -60,7 +65,7 @@ public static partial class GgufNames
         {
             if (file.IsDirectory || !file.Path.EndsWith(".gguf", StringComparison.OrdinalIgnoreCase)) continue;
             var name = Parse(file.Path);
-            if (name.IsMmproj || name.Quant is null) continue;
+            if (name.IsMmproj || name.IsSidecar || name.Quant is null) continue;
             var slash = file.Path.LastIndexOf('/');
             var key = (name.Quant, name.Dynamic, name.PartCount is null ? file.Path : slash < 0 ? "" : file.Path[..slash]);
             if (!groups.TryGetValue(key, out var list)) groups[key] = list = [];

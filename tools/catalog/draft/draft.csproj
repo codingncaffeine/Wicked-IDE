@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Not part of Wicked.slnx: run by hand (dotnet run, project tools/catalog/draft) when refreshing the catalog. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Wicked.CatalogDraft</RootNamespace>
+    <AssemblyName>wicked-catalog-draft</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Wicked.Core\Wicked.Core.csproj" />
+  </ItemGroup>
+
+</Project>

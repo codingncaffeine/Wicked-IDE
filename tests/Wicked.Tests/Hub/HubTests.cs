@@ -176,6 +176,19 @@ public sealed class HubTests
     }
 
     [Fact]
+    public void SpeculativeDecodingHelpersAreNotModels()
+    {
+        HubFile F(string p) => new(p, 100, "o", "s", false);
+        var files = new[] { F("m-Q8_0.gguf"), F("mtp-m-Q8_0.gguf"), F("MTP/mtp-m-Q4_K_M.gguf"), F("eagle3-m-Q8_0.gguf"), F("draft-m-Q8_0.gguf") };
+
+        var variants = GgufNames.Variants(files);
+
+        Assert.Equal("m-Q8_0.gguf", Assert.Single(Assert.Single(variants).Files).Path);
+        Assert.True(GgufNames.Parse("mtp-m-Q8_0.gguf").IsSidecar);
+        Assert.False(GgufNames.Parse("m-Q8_0.gguf").IsSidecar);
+    }
+
+    [Fact]
     public void GroupsShardsAndSeparatesProjectors()
     {
         HubFile F(string p, long size) => new(p, size, "o", "s", false);
