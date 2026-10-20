@@ -58,3 +58,18 @@ SOFTWARE.
 
 The interface font is Inter, through the `Avalonia.Fonts.Inter` package, under the SIL Open Font License 1.1.
 https://rsms.me/inter
+
+## JetBrains Mono
+
+The editor's default font, `src/Wicked.Editor/Fonts/JetBrainsMono-*.ttf`, is JetBrains Mono 2.304, under the SIL Open
+Font License 1.1 (the full text is `src/Wicked.Editor/Fonts/JetBrainsMono-OFL.txt`). https://www.jetbrains.com/lp/mono/
+
+## TextMateSharp and its grammars
+
+Syntax highlighting uses TextMateSharp and TextMateSharp.Grammars (MIT), which bundle the TextMate grammars, language
+configurations and colour themes of Visual Studio Code's built-in extensions (MIT, Microsoft Corporation).
+https://github.com/danipen/TextMateSharp
+
+## SkiaSharp and HarfBuzzSharp
+
+Text is shaped with HarfBuzzSharp and drawn with SkiaSharp (both MIT, .NET Foundation and contributors).

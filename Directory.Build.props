@@ -31,6 +31,9 @@
     <AvaloniaVersion>12.1.4</AvaloniaVersion>
     <AvaloniaEditVersion>12.0.0</AvaloniaEditVersion>
     <TextMateSharpVersion>2.0.3</TextMateSharpVersion>
+    <!-- The versions Avalonia itself ships with: one copy of each native library in the app. -->
+    <SkiaSharpVersion>3.119.4</SkiaSharpVersion>
+    <HarfBuzzSharpVersion>8.3.1.3</HarfBuzzSharpVersion>
     <MvvmToolkitVersion>8.4.2</MvvmToolkitVersion>
     <TimeTestingVersion>10.11.0</TimeTestingVersion>
     <TestSdkVersion>18.10.1</TestSdkVersion>

@@ -37,19 +37,35 @@ public sealed class LineTokens(int[] packed)
     }
 }
 
-/// <summary>The theme's colours, by id, as 0xAARRGGBB; id 0 is unused and id 1 the default foreground.</summary>
+/// <summary>
+/// The theme's colours, by TextMate colour id, as 0xAARRGGBB. Id 1 is the colour of text no rule names: the theme's
+/// editor foreground (TextMate's own table holds black there).
+/// </summary>
 public sealed class ColorTable(ImmutableArray<uint> colors)
 {
     public ImmutableArray<uint> Colors { get; } = colors;
 
-    public uint this[int id] => (uint)id < (uint)Colors.Length ? Colors[id] : Default;
+    public uint this[int id] => (uint)id < (uint)Colors.Length && id > 0 ? Colors[id] : Default;
 
     public uint Default => Colors.Length > 1 ? Colors[1] : 0xFFD4D4D4;
 
-    public static ColorTable From(IEnumerable<string> hex) =>
-        new([.. hex.Select(h => h is { Length: >= 7 } && h[0] == '#' && uint.TryParse(h.AsSpan(1, 6), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var rgb)
-            ? 0xFF00_0000u | rgb
-            : 0xFFD4D4D4u)]);
+    /// <summary>The table for a TextMate theme: ids from 1, looked up through the theme itself.</summary>
+    public static ColorTable From(TextMateSharp.Themes.Theme theme)
+    {
+        var count = theme.GetColorMap().Count;
+        var colors = new uint[count + 1];
+        for (var id = 1; id <= count; id++) colors[id] = Parse(theme.GetColor(id), 0xFFD4D4D4);
+        if (theme.GetGuiColorDictionary().TryGetValue("editor.foreground", out var foreground)) colors[1] = Parse(foreground, 0xFFD4D4D4);
+        return new ColorTable([.. colors]);
+    }
+
+    public static uint Parse(string? hex, uint fallback)
+    {
+        if (hex is not { Length: >= 7 } || hex[0] != '#' || !uint.TryParse(hex.AsSpan(1, 6), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var rgb)) return fallback;
+        // #RRGGBBAA carries an alpha.
+        var alpha = hex.Length >= 9 && uint.TryParse(hex.AsSpan(7, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var a) ? a : 0xFF;
+        return (alpha << 24) | rgb;
+    }
 }
 
 /// <summary>

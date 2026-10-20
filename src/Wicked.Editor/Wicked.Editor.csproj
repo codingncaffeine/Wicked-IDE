@@ -11,6 +11,13 @@
   <ItemGroup>
     <PackageReference Include="TextMateSharp" Version="$(TextMateSharpVersion)" />
     <PackageReference Include="TextMateSharp.Grammars" Version="$(TextMateSharpVersion)" />
+    <PackageReference Include="SkiaSharp" Version="$(SkiaSharpVersion)" />
+    <PackageReference Include="HarfBuzzSharp" Version="$(HarfBuzzSharpVersion)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- JetBrains Mono 2.304 (SIL Open Font License 1.1, Fonts/JetBrainsMono-OFL.txt): the editor's default font. -->
+    <EmbeddedResource Include="Fonts\*.ttf" LogicalName="Wicked.Editor.Fonts.%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup>

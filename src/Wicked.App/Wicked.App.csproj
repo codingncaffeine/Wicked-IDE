@@ -28,6 +28,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Wicked.Core\Wicked.Core.csproj" />
+    <ProjectReference Include="..\Wicked.Editor\Wicked.Editor.csproj" />
   </ItemGroup>
 
 </Project>

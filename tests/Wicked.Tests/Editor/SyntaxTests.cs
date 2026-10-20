@@ -61,6 +61,13 @@ public sealed class SyntaxTests : IDisposable
     }
 
     [Fact]
+    public void ALanguagesBracketsAndQuotesBothCloseThemselves()
+    {
+        var pairs = Languages.ForFile("a.cs")!.Options.Pairs;
+        foreach (var open in new[] { "{", "[", "(", "\"" }) Assert.Contains(pairs, p => p.Open == open);
+    }
+
+    [Fact]
     public void KeywordsAndNamesGetDifferentColours()
     {
         var h = new Highlighted(_service, "public class Foo\n{\n    int x = 42; // note\n}\n", "a.cs");
@@ -68,6 +75,17 @@ public sealed class SyntaxTests : IDisposable
         Assert.All(Enumerable.Range(0, 4), line => Assert.NotNull(s[line]));
         Assert.NotEqual(ColourAt(s, 0, 0), ColourAt(s, 0, 13));   // "public" against "Foo"
         Assert.NotEqual(ColourAt(s, 2, 12), ColourAt(s, 2, 18));  // "42" against the comment
+    }
+
+    [Fact]
+    public void TheColoursAreTheThemesOwn()
+    {
+        // Dark+ draws keywords #569CD6, numbers #B5CEA8 and plain text in its editor foreground #D4D4D4.
+        var h = new Highlighted(_service, "public int x = 42;", "a.cs");
+        var s = h.Settled();
+        Assert.Equal(0xFF569CD6u, ColourAt(s, 0, 0));
+        Assert.Equal(0xFFB5CEA8u, ColourAt(s, 0, 16));
+        Assert.Equal(0xFFD4D4D4u, ColourAt(s, 0, 6));
     }
 
     [Fact]

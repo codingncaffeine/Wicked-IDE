@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using TextMateSharp.Grammars;
 using Wicked.Editor.Model;
 
@@ -78,9 +77,20 @@ public static class Languages
             BlockComment = config.Comments?.BlockComment is { Count: 2 } block ? (block[0], block[1]) : null,
         };
 
-        var pairs = config.AutoClosingPairs?.AutoPairs?.Where(p => !string.IsNullOrEmpty(p.Open) && !string.IsNullOrEmpty(p.Close))
-            .Select(p => new BracketPair(p.Open, p.Close)).ToImmutableArray();
-        if (pairs is { Length: > 0 } p) options = options with { Pairs = p };
+        // A language configuration lists its pairs in two shapes: ["{", "}"] (which TextMateSharp reads as CharPairs) and
+        // { "open": "'", "close": "'", "notIn": [...] } (AutoPairs). Both count.
+        var pairs = new List<BracketPair>();
+        foreach (var chars in config.AutoClosingPairs?.CharPairs ?? [])
+        {
+            if (chars is { Count: 2 }) pairs.Add(new BracketPair(chars[0].ToString(), chars[1].ToString()));
+        }
+
+        foreach (var pair in config.AutoClosingPairs?.AutoPairs ?? [])
+        {
+            if (!string.IsNullOrEmpty(pair.Open) && !string.IsNullOrEmpty(pair.Close)) pairs.Add(new BracketPair(pair.Open, pair.Close));
+        }
+
+        if (pairs.Count > 0) options = options with { Pairs = [.. pairs.Distinct()] };
         return options;
     }
 }

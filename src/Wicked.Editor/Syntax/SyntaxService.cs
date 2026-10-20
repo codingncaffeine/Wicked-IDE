@@ -73,7 +73,7 @@ public sealed class SyntaxService : IDisposable
         try
         {
             _registry = new Registry(Languages.Registry);
-            _colors = ColorTable.From(_registry.GetColorMap());
+            _colors = ColorTable.From(_registry.GetTheme());
         }
         catch (Exception ex)
         {
