@@ -29,12 +29,12 @@ public static partial class GgufNames
     /// <summary>Parses a repo-relative path; the quant is looked for in the file name first, then in its folders (some repos use <c>Q4_K_M/model-00001-of-00002.gguf</c>).</summary>
     public static GgufName Parse(string path)
     {
-        var file = path[(path.LastIndexOf('/') + 1)..];
+        var file = path[(path.LastIndexOf('/') + 1)..]; // not a path: a Hub path
         var shard = ShardPattern().Match(file);
         var (quant, dynamic) = FindQuant(file);
         if (quant is null)
         {
-            var segments = path.Split('/');
+            var segments = path.Split('/'); // not a path
             for (var i = segments.Length - 2; i >= 0 && quant is null; i--) (quant, dynamic) = FindQuant(segments[i]);
         }
 
@@ -66,7 +66,7 @@ public static partial class GgufNames
             if (file.IsDirectory || !file.Path.EndsWith(".gguf", StringComparison.OrdinalIgnoreCase)) continue;
             var name = Parse(file.Path);
             if (name.IsMmproj || name.IsSidecar || name.Quant is null) continue;
-            var slash = file.Path.LastIndexOf('/');
+            var slash = file.Path.LastIndexOf('/'); // not a path
             var key = (name.Quant, name.Dynamic, name.PartCount is null ? file.Path : slash < 0 ? "" : file.Path[..slash]);
             if (!groups.TryGetValue(key, out var list)) groups[key] = list = [];
             list.Add(file);

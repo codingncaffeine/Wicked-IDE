@@ -27,10 +27,10 @@ public sealed class IgnoreRules
             if (line.Length == 0 || line.StartsWith('#')) continue;
             var negated = line.StartsWith('!');
             if (negated) line = line[1..];
-            var directoryOnly = line.EndsWith('/');
-            line = line.TrimEnd('/');
+            var directoryOnly = line.EndsWith('/'); // not a path: gitignore syntax
+            line = line.TrimEnd('/'); // not a path
             var anchored = line.Contains('/');
-            line = line.TrimStart('/');
+            line = line.TrimStart('/'); // not a path
             if (line.Length == 0) continue;
             var regex = GlobToRegex(line, anchored);
             _rules.Add((new Regex(regex, RegexOptions.CultureInvariant | RegexOptions.Compiled), negated, directoryOnly, baseDirectory));

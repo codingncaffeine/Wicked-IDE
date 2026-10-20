@@ -114,7 +114,7 @@ internal static class ArchiveExtractor
         {
             ct.ThrowIfCancellationRequested();
             var path = Resolve(root, entry.FullName);
-            if (entry.FullName.EndsWith('/') || entry.Name.Length == 0)
+            if (entry.FullName.EndsWith('/') || entry.Name.Length == 0) // archive path
             {
                 Directory.CreateDirectory(path);
                 continue;

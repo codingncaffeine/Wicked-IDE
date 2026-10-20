@@ -74,7 +74,7 @@ public sealed partial class ModelStore(string root)
     /// <summary>The folder of a model id (<c>publisher/repo</c>); throws for ids that are not two plain names.</summary>
     public string DirectoryFor(string modelId)
     {
-        var parts = modelId.Split('/');
+        var parts = modelId.Split('/'); // not a path: a model id, publisher/repo
         if (parts.Length != 2 || parts.Any(p => !NamePattern().IsMatch(p) || p.EndsWith('.'))) throw new ArgumentException($"Not a model id (expected publisher/repo): '{modelId}'", nameof(modelId));
         var managed = Path.Combine(Root, parts[0], parts[1]);
         // "local/name" is also how hand-copied folders sitting directly under the root are named.

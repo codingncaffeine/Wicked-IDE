@@ -148,7 +148,7 @@ public sealed partial class HubClient(HttpClient http, Func<string?>? token = nu
         }
     }
 
-    private static string EscapePath(string path) => string.Join('/', path.Split('/').Select(Uri.EscapeDataString));
+    private static string EscapePath(string path) => string.Join('/', path.Split('/').Select(Uri.EscapeDataString)); // not a path: a Hub URL path
 
     private static Gating ParseGated(JsonElement e) =>
         e.TryGetProperty("gated", out var g) && g.ValueKind == JsonValueKind.String
