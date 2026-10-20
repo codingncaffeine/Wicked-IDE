@@ -69,12 +69,12 @@ public sealed class ModelServices : IAsyncDisposable
     private EngineBackendKind? _backend;
     private bool _rootsDirty;
 
-    public ModelServices(WickedPaths paths, HttpClient? http = null, Uri? hubBase = null, Uri? catalogBase = null, Uri? githubBase = null)
+    public ModelServices(WickedPaths paths, HttpClient? http = null, Uri? hubBase = null, Uri? catalogBase = null, Uri? githubBase = null, string? catalogKey = null)
     {
         _paths = paths;
         _http = http ?? WickedHttp.CreateClient();
         _hub = new HubClient(_http, () => Token, baseAddress: hubBase);
-        _catalog = new CatalogService(_http, Path.Combine(paths.Cache, "catalog"), catalogBase);
+        _catalog = new CatalogService(_http, Path.Combine(paths.Cache, "catalog"), catalogBase, catalogKey);
         _releases = new EngineReleases(_http, cacheFile: Path.Combine(paths.Cache, "engine-releases.json"), apiBase: githubBase);
         _defaultRoot = Path.GetFullPath(Path.Combine(paths.Data, "models"));
         _store = StoreAt(_defaultRoot);

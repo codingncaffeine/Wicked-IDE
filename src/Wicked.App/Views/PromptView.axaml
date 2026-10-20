@@ -1,0 +1,23 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Wicked.App.ViewModels"
+             xmlns:shell="using:Wicked.App.Shell"
+             x:Class="Wicked.App.Views.PromptView"
+             x:DataType="vm:ModelPrompt">
+  <Border Classes="dialog" Width="480">
+    <StackPanel Spacing="10">
+      <TextBlock Name="PromptTitle" Text="{Binding Title}" FontSize="15" FontWeight="SemiBold" TextWrapping="Wrap" />
+      <TextBlock Name="PromptBody" Text="{Binding Body}" Classes="secondary" TextWrapping="Wrap" />
+      <Button Name="PromptLink" Classes="link" Command="{Binding OpenLinkCommand}" IsVisible="{Binding HasLink}" HorizontalAlignment="Left">
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <TextBlock Text="{Binding LinkText}" Foreground="{DynamicResource Brush.Accent.Hover}" />
+          <shell:Icon Data="{StaticResource Icon.ExternalLink}" Size="12" Foreground="{DynamicResource Brush.Accent.Hover}" />
+        </StackPanel>
+      </Button>
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,10,0,0">
+        <Button Name="PromptCancel" Classes="secondary" Content="Cancel" Command="{Binding CancelCommand}" />
+        <Button Name="PromptConfirm" Classes="primary" Classes.danger="{Binding Danger}" Content="{Binding ConfirmText}" Command="{Binding ConfirmCommand}" />
+      </StackPanel>
+    </StackPanel>
+  </Border>
+</UserControl>

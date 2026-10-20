@@ -40,10 +40,24 @@
                   <TextBlock Text="{Binding Details}" Classes="muted" TextWrapping="Wrap" FontSize="{DynamicResource Font.Size.Small}" />
                   <Grid ColumnDefinitions="*,Auto" Margin="0,4,0,0">
                     <StackPanel VerticalAlignment="Center" Spacing="4" Margin="0,0,10,0">
-                      <ProgressBar Height="3" MinHeight="3" Minimum="0" Maximum="1" Value="{Binding Progress}" IsVisible="{Binding Busy}" />
-                      <TextBlock Text="{Binding Status}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" TextTrimming="CharacterEllipsis" />
+                      <ProgressBar Height="3" MinHeight="3" Minimum="0" Maximum="1" Value="{Binding Item.Progress}" IsVisible="{Binding Item.Busy}" />
+                      <TextBlock Text="{Binding Item.Status}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" TextTrimming="CharacterEllipsis" />
                     </StackPanel>
                     <Button Grid.Column="1" Classes="primary" Content="Install" Command="{Binding InstallCommand}" IsVisible="{Binding CanInstall}" />
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2" IsVisible="{Binding Item.Busy}" VerticalAlignment="Center">
+                      <Button Classes="quiet" Command="{Binding Item.PauseCommand}" IsVisible="{Binding Item.CanPause}"
+                              ToolTip.Tip="Pause the download" AutomationProperties.Name="Pause">
+                        <shell:Icon Data="{StaticResource Icon.Pause}" Size="14" />
+                      </Button>
+                      <Button Classes="quiet" Command="{Binding Item.ResumeCommand}" IsVisible="{Binding Item.CanResume}"
+                              ToolTip.Tip="Resume the download" AutomationProperties.Name="Resume">
+                        <shell:Icon Data="{StaticResource Icon.Play}" Size="14" />
+                      </Button>
+                      <Button Classes="quiet" Command="{Binding Item.CancelCommand}"
+                              ToolTip.Tip="Cancel and remove what was downloaded" AutomationProperties.Name="Cancel">
+                        <shell:Icon Data="{StaticResource Icon.X}" Size="14" />
+                      </Button>
+                    </StackPanel>
                     <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="5" IsVisible="{Binding Installed}" VerticalAlignment="Center">
                       <shell:Icon Data="{StaticResource Icon.CircleCheck}" Size="14" Foreground="{DynamicResource Brush.Success}" />
                       <TextBlock Text="Installed" Foreground="{DynamicResource Brush.Success}" FontSize="{DynamicResource Font.Size.Small}" />
@@ -58,15 +72,47 @@
 
       <!-- Installed -->
       <StackPanel Spacing="6">
-        <TextBlock Classes="heading" Text="INSTALLED" />
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Classes="heading" Text="INSTALLED" VerticalAlignment="Center" />
+          <Button Grid.Column="1" Name="CheckUpdates" Classes="quiet" Command="{Binding CheckUpdatesCommand}" IsEnabled="{Binding !CheckingUpdates}"
+                  ToolTip.Tip="Look for newer uploads of the models you have" Padding="6,3">
+            <StackPanel Orientation="Horizontal" Spacing="5">
+              <shell:Icon Data="{StaticResource Icon.RefreshCw}" Size="12" />
+              <TextBlock Text="Check for updates" FontSize="{DynamicResource Font.Size.Small}" />
+            </StackPanel>
+          </Button>
+        </Grid>
+        <TextBlock Name="UpdateStatus" Classes="muted" Text="{Binding UpdateStatus}" FontSize="{DynamicResource Font.Size.Small}" TextWrapping="Wrap"
+                   IsVisible="{Binding UpdateStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
         <TextBlock Classes="muted" Text="Nothing yet." IsVisible="{Binding !Installed.Count}" />
-        <ItemsControl ItemsSource="{Binding Installed}">
+        <ItemsControl Name="InstalledList" ItemsSource="{Binding Installed}">
           <ItemsControl.ItemTemplate>
             <DataTemplate DataType="vm:InstalledRow">
-              <StackPanel Margin="0,3">
-                <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
-                <TextBlock Text="{Binding Details}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" />
-              </StackPanel>
+              <Grid ColumnDefinitions="*,Auto" Margin="0,3" Classes="installed">
+                <StackPanel>
+                  <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Text="{Binding Details}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Classes="update" Text="{Binding UpdateText}" IsVisible="{Binding HasUpdate}" FontSize="{DynamicResource Font.Size.Small}"
+                             Foreground="{DynamicResource Brush.Accent.Hover}" TextWrapping="Wrap" />
+                </StackPanel>
+                <Button Grid.Column="1" Classes="quiet" Padding="5" VerticalAlignment="Top" ToolTip.Tip="More" AutomationProperties.Name="More">
+                  <shell:Icon Data="{StaticResource Icon.Ellipsis}" Size="15" />
+                  <Button.Flyout>
+                    <MenuFlyout Placement="BottomEdgeAlignedRight">
+                      <MenuItem Header="Show in folder" Command="{Binding ShowInFolderCommand}">
+                        <MenuItem.Icon>
+                          <shell:Icon Data="{StaticResource Icon.FolderOpen}" Size="14" />
+                        </MenuItem.Icon>
+                      </MenuItem>
+                      <MenuItem Header="Delete…" Command="{Binding DeleteCommand}">
+                        <MenuItem.Icon>
+                          <shell:Icon Data="{StaticResource Icon.Trash2}" Size="14" />
+                        </MenuItem.Icon>
+                      </MenuItem>
+                    </MenuFlyout>
+                  </Button.Flyout>
+                </Button>
+              </Grid>
             </DataTemplate>
           </ItemsControl.ItemTemplate>
         </ItemsControl>

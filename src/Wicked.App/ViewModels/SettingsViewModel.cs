@@ -31,6 +31,11 @@ public sealed partial class SettingsViewModel : ObservableObject
         Load(shell.Settings);
     }
 
+    /// <summary>Raised when something outside the sheet (a footer notice) wants a section shown: "models", "runtime".</summary>
+    public event Action<string>? SectionRequested;
+
+    public void RequestSection(string section) => SectionRequested?.Invoke(section);
+
     public IReadOnlyList<SettingChoice> CodeThemes { get; }
 
     public IReadOnlyList<SettingChoice> AutoSaveModes { get; } =

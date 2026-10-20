@@ -146,6 +146,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     {
         Settings = settings;
         Workbench.Settings = settings;
+        Models.Configure(settings);
         OnPropertyChanged(nameof(Settings));
         var services = await EditorServices.Ready;
         services.Apply(settings);
@@ -447,6 +448,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             case ShellRoutes.SourceControl: Panel = SidePanel.SourceControl; SidebarVisible = true; return true;
             case ShellRoutes.Models: Panel = SidePanel.Models; SidebarVisible = true; return true;
             case ShellRoutes.Assistant: AssistantVisible = true; return true;
+            case ShellRoutes.SettingsModels: Models.Prompt = null; SettingsOpen = true; SettingsSheet.RequestSection("models"); return true;
             default:
                 Log.Warn($"No place called '{route}' to go to");
                 return false;
