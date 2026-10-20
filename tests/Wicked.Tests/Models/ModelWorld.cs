@@ -22,10 +22,25 @@ internal sealed class ModelWorld : IAsyncDisposable
 {
     private readonly ECDsa _key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
 
-    private ModelWorld(HubStandIn hub, ModelCatalog catalog)
+    private ModelWorld(HubStandIn hub, ModelCatalog catalog, BuildList builds)
     {
         Hub = hub;
         Catalog = catalog;
+        _builds = builds;
+    }
+
+    private readonly BuildList _builds;
+
+    /// <summary>The llama.cpp builds the stand-in GitHub lists right now (999 and 1000 exist; a test makes 1000 appear later).</summary>
+    public int[] Builds
+    {
+        get => _builds.Current;
+        set => _builds.Current = value;
+    }
+
+    private sealed class BuildList
+    {
+        public volatile int[] Current = [999];
     }
 
     public HubStandIn Hub { get; }
@@ -92,13 +107,14 @@ internal sealed class ModelWorld : IAsyncDisposable
         var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
         var json = Encoding.UTF8.GetBytes(catalog.ToJson());
         var signature = Convert.ToBase64String(key.SignData(json, HashAlgorithmName.SHA256, DSASignatureFormat.IeeeP1363FixedFieldConcatenation));
+        var builds = new BuildList();
         var hub = await HubStandIn.StartAsync(app =>
         {
             app.MapGet("/catalog.json", () => Results.Bytes(json, "application/json"));
             app.MapGet("/catalog.json.sig", () => Results.Text(signature + "\n"));
-            StandIns.MapGitHub(app, 999);
+            StandIns.MapGitHub(app, [999, 1000], () => builds.Current);
         }, [.. repos]);
-        var world = new ModelWorld(hub, catalog);
+        var world = new ModelWorld(hub, catalog, builds);
         world.PublicKey = Convert.ToBase64String(key.ExportSubjectPublicKeyInfo());
         key.Dispose();
         return world;
@@ -106,20 +122,25 @@ internal sealed class ModelWorld : IAsyncDisposable
 
     public string PublicKey { get; private set; } = "";
 
-    /// <summary>Services wired to this world, for a window that builds its own (see <see cref="Use"/>).</summary>
+    /// <summary>Services wired to this world, for a window that builds its own (see <see cref="Start"/>).</summary>
     public ModelServices Services(WickedPaths paths) =>
         new(paths, WickedHttp.CreateClient(offline: () => false), hubBase: Hub.Server.Url("/"), catalogBase: Hub.Server.Url("/"), githubBase: Hub.Server.Url("/"), catalogKey: PublicKey);
 
-    /// <summary>Makes windows built while the returned scope is open use this world. UI tests run one at a time, so the hook is not contended.</summary>
-    public IDisposable Use()
+    /// <summary>
+    /// The main window on a profile of its own, its model half wired to this world. Call it inside <c>Ui.Run</c>: those bodies run one
+    /// at a time, so the hook that hands the window its services is never contended by another test.
+    /// </summary>
+    public (App.Views.MainWindow Window, ShellViewModel Shell) Start(WickedPaths paths)
     {
         ModelsViewModel.ServicesFactory = Services;
-        return new Scope();
-    }
-
-    private sealed class Scope : IDisposable
-    {
-        public void Dispose() => ModelsViewModel.ServicesFactory = null;
+        try
+        {
+            return Ui.Start(paths);
+        }
+        finally
+        {
+            ModelsViewModel.ServicesFactory = null;
+        }
     }
 
     public string Store(WickedPaths paths) => Path.Combine(paths.Data, "models");

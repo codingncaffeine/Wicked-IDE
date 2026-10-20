@@ -13,13 +13,12 @@ public sealed class ModelsDownloadsWindowTests
         Assert.SkipUnless(StandIns.CanRunEngine, "the stand-in engine is a shell script");
         using var profile = new TempProfile();
         await using var world = await ModelWorld.StartAsync();
-        using var scope = world.Use();
         await Ui.Run(() =>
         {
-            var (window, shell) = Ui.Start(profile.Paths);
+            var (window, shell) = world.Start(profile.Paths);
             _ = shell.Models.StartAsync(allowNetwork: true);
             Input.Click(window, window.FindControl<Button>("RailModels")!);
-            Assert.True(Ui.PumpUntil(() => shell.Models.Picks.Count == 3, 20), "no recommendations appeared");
+            Assert.True(Ui.PumpUntil(() => shell.Models.Picks.Count == 3 && ModelsUi.Cards(window).Count() == 3, 20), "no recommendations appeared");
 
             world.Hub.ChunkDelay = TimeSpan.FromMilliseconds(40);
             var card = ModelsUi.Card(window, "Tiny Chat");
