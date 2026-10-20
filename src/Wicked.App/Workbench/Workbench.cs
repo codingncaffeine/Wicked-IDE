@@ -84,6 +84,16 @@ public sealed partial class Workbench : ObservableObject, IDisposable
 
     public EditorTab? ActiveTab => ActiveGroup.Active;
 
+    /// <summary>Folders opened before, newest first (the shell keeps them in the session); the welcome page lists them.</summary>
+    public ObservableCollection<string> RecentFolders { get; } = [];
+
+    /// <summary>Raised when a folder opens, so the shell can remember it.</summary>
+    public event Action<string>? FolderOpened;
+
+    /// <summary>The node the explorer should select (the active file, revealed); the explorer view follows it.</summary>
+    [ObservableProperty]
+    private ExplorerNode? _revealed;
+
     public IEnumerable<EditorTab> AllTabs => Groups.SelectMany(g => g.Tabs);
 
     /// <summary>Raised when the active tab, or the active tab's carets, change (the status bar listens).</summary>
@@ -93,6 +103,7 @@ public sealed partial class Workbench : ObservableObject, IDisposable
     {
         OnPropertyChanged(nameof(ActiveTab));
         ActiveEditorChanged?.Invoke();
+        if (ActiveTab?.Path is { } path) _ = RevealAsync(path);
     }
 
     public void Focus(EditorGroup group)
@@ -113,7 +124,28 @@ public sealed partial class Workbench : ObservableObject, IDisposable
         ExplorerRoot = node;
         node.IsExpanded = true;
         Watch(folder);
+        FolderOpened?.Invoke(folder);
         await RebuildIndexAsync();
+    }
+
+    /// <summary>Opens each folder on the way to a file in the explorer and selects it (VS Code's explorer.autoReveal).</summary>
+    public async Task RevealAsync(string path)
+    {
+        if (ExplorerRoot is not { } node || Root is not { } root || !path.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.Ordinal)) return;
+        foreach (var part in Path.GetRelativePath(root, path).Split(Path.DirectorySeparatorChar))
+        {
+            if (node.IsDirectory)
+            {
+                await node.EnsureLoadedAsync();
+                node.IsExpanded = true;
+            }
+
+            var next = node.Children.FirstOrDefault(c => c.Name == part);
+            if (next is null) return;
+            node = next;
+        }
+
+        Revealed = node;
     }
 
     private async Task RebuildIndexAsync()

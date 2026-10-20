@@ -25,7 +25,18 @@ public partial class EditorGroupView : UserControl
         {
             if (_group is not null) _group.PropertyChanged -= OnGroupChanged;
             _group = DataContext as EditorGroup;
-            if (_group is not null) _group.PropertyChanged += OnGroupChanged;
+            if (_group is not null)
+            {
+                _group.PropertyChanged += OnGroupChanged;
+                _group.Workbench.RecentFolders.CollectionChanged += (_, _) =>
+                {
+                    if (_group?.Active is null) ShowRecent();
+                };
+                _group.Workbench.PropertyChanged += (_, e) =>
+                {
+                    if (e.PropertyName == nameof(Wicked.App.Workbench.Workbench.Root)) ShowRecent();
+                };
+            }
             _ = ShowActiveAsync();
         };
     }
@@ -40,6 +51,8 @@ public partial class EditorGroupView : UserControl
     {
         var tab = _group?.Active;
         Welcome.IsVisible = tab is null;
+        ShowCrumbs(tab);
+        if (tab is null) ShowRecent();
         if (tab is null)
         {
             Host.Content = null;
@@ -81,6 +94,52 @@ public partial class EditorGroupView : UserControl
     private void OnFindChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(FindViewModel.IsOpen) && _findOf is not null) FindBar.IsVisible = _findOf.IsOpen;
+    }
+
+    /// <summary>The active file's place in the folder: one crumb per folder, the file last.</summary>
+    private void ShowCrumbs(EditorTab? tab)
+    {
+        var root = _group?.Workbench.Root;
+        var path = tab?.Path;
+        Crumbs.IsVisible = path is not null;
+        if (path is null) return;
+        var relative = root is not null && path.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.Ordinal) ? Path.GetRelativePath(root, path) : path;
+        var parts = relative.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);
+        var items = new List<Control>();
+        for (var i = 0; i < parts.Length; i++)
+        {
+            if (i > 0) items.Add(new Shell.Icon { Data = (Avalonia.Media.Geometry?)this.FindResource("Icon.ChevronRight"), Size = 12, Classes = { "crumbsep" } });
+            items.Add(new TextBlock { Text = parts[i], Classes = { i == parts.Length - 1 ? "crumb-last" : "crumb" } });
+        }
+
+        CrumbList.ItemsSource = items;
+    }
+
+    /// <summary>The welcome page's recent folders: a click opens one.</summary>
+    private void ShowRecent()
+    {
+        var bench = _group?.Workbench;
+        var folders = bench?.RecentFolders.ToList() ?? [];
+        Recent.IsVisible = folders.Count > 0 && bench?.Root is null;
+        RecentList.ItemsSource = folders.Select(folder =>
+        {
+            var button = new Button { Classes = { "recent" }, Tag = folder, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch };
+            button.Content = new StackPanel
+            {
+                Orientation = Avalonia.Layout.Orientation.Horizontal,
+                Spacing = 8,
+                Children =
+                {
+                    new TextBlock { Text = Path.GetFileName(folder.TrimEnd(Path.DirectorySeparatorChar)) },
+                    new TextBlock { Text = Path.GetDirectoryName(folder) ?? "", Classes = { "muted" }, TextTrimming = Avalonia.Media.TextTrimming.CharacterEllipsis },
+                },
+            };
+            button.Click += (_, _) =>
+            {
+                if (bench is not null) _ = bench.OpenFolderAsync(folder);
+            };
+            return button;
+        }).ToList();
     }
 
     private void OnTabPointer(object? sender, PointerReleasedEventArgs e)

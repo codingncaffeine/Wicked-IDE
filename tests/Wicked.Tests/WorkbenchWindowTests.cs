@@ -316,3 +316,61 @@ public sealed class ExplorerActionsTests
         });
     }
 }
+
+/// <summary>The explorer follows the active file, the breadcrumbs say where it is, the welcome page lists recent folders.</summary>
+public sealed class WayfindingTests
+{
+    [Fact]
+    public async Task OpeningAFileRevealsItAndTheBreadcrumbsNameItsPlace()
+    {
+        using var profile = new TempProfile();
+        var root = Path.Combine(profile.Root, "proj");
+        Directory.CreateDirectory(Path.Combine(root, "src", "deep"));
+        File.WriteAllText(Path.Combine(root, "src", "deep", "Thing.cs"), "class Thing { }\n");
+        await Ui.Run(() =>
+        {
+            var (window, shell) = Ui.Start(profile.Paths);
+            var open = shell.OpenFolderAndRememberAsync(root);
+            Assert.True(Ui.PumpUntil(() => open.IsCompleted, 5));
+            var file = shell.Workbench.OpenAsync(Path.Combine(root, "src", "deep", "Thing.cs"));
+            Assert.True(Ui.PumpUntil(() => file.IsCompleted && shell.Workbench.Revealed?.Name == "Thing.cs", 5), "the file was not revealed");
+
+            var tree = window.GetVisualDescendants().OfType<Avalonia.Controls.TreeView>().First(t => t.Name == "Tree");
+            Assert.True(Ui.PumpUntil(() => (tree.SelectedItem as Wicked.App.Workbench.ExplorerNode)?.Name == "Thing.cs", 5));
+            var crumbs = window.GetVisualDescendants().OfType<Avalonia.Controls.TextBlock>()
+                .Where(t => t.Classes.Contains("crumb") || t.Classes.Contains("crumb-last")).Select(t => t.Text).ToList();
+            Assert.Equal(["src", "deep", "Thing.cs"], crumbs);
+            window.Close();
+            return 0;
+        });
+    }
+
+    [Fact]
+    public async Task TheWelcomePageReopensARecentFolder()
+    {
+        using var profile = new TempProfile();
+        var root = Path.Combine(profile.Root, "earlier");
+        Directory.CreateDirectory(root);
+        await Ui.Run(() =>
+        {
+            // A first run opens the folder; a second run, with restoring off, shows it under Recent.
+            var (first, firstShell) = Ui.Start(profile.Paths);
+            var open = firstShell.OpenFolderAndRememberAsync(root);
+            Assert.True(Ui.PumpUntil(() => open.IsCompleted && File.Exists(profile.Paths.SessionFile), 5));
+            first.Close();
+            Directory.CreateDirectory(profile.Paths.Config);
+            File.WriteAllText(profile.Paths.SettingsFile, "{ \"window.restoreWindows\": false }");
+
+            var (window, shell) = Ui.Start(profile.Paths);
+            var start = shell.StartAsync();
+            Assert.True(Ui.PumpUntil(() => start.IsCompleted, 10));
+            Ui.Pump(0.2);
+            var recent = window.GetVisualDescendants().OfType<Avalonia.Controls.Button>().FirstOrDefault(b => b.Classes.Contains("recent") && b.IsEffectivelyVisible);
+            Assert.NotNull(recent);
+            Input.Click(window, recent);
+            Assert.True(Ui.PumpUntil(() => shell.Workbench.Root == root, 5), "the recent folder did not open");
+            window.Close();
+            return 0;
+        });
+    }
+}

@@ -20,9 +20,35 @@ public partial class ExplorerView : UserControl
         Tree.DoubleTapped += (_, _) => OpenSelected(preview: false);
         Tree.KeyDown += OnTreeKey;
         Tree.ContextRequested += OnContextRequested;
+        DataContextChanged += (_, _) =>
+        {
+            if (Bench is { } bench) bench.PropertyChanged += (_, args) =>
+            {
+                if (args.PropertyName == nameof(Wicked.App.Workbench.Workbench.Revealed) && bench.Revealed is { } node) SelectWhenShown(node, 20);
+            };
+        };
     }
 
     private Wicked.App.Workbench.Workbench? Bench => DataContext as Wicked.App.Workbench.Workbench;
+
+    /// <summary>
+    /// Selects a node once its row exists: the rows of folders just opened are made on the next layout passes, and a
+    /// TreeView drops a selection whose row is not there yet. Tries again a few times, then gives up quietly.
+    /// </summary>
+    private void SelectWhenShown(ExplorerNode node, int tries) => Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+    {
+        if (Bench?.Revealed != node) return;
+        // A layout pass now builds the rows of the folders just opened, so the selection has a row to land on.
+        Tree.UpdateLayout();
+        Tree.SelectedItem = node;
+        if (Tree.SelectedItem == node)
+        {
+            Tree.ScrollIntoView(node);
+            return;
+        }
+
+        if (tries > 0) SelectWhenShown(node, tries - 1);
+    }, Avalonia.Threading.DispatcherPriority.Background);
 
     private ExplorerNode? Selected => Tree.SelectedItem as ExplorerNode;
 

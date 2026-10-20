@@ -39,6 +39,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         Notices.Changed += () => _post(RefreshNotice);
         Workbench = new Bench(Notices);
         Workbench.ActiveEditorChanged += OnActiveEditorChanged;
+        Workbench.FolderOpened += folder => _ = RememberFolderAsync(folder);
         Workbench.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName != nameof(Workbench.Root)) return;
@@ -301,11 +302,20 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         foreach (var file in await dialogs.PickFilesAsync()) await Workbench.OpenAsync(file);
     }
 
-    public async Task OpenFolderAndRememberAsync(string folder)
+    public Task OpenFolderAndRememberAsync(string folder) => Workbench.OpenFolderAsync(folder);
+
+    /// <summary>A folder opened (from anywhere): first in the recent list, and the session written.</summary>
+    private async Task RememberFolderAsync(string folder)
     {
-        await Workbench.OpenFolderAsync(folder);
-        _session = _session.WithRecent(Workbench.Root!);
+        _session = _session.WithRecent(folder);
+        ShowRecent();
         await SaveSessionAsync();
+    }
+
+    private void ShowRecent()
+    {
+        Workbench.RecentFolders.Clear();
+        foreach (var folder in _session.RecentFolders.Take(6)) Workbench.RecentFolders.Add(folder);
     }
 
     // ── Settings and session ─────────────────────────────────────────────────────────────────────
@@ -319,6 +329,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         WatchSettings();
         if (problem is not null) Notices.Post(new Notice("settings", problem, NoticeKind.Warning, $"tab/{Paths.SettingsFile}"));
         _session = await SessionState.ReadAsync(Paths.SessionFile, CancellationToken.None);
+        ShowRecent();
         _ = Models.StartAsync(allowNetwork: Environment.GetEnvironmentVariable("WICKED_OFFLINE") != "1");
         if (!Settings.RestoreSession || _session.LastFolder is not { } folder || !Directory.Exists(folder)) return;
         await Workbench.OpenFolderAsync(folder);

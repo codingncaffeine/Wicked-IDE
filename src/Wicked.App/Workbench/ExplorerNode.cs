@@ -60,8 +60,22 @@ public sealed partial class ExplorerNode : ObservableObject
             var fresh = entries.Select(e => existing.TryGetValue(e.Name, out var node) && node.IsDirectory == e.IsDirectory
                 ? node
                 : new ExplorerNode(e.Name, Path.Combine(path, e.Name), e.IsDirectory, this)).ToList();
-            Children.Clear();
-            foreach (var node in fresh) Children.Add(node);
+
+            // Brought up to date in place: nodes that stay are never removed, so the tree keeps its selection and the
+            // folders keep their open state.
+            for (var i = Children.Count - 1; i >= 0; i--)
+            {
+                if (!fresh.Contains(Children[i])) Children.RemoveAt(i);
+            }
+
+            for (var i = 0; i < fresh.Count; i++)
+            {
+                var at = Children.IndexOf(fresh[i]);
+                if (at == i) continue;
+                if (at >= 0) Children.Move(at, i);
+                else Children.Insert(i, fresh[i]);
+            }
+
             _loaded = true;
         }
         finally
@@ -69,6 +83,9 @@ public sealed partial class ExplorerNode : ObservableObject
             _loading = false;
         }
     }
+
+    /// <summary>Lists the folder the first time only (a reveal walking down to a file).</summary>
+    public Task EnsureLoadedAsync() => _loaded ? Task.CompletedTask : LoadAsync();
 
     /// <summary>Re-reads this folder and every open folder below it (the watcher saw a change).</summary>
     public async Task RefreshAsync()

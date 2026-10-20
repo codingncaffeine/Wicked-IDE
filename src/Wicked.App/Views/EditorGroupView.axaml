@@ -35,6 +35,17 @@
       </ScrollViewer>
     </Border>
 
+    <!-- Breadcrumbs: where the file is in the folder. -->
+    <Border DockPanel.Dock="Top" Classes="breadcrumbs" Name="Crumbs" IsVisible="False">
+      <ItemsControl Name="CrumbList">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <StackPanel Orientation="Horizontal" Spacing="2" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+      </ItemsControl>
+    </Border>
+
     <Panel>
       <ContentControl Name="Host" />
       <views:FindWidget Name="FindBar" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,6,22,0" IsVisible="False" />
@@ -56,6 +67,10 @@
           <TextBlock Grid.Row="4" Classes="secondary" Text="Show or hide the assistant" VerticalAlignment="Center" />
           <Border Grid.Row="4" Grid.Column="1" Classes="kbd"><TextBlock Text="Ctrl+L" /></Border>
         </Grid>
+        <StackPanel Name="Recent" Spacing="4" Margin="0,18,0,0" Width="300">
+          <TextBlock Classes="heading" Text="RECENT" />
+          <ItemsControl Name="RecentList" />
+        </StackPanel>
       </StackPanel>
     </Panel>
   </DockPanel>
