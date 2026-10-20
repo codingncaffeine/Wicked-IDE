@@ -5,7 +5,19 @@ using Wicked.Editor.Syntax;
 namespace Wicked.Editor.View;
 
 /// <summary>A line as a frame shows it: shaped when the layout thread has done it, otherwise its text and tokens for a plain draw.</summary>
-public readonly record struct FrameLine(int Line, float Y, ShapedLine? Shaped, string Text, LineTokens? Tokens, ColorTable? Colors, bool Current);
+public readonly record struct FrameLine(int Line, float Y, ShapedLine? Shaped, string Text, LineTokens? Tokens, ColorTable? Colors, bool Current, FoldMark Fold = FoldMark.None);
+
+/// <summary>A line's mark in the gutter's fold column.</summary>
+public enum FoldMark
+{
+    None,
+
+    /// <summary>A range starts here and is open: an arrow down, shown while the pointer is over the gutter.</summary>
+    Open,
+
+    /// <summary>A range starts here and is folded: an arrow right, always shown, and "…" after the line.</summary>
+    Folded,
+}
 
 /// <summary>
 /// Everything one frame of the editor draws, decided on the UI thread and handed to the render thread unchanged:
@@ -26,6 +38,8 @@ public sealed record EditorFrame
     public required int TabSize { get; init; }
 
     public required float GutterWidth { get; init; }
+
+    public bool GutterHover { get; init; }
 
     /// <summary>Where column 0 is drawn when not scrolled: the gutter plus a little air.</summary>
     public required float TextLeft { get; init; }

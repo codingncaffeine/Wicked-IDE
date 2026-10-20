@@ -5,8 +5,8 @@ using Wicked.Editor.Text;
 
 namespace Wicked.Editor.View;
 
-/// <summary>The editor's derived facts for one version of the text: brackets with their partners and depths, and indent guides.</summary>
-public sealed record FeatureSnapshot(long Version, int LineCount, BracketIndex Brackets, IndentGuides Guides);
+/// <summary>The editor's derived facts for one version of the text: brackets with their partners and depths, indent guides, folding ranges.</summary>
+public sealed record FeatureSnapshot(long Version, int LineCount, BracketIndex Brackets, IndentGuides Guides, FoldingRanges Folding);
 
 /// <summary>
 /// Works out a document's brackets and indent guides on a worker after it changes (tens of milliseconds for 100k lines,
@@ -18,6 +18,9 @@ public sealed class FeatureWorker
     private readonly Action<FeatureSnapshot> _published;
     private readonly Lock _gate = new();
     private (Rope Text, long Version, SyntaxSnapshot? Syntax, EditOptions Options)? _pending;
+
+    /// <summary>The language's region markers (#region and its kin), for folding.</summary>
+    public FoldingMarkers? Markers { get; init; }
     private bool _running;
 
     public FeatureWorker(Action<FeatureSnapshot> published) => _published = published;
@@ -57,7 +60,8 @@ public sealed class FeatureWorker
                 // Highlighting of an older version still tells strings and comments apart on the lines it has reached.
                 var brackets = BracketIndex.Build(work.Text, work.Version, work.Syntax, work.Options.Pairs);
                 var guides = IndentGuides.Compute(work.Text, work.Version, work.Options.TabSize, work.Options.InsertSpaces);
-                _published(new FeatureSnapshot(work.Version, work.Text.LineCount, brackets, guides));
+                var folding = FoldingRanges.Compute(work.Text, work.Version, work.Options.TabSize, Markers);
+                _published(new FeatureSnapshot(work.Version, work.Text.LineCount, brackets, guides, folding));
             }
             catch (Exception ex)
             {

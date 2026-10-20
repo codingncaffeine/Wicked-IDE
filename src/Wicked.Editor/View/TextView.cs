@@ -81,6 +81,27 @@ public sealed class TextView
 
     public bool CaretsVisible { get; set; } = true;
 
+    /// <summary>Which ranges are folded away. Kept in step with every edit by the editor (<see cref="FoldState.Map"/>).</summary>
+    public FoldState Folds { get; set; } = FoldState.None(1);
+
+    /// <summary>Show the fold arrows of open ranges (the pointer is over the gutter); folded ones always show.</summary>
+    public bool GutterHover { get; set; }
+
+    private bool FoldsValid => Folds.LineCount == Document.Text.LineCount;
+
+    /// <summary>A document line's place among the lines shown (folded lines take none).</summary>
+    public int VisualOf(int line) => FoldsValid ? Folds.VisualLine(line) : line;
+
+    /// <summary>The document line shown at a visual line.</summary>
+    public int DocumentOf(int visual) => FoldsValid ? Folds.DocumentLine(Math.Clamp(visual, 0, Folds.VisualLineCount - 1)) : visual;
+
+    public int VisualLineCount => FoldsValid ? Folds.VisualLineCount : Document.Text.LineCount;
+
+    public bool IsHidden(int line) => FoldsValid && Folds.IsHidden(line);
+
+    /// <summary>Where a document line's top is drawn.</summary>
+    public float LineTop(int line) => VisualOf(line) * LineHeight - ScrollY;
+
     /// <summary>Brackets and indent guides for a recent version of the text (the feature worker's).</summary>
     public FeatureSnapshot? Features { get; set; }
 
@@ -105,7 +126,7 @@ public sealed class TextView
         {
             var (line, column) = Document.Text.Position(Document.Primary.Active);
             var x = TextLeft - ScrollX + XOf(line, column);
-            var y = line * LineHeight - ScrollY;
+            var y = LineTop(line);
             return new SKRect(x, y, x + Theme.CaretWidth, y + LineHeight);
         }
     }
@@ -115,9 +136,9 @@ public sealed class TextView
 
     public float LineHeight => Fonts.LineHeight;
 
-    public int FirstVisibleLine => Math.Clamp((int)(ScrollY / LineHeight), 0, Document.Text.LineCount - 1);
+    public int FirstVisibleLine => DocumentOf(Math.Clamp((int)(ScrollY / LineHeight), 0, VisualLineCount - 1));
 
-    public int LastVisibleLine => Math.Clamp((int)((ScrollY + Height) / LineHeight), 0, Document.Text.LineCount - 1);
+    public int LastVisibleLine => DocumentOf(Math.Clamp((int)((ScrollY + Height) / LineHeight), 0, VisualLineCount - 1));
 
     /// <summary>The gutter's width: room for the widest line number, with space around it.</summary>
     public float GutterWidth
@@ -134,7 +155,7 @@ public sealed class TextView
     private float TextAreaWidth => Math.Max(0, Width - TextLeft - ScrollbarSize);
 
     /// <summary>The farthest scroll: the last line may come up to the top, as VS Code allows.</summary>
-    public float MaxScrollY => Math.Max(0, (Document.Text.LineCount - 1) * LineHeight);
+    public float MaxScrollY => Math.Max(0, (VisualLineCount - 1) * LineHeight);
 
     public float MaxScrollX => Math.Max(0, _widest + Fonts.CharAdvance * 4 - TextAreaWidth);
 
@@ -158,7 +179,9 @@ public sealed class TextView
     {
         var rope = Document.Text;
         var (line, column) = rope.Position(Math.Clamp(offset, 0, rope.Length));
-        var top = line * LineHeight;
+        // A caret that lands in folded text opens the fold, as in VS Code.
+        if (IsHidden(line)) Folds = Folds.Reveal(line);
+        var top = VisualOf(line) * LineHeight;
         var y = ScrollY;
         if (top < y) y = top;
         else if (top + LineHeight > y + Height) y = top + LineHeight - Height;
@@ -176,7 +199,7 @@ public sealed class TextView
     public int OffsetAt(float x, float y)
     {
         var rope = Document.Text;
-        var line = Math.Clamp((int)MathF.Floor((y + ScrollY) / LineHeight), 0, rope.LineCount - 1);
+        var line = LineAt(y);
         var lineX = x - TextLeft + ScrollX;
         return rope.LineStart(line) + ColumnAt(line, lineX);
     }
@@ -184,7 +207,7 @@ public sealed class TextView
     /// <summary>The visual column a point falls in (for column selection), counting past the end of the line.</summary>
     public int VisualColumnAt(float x) => Math.Max(0, (int)MathF.Round((x - TextLeft + ScrollX) / Fonts.CharAdvance));
 
-    public int LineAt(float y) => Math.Clamp((int)MathF.Floor((y + ScrollY) / LineHeight), 0, Document.Text.LineCount - 1);
+    public int LineAt(float y) => DocumentOf(Math.Clamp((int)MathF.Floor((y + ScrollY) / LineHeight), 0, VisualLineCount - 1));
 
     /// <summary>The x of a caret position in its line, from the shaped line when it is in the cache, else from the grid.</summary>
     public float XOf(int line, int column)
@@ -215,10 +238,12 @@ public sealed class TextView
         var currentLines = Document.Selections.Where(s => s.IsEmpty).Select(s => rope.LineOf(s.Active)).ToHashSet();
         var lines = new List<FrameLine>(last - first + 1);
         var missing = new List<LineKey>();
-        for (var line = first; line <= last; line++)
+        var lastVisual = VisualOf(last);
+        for (var visual = VisualOf(first); visual <= lastVisual; visual++)
         {
+            var line = DocumentOf(visual);
             var key = Key(line);
-            var y = line * LineHeight - ScrollY;
+            var y = visual * LineHeight - ScrollY;
             if (_layout.TryGet(key, out var shaped))
             {
                 _shapedInSight[line] = shaped;
@@ -230,7 +255,7 @@ public sealed class TextView
                 shaped = null!;
             }
 
-            lines.Add(new FrameLine(line, y, shaped, key.Text, key.Tokens, key.Colors, currentLines.Contains(line)));
+            lines.Add(new FrameLine(line, y, shaped, key.Text, key.Tokens, key.Colors, currentLines.Contains(line), FoldMark(line)));
         }
 
         // Scrolled to new lines: shape a screen above and below too, so the next scroll finds them ready.
@@ -258,6 +283,7 @@ public sealed class TextView
             Fonts = Fonts,
             TabSize = Options.TabSize,
             GutterWidth = GutterWidth,
+            GutterHover = GutterHover,
             TextLeft = TextLeft,
             ScrollX = ScrollX,
             Lines = lines,
@@ -342,25 +368,33 @@ public sealed class TextView
                 var selEndLine = rope.LineOf(s.End);
                 for (var line = startLine; line <= endLine; line++)
                 {
+                    if (IsHidden(line)) continue;
                     var lineStart = rope.LineStart(line);
                     var from = line == selStartLine ? s.Start - lineStart : 0;
                     var to = line == selEndLine ? s.End - lineStart : rope.LineLength(line);
                     var x0 = XOf(line, from);
                     // A selected line break shows as a sliver past the line's end, as in every editor.
                     var x1 = XOf(line, to) + (line != selEndLine ? Fonts.SpaceAdvance * 0.6f : 0);
-                    var y = line * LineHeight - ScrollY;
+                    var y = LineTop(line);
                     if (x1 > x0) selections.Add(new SKRect(origin + x0, y, origin + x1, y + LineHeight));
                 }
             }
 
             var (caretLine, caretColumn) = rope.Position(s.Active);
-            if (caretLine < first || caretLine > last) continue;
+            if (caretLine < first || caretLine > last || IsHidden(caretLine)) continue;
             var cx = origin + XOf(caretLine, caretColumn);
-            var cy = caretLine * LineHeight - ScrollY;
+            var cy = LineTop(caretLine);
             carets.Add(new SKRect(cx - Theme.CaretWidth / 2, cy + 1, cx + Theme.CaretWidth / 2, cy + LineHeight - 1));
         }
 
         return (selections, carets);
+    }
+
+    /// <summary>A line's mark in the gutter: folded, foldable (shown when the pointer is over the gutter), or none.</summary>
+    private FoldMark FoldMark(int line)
+    {
+        if (FoldsValid && Folds.IsCollapsedHeader(line, out _)) return View.FoldMark.Folded;
+        return Features?.Folding is { } ranges && Features.LineCount == Document.Text.LineCount && ranges.IndexStartingAt(line) >= 0 ? View.FoldMark.Open : View.FoldMark.None;
     }
 
     /// <summary>The features worked out for the text as it is now (brackets move with every edit, so stale ones are not drawn).</summary>
@@ -375,10 +409,10 @@ public sealed class TextView
         foreach (var offset in new[] { match.Open, match.Close })
         {
             var (line, column) = rope.Position(offset);
-            if (line < first || line > last) continue;
+            if (line < first || line > last || IsHidden(line)) continue;
             var x0 = TextLeft - ScrollX + XOf(line, column);
             var x1 = TextLeft - ScrollX + XOf(line, column + 1);
-            var y = line * LineHeight - ScrollY;
+            var y = LineTop(line);
             boxes.Add(new SKRect(x0 + 0.5f, y + 1.5f, x1 - 0.5f, y + LineHeight - 1.5f));
         }
 
@@ -398,8 +432,8 @@ public sealed class TextView
         foreach (var g in guides)
         {
             var x = MathF.Round(origin + (g.Level - 1) * step);
-            if (x < GutterWidth) continue;
-            var y = g.Line * LineHeight - ScrollY;
+            if (x < GutterWidth || IsHidden(g.Line)) continue;
+            var y = LineTop(g.Line);
             result.Add((x, y, y + LineHeight, g.IsActive));
         }
 
@@ -488,6 +522,7 @@ public sealed class TextView
             var endLine = rope.LineOf(Math.Min(start + length, lastOffset));
             for (var line = startLine; line <= endLine; line++)
             {
+                if (IsHidden(line)) continue;
                 var lineStart = rope.LineStart(line);
                 var from = Math.Max(start, lineStart) - lineStart;
                 var to = Math.Min(start + length, lineStart + rope.LineLength(line)) - lineStart;

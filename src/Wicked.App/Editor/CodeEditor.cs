@@ -5,6 +5,7 @@ using Avalonia.Input.Platform;
 using Avalonia.Input.TextInput;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Wicked.Editor.Features;
 using Wicked.Editor.Model;
 using Wicked.Editor.Syntax;
 using Wicked.Editor.View;
@@ -50,11 +51,19 @@ public sealed class CodeEditor : Control
         _view = new TextView(document, services.Layout, language?.Options ?? EditOptions.Default);
         _ime = new EditorIme(this);
         Find = new FindViewModel(this);
+        _view.Folds = FoldState.None(document.Text.LineCount);
         _features = new FeatureWorker(snapshot => Dispatcher.UIThread.Post(() =>
         {
-            if (snapshot.Version >= (_view.Features?.Version ?? -1)) _view.Features = snapshot;
+            if (snapshot.Version < (_view.Features?.Version ?? -1)) return;
+            _view.Features = snapshot;
+            // Folded ranges follow the ranges as worked out again (a fold whose range is gone opens).
+            if (snapshot.Version == Document.Version && _view.Folds.LineCount == snapshot.LineCount) _view.Folds = _view.Folds.Rebind(snapshot.Folding);
             InvalidateVisual();
-        }, DispatcherPriority.Render));
+        }, DispatcherPriority.Render))
+        {
+            Markers = FoldingMarkers.For(language),
+        };
+        document.Changed += change => _view.Folds = _view.Folds.Map(change);
         Focusable = true;
         ClipToBounds = true;
         Cursor = new Cursor(StandardCursorType.Ibeam);
@@ -106,6 +115,51 @@ public sealed class CodeEditor : Control
     public FindViewModel Find { get; }
 
     private readonly FeatureWorker _features;
+
+    /// <summary>Up/Down by the lines shown: a folded range counts as its first line.</summary>
+    internal int StepLines(int line, int count) => _view.DocumentOf(_view.VisualOf(line) + count);
+
+    /// <summary>Ctrl+Shift+[: folds the innermost range at the caret.</summary>
+    public void Fold()
+    {
+        if (_view.Features?.Folding is not { } ranges) return;
+        _view.Folds = _view.Folds.FoldAt(ranges, Document.Text.LineOf(Document.Primary.Active));
+        MoveCaretOutOfFolds();
+    }
+
+    /// <summary>Ctrl+Shift+]: opens the folds at the caret.</summary>
+    public void Unfold()
+    {
+        _view.Folds = _view.Folds.UnfoldAt(Document.Text.LineOf(Document.Primary.Active));
+        InvalidateVisual();
+    }
+
+    public void FoldAll()
+    {
+        if (_view.Features?.Folding is not { } ranges) return;
+        _view.Folds = _view.Folds.CollapseAll(ranges);
+        MoveCaretOutOfFolds();
+    }
+
+    public void UnfoldAll()
+    {
+        _view.Folds = _view.Folds.ExpandAll();
+        InvalidateVisual();
+    }
+
+    /// <summary>A caret that a fold just hid goes to the fold's first line, so it stays in sight.</summary>
+    private void MoveCaretOutOfFolds()
+    {
+        var rope = Document.Text;
+        Document.SetSelections(Document.Selections.Select(s =>
+        {
+            var line = rope.LineOf(s.Active);
+            if (!_view.IsHidden(line)) return s;
+            var shown = _view.DocumentOf(_view.VisualOf(line));
+            return Wicked.Editor.Model.Selection.Caret(rope.LineStart(shown) + rope.LineLength(shown));
+        }).ToList(), Document.PrimaryIndex);
+        AfterCommand();
+    }
 
     private void RequestFeatures() => _features.Request(Document.Text, Document.Version, _view.Syntax, _view.Options);
 
@@ -229,8 +283,8 @@ public sealed class CodeEditor : Control
     public void Page(int direction, bool select)
     {
         var lines = Math.Max(1, _view.LastVisibleLine - _view.FirstVisibleLine - 1);
-        if (direction < 0) Edits.Up(Document, select, Options, lines);
-        else Edits.Down(Document, select, Options, lines);
+        if (direction < 0) Edits.Up(Document, select, Options, lines, StepLines);
+        else Edits.Down(Document, select, Options, lines, StepLines);
         _view.ScrollBy(0, direction * lines * _view.LineHeight);
     }
 
@@ -282,6 +336,14 @@ public sealed class CodeEditor : Control
             // A click on the scrollbar's track jumps a page toward it.
             _view.ScrollBy(0, (y < _view.VerticalThumb.Top ? -1 : 1) * (float)Bounds.Height);
             InvalidateVisual();
+            return;
+        }
+        else if (x < _view.GutterWidth && x >= _view.GutterWidth - 20 && _view.Features?.Folding is { } ranges && ranges.IndexStartingAt(_view.LineAt(y)) >= 0)
+        {
+            var header = _view.LineAt(y);
+            _view.Folds = _view.Folds.Toggle(ranges, header);
+            MoveCaretOutOfFolds();
+            e.Handled = true;
             return;
         }
         else if (x < _view.GutterWidth)
@@ -350,6 +412,13 @@ public sealed class CodeEditor : Control
         if (_drag == Drag.None)
         {
             Cursor = new Cursor(x < _view.GutterWidth || x >= Bounds.Width - 12 ? StandardCursorType.Arrow : StandardCursorType.Ibeam);
+            var overGutter = x < _view.GutterWidth;
+            if (overGutter != _view.GutterHover)
+            {
+                _view.GutterHover = overGutter;
+                InvalidateVisual();
+            }
+
             if (overThumb != _view.ThumbActive)
             {
                 _view.ThumbActive = overThumb;
@@ -381,6 +450,14 @@ public sealed class CodeEditor : Control
         }
 
         AfterCommand(reveal: false);
+    }
+
+    protected override void OnPointerExited(PointerEventArgs e)
+    {
+        base.OnPointerExited(e);
+        if (!_view.GutterHover) return;
+        _view.GutterHover = false;
+        InvalidateVisual();
     }
 
     protected override void OnPointerReleased(PointerReleasedEventArgs e)

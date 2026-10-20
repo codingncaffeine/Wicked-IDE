@@ -51,3 +51,55 @@ public sealed class EditorFeaturesViewTests
         });
     }
 }
+
+public sealed class FoldingViewTests
+{
+    [Fact]
+    public async Task FoldingHidesTheBlockAndTheCaretStepsOverIt()
+    {
+        await Ui.Run(() =>
+        {
+            var code = "class A\n{\n    void F()\n    {\n        one();\n        two();\n    }\n    void G() { }\n}\n";
+            var editor = new CodeEditor(EditorServices.Ready.Result, new Document(code), Languages.ForFile("a.cs"));
+            var window = new Avalonia.Controls.Window { Width = 900, Height = 400, Content = editor };
+            window.Show();
+            editor.Focus();
+            var doc = editor.Document;
+            Assert.True(Ui.PumpUntil(() => editor.View.Features?.Version == doc.Version && editor.View.Features.Folding.Count > 0, 10), "no folding ranges");
+
+            // Fold "void F()" from inside it: lines 4..6 disappear.
+            doc.SetSelections([Selection.Caret(doc.Text.Offset(4, 10))]);
+            Input.Chord(window, Avalonia.Input.Key.OemOpenBrackets, Avalonia.Input.RawInputModifiers.Control | Avalonia.Input.RawInputModifiers.Shift);
+            var before = doc.Text.LineCount;
+            Assert.True(editor.View.VisualLineCount < before, "nothing folded");
+            Assert.True(editor.View.IsHidden(5));
+            var frame = editor.View.BuildFrame();
+            Assert.DoesNotContain(frame.Lines, l => l.Line == 5);
+            Assert.Contains(frame.Lines, l => l.Fold == Wicked.Editor.View.FoldMark.Folded);
+
+            // The fold is the indentation range under the "{" line (VS Code's rule): the statements hide, the "}" stays.
+            // The caret went to the fold's line; Down steps over the hidden lines to the "}".
+            var caretLine = doc.Text.LineOf(doc.Primary.Active);
+            Assert.False(editor.View.IsHidden(caretLine));
+            Assert.Equal("    {", doc.Text.Line(caretLine));
+            Input.Chord(window, Avalonia.Input.Key.Down, Avalonia.Input.RawInputModifiers.None);
+            Assert.Equal(6, doc.Text.LineOf(doc.Primary.Active));
+
+            // An edit above keeps the fold where it was.
+            doc.SetSelections([Selection.Caret(0)]);
+            Edits.Type(doc, "// top\n", EditOptions.Default);
+            Assert.True(editor.View.IsHidden(6));
+
+            // The gutter's arrow opens it.
+            var header = editor.View.Folds.Collapsed[0].StartLine;
+            var y = editor.View.LineTop(header) + editor.View.LineHeight / 2;
+            var point = new Avalonia.Point(editor.View.GutterWidth - 10, y);
+            window.MouseDown(point, Avalonia.Input.MouseButton.Left);
+            window.MouseUp(point, Avalonia.Input.MouseButton.Left);
+            Ui.Pump(0.1);
+            Assert.False(editor.View.IsHidden(6));
+            window.Close();
+            return 0;
+        });
+    }
+}

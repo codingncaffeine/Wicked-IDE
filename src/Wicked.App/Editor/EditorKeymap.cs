@@ -46,8 +46,8 @@ public static class EditorKeymap
             var select = shift.Length > 0;
             Add($"{shift}Left", $"cursorLeft{suffix}", "Caret left", e => Edits.Left(e.Document, select));
             Add($"{shift}Right", $"cursorRight{suffix}", "Caret right", e => Edits.Right(e.Document, select));
-            Add($"{shift}Up", $"cursorUp{suffix}", "Caret up", e => Edits.Up(e.Document, select, e.Options));
-            Add($"{shift}Down", $"cursorDown{suffix}", "Caret down", e => Edits.Down(e.Document, select, e.Options));
+            Add($"{shift}Up", $"cursorUp{suffix}", "Caret up", e => Edits.Up(e.Document, select, e.Options, 1, e.StepLines));
+            Add($"{shift}Down", $"cursorDown{suffix}", "Caret down", e => Edits.Down(e.Document, select, e.Options, 1, e.StepLines));
             Add($"{shift}Ctrl+Left", $"cursorWordStartLeft{suffix}", "Word left", e => Edits.WordLeft(e.Document, select));
             Add($"{shift}Ctrl+Right", $"cursorWordEndRight{suffix}", "Word right", e => Edits.WordRight(e.Document, select));
             Add($"{shift}Home", $"cursorHome{suffix}", "Line start", e => Edits.Home(e.Document, select));
@@ -77,6 +77,8 @@ public static class EditorKeymap
             if (e.Find.IsOpen) e.Find.Close();
             else Edits.SingleCaret(e.Document);
         });
+        Add("Ctrl+Shift+OemOpenBrackets", "editor.fold", "Fold", e => e.Fold());
+        Add("Ctrl+Shift+OemCloseBrackets", "editor.unfold", "Unfold", e => e.Unfold());
         Add("Ctrl+F", "actions.find", "Find", e => e.Find.Open(replace: false));
         Add("Ctrl+H", "editor.action.startFindReplaceAction", "Replace", e => e.Find.Open(replace: true));
         Add("F3", "editor.action.nextMatchFindAction", "Find next", e => e.Find.Next());

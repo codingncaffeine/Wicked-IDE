@@ -123,6 +123,8 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             new("workbench.action.openSettings", "Preferences", "Open Settings", "Ctrl+OemComma", () => Sync(() => SettingsOpen = true)),
             new("workbench.action.openSettingsJson", "Preferences", "Open Settings (JSON)", null, OpenSettingsJsonAsync),
             new("workbench.action.selectTheme", "Preferences", "Code Colours", "Ctrl+K Ctrl+T", () => Sync(PickCodeColours)),
+            new("editor.foldAll", "View", "Fold All", "Ctrl+K Ctrl+D0", () => Sync(() => Workbench.ActiveTab?.Editor?.FoldAll())),
+            new("editor.unfoldAll", "View", "Unfold All", "Ctrl+K Ctrl+J", () => Sync(() => Workbench.ActiveTab?.Editor?.UnfoldAll())),
             new("workbench.action.openGlobalKeybindingsFile", "Preferences", "Open Keyboard Shortcuts (JSON)", null, OpenKeybindingsJsonAsync),
         ];
     }

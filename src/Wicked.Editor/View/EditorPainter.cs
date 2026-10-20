@@ -56,6 +56,15 @@ public static class EditorPainter
 
                 foreach (var d in shaped.Decorations) Fill(canvas, paint, new SKRect(origin + d.Rect.Left, baseline + d.Rect.Top, origin + d.Rect.Right, baseline + d.Rect.Bottom), d.Color);
             }
+
+            if (line.Fold == FoldMark.Folded)
+            {
+                var end = origin + (line.Shaped?.Width ?? line.Text.Length * frame.Fonts.CharAdvance) + frame.Fonts.CharAdvance;
+                var badge = new SKRect(end, line.Y + 4, end + frame.Fonts.CharAdvance * 3, line.Y + lineHeight - 4);
+                FillRound(canvas, paint, badge, theme.Selection, 4);
+                paint.Color = new SKColor(theme.Foreground);
+                for (var dot = 0; dot < 3; dot++) canvas.DrawCircle(badge.Left + badge.Width * (dot + 1) / 4, badge.MidY, 1.2f, paint);
+            }
             else if (line.Text.Length > 0)
             {
                 DrawPlain(canvas, paint, frame, line, origin, baseline);
@@ -102,7 +111,8 @@ public static class EditorPainter
         {
             paint.Color = new SKColor(line.Current ? theme.LineNumberActive : theme.LineNumber);
             var label = (line.Line + 1).ToString(CultureInfo.InvariantCulture);
-            canvas.DrawText(label, frame.GutterWidth - 14, line.Y + frame.Fonts.Baseline, SKTextAlign.Right, numbers, paint);
+            canvas.DrawText(label, frame.GutterWidth - 22, line.Y + frame.Fonts.Baseline, SKTextAlign.Right, numbers, paint);
+            if (line.Fold == FoldMark.Folded || (line.Fold == FoldMark.Open && frame.GutterHover)) DrawFoldArrow(canvas, paint, frame, line);
         }
 
         if (frame.Preedit is { } preedit)
@@ -122,6 +132,33 @@ public static class EditorPainter
         if (!frame.HorizontalThumb.IsEmpty) FillRound(canvas, paint, frame.HorizontalThumb, thumb, 4);
         canvas.Restore();
         LayoutService.FrameRendered(frame.Generation);
+    }
+
+    /// <summary>The fold column's arrow: down for an open range, right for a folded one.</summary>
+    private static void DrawFoldArrow(SKCanvas canvas, SKPaint paint, EditorFrame frame, FrameLine line)
+    {
+        var cx = frame.GutterWidth - 10;
+        var cy = line.Y + frame.Fonts.LineHeight / 2;
+        paint.Color = new SKColor(line.Fold == FoldMark.Folded ? frame.Theme.LineNumberActive : frame.Theme.LineNumber);
+        paint.Style = SKPaintStyle.Stroke;
+        paint.StrokeWidth = 1.4f;
+        paint.StrokeCap = SKStrokeCap.Round;
+        using var path = new SKPath();
+        if (line.Fold == FoldMark.Folded)
+        {
+            path.MoveTo(cx - 1.5f, cy - 3.5f);
+            path.LineTo(cx + 2f, cy);
+            path.LineTo(cx - 1.5f, cy + 3.5f);
+        }
+        else
+        {
+            path.MoveTo(cx - 3.5f, cy - 1.5f);
+            path.LineTo(cx, cy + 2f);
+            path.LineTo(cx + 3.5f, cy - 1.5f);
+        }
+
+        canvas.DrawPath(path, paint);
+        paint.Style = SKPaintStyle.Fill;
     }
 
     /// <summary>A line without its shaped form: each token's text drawn in its colour, tabs to their stops.</summary>

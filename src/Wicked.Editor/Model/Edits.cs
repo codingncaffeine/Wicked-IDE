@@ -224,9 +224,10 @@ public static class Edits
 
     public static void WordRight(Document doc, bool select) => Move(doc, s => Extend(s, TextNavigation.WordEndRight(doc.Text, s.Active), select));
 
-    public static void Up(Document doc, bool select, EditOptions options, int lines = 1) => Vertical(doc, -lines, select, options);
+    /// <summary>Up a line (or <paramref name="lines"/>); <paramref name="step"/> maps a line and a count to the line reached, skipping folded lines.</summary>
+    public static void Up(Document doc, bool select, EditOptions options, int lines = 1, Func<int, int, int>? step = null) => Vertical(doc, -lines, select, options, step);
 
-    public static void Down(Document doc, bool select, EditOptions options, int lines = 1) => Vertical(doc, lines, select, options);
+    public static void Down(Document doc, bool select, EditOptions options, int lines = 1, Func<int, int, int>? step = null) => Vertical(doc, lines, select, options, step);
 
     /// <summary>Home: to the first non-blank character, or to column 0 when already there (smart home).</summary>
     public static void Home(Document doc, bool select) => Move(doc, s =>
@@ -262,7 +263,7 @@ public static class Edits
 
     private static Selection Extend(Selection s, int to, bool select) => select ? new Selection(s.Anchor, to) : Selection.Caret(to);
 
-    private static void Vertical(Document doc, int lines, bool select, EditOptions options) => Move(doc, s =>
+    private static void Vertical(Document doc, int lines, bool select, EditOptions options, Func<int, int, int>? step) => Move(doc, s =>
     {
         var rope = doc.Text;
         if (!select && !s.IsEmpty)
@@ -273,7 +274,8 @@ public static class Edits
 
         var (line, column) = rope.Position(s.Active);
         var want = s.Column >= 0 ? s.Column : TextNavigation.VisualColumn(rope.Line(line), column, options.TabSize);
-        var target = line + lines;
+        var target = step?.Invoke(line, lines) ?? line + lines;
+        if (step is not null && target == line) target = line + lines < 0 ? -1 : line + lines >= rope.LineCount ? rope.LineCount : line;
         int to;
         if (target < 0) to = 0;
         else if (target >= rope.LineCount) to = rope.Length;
