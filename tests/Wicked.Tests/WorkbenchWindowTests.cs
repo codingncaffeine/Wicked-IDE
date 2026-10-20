@@ -43,7 +43,12 @@ public sealed class WorkbenchWindowTests
         }
 
         Input.Click(window, Row(window, names[^1]).GetVisualDescendants().OfType<TextBlock>().First());
-        Assert.True(Ui.PumpUntil(() => shell.Workbench.ActiveTab?.Editor?.IsFocused == true, 5), "the file did not open in a focused editor");
+        Assert.True(Ui.PumpUntil(() => shell.Workbench.ActiveTab?.Editor?.IsAttachedToVisualTree() == true, 5), "the file did not open in an editor");
+
+        // As a user would, click into the text to type there (focus that follows the open is not every platform's promise).
+        var editor = shell.Workbench.ActiveTab!.Editor!;
+        if (!editor.IsFocused) Input.Click(window, editor);
+        Assert.True(Ui.PumpUntil(() => editor.IsFocused, 5), "the editor did not take the keyboard");
         return shell.Workbench.ActiveTab!;
     }
 

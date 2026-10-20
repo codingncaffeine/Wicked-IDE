@@ -26,6 +26,8 @@ public sealed class DownloadManager : IAsyncDisposable
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
     {
         WriteIndented = true,
+        // The same bytes on every platform (the catalog is signed over them): no CRLF on Windows.
+        NewLine = "\n",
         Converters = { new JsonStringEnumConverter() },
     };
 

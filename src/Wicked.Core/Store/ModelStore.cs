@@ -55,7 +55,7 @@ public sealed partial class ModelStore(string root)
 {
     public const string ManifestName = "wicked.json";
 
-    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { WriteIndented = true };
+    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { WriteIndented = true, NewLine = "\n" };
     private readonly ConcurrentDictionary<(string Path, long Size, long Ticks), GgufInfo?> _headers = new();
     private readonly SemaphoreSlim _write = new(1, 1);
 

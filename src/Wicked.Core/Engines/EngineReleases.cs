@@ -21,7 +21,7 @@ public sealed class EngineReleases(HttpClient http, Func<string?>? token = null,
 {
     public static readonly Uri DefaultApi = new("https://api.github.com/");
 
-    private static readonly JsonSerializerOptions CacheJson = new(JsonSerializerDefaults.Web) { WriteIndented = true };
+    private static readonly JsonSerializerOptions CacheJson = new(JsonSerializerDefaults.Web) { WriteIndented = true, NewLine = "\n" };
 
     private readonly Uri _api = apiBase ?? DefaultApi;
     private readonly Dictionary<int, Cached> _memory = [];

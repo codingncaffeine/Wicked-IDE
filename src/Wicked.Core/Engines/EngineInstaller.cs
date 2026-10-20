@@ -38,7 +38,7 @@ public sealed record EngineReport(EngineVersion? Version, IReadOnlyList<EngineDe
 /// </summary>
 public sealed class EngineInstaller(DownloadManager downloads, string enginesDirectory, string downloadsDirectory)
 {
-    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { WriteIndented = true };
+    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { WriteIndented = true, NewLine = "\n" };
     private static readonly TimeSpan ProbeTimeout = TimeSpan.FromSeconds(20);
     private readonly SemaphoreSlim _gate = new(1, 1);
 

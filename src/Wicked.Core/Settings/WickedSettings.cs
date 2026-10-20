@@ -56,6 +56,8 @@ public sealed record WickedSettings
     public static readonly JsonSerializerOptions Json = new()
     {
         WriteIndented = true,
+        // The same bytes on every platform (the catalog is signed over them): no CRLF on Windows.
+        NewLine = "\n",
         ReadCommentHandling = JsonCommentHandling.Skip,
         AllowTrailingCommas = true,
         NumberHandling = JsonNumberHandling.AllowReadingFromString,

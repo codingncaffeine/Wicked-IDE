@@ -105,6 +105,8 @@ public sealed record ModelCatalog(int Schema, DateTimeOffset Generated, IReadOnl
         var options = new JsonSerializerOptions(JsonSerializerDefaults.Web)
         {
             WriteIndented = true,
+            // The same bytes on every platform (the catalog is signed over them): no CRLF on Windows.
+            NewLine = "\n",
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
             Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
         };
