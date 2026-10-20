@@ -1,0 +1,22 @@
+# Local-only notes, plans and work files (house rule: plans stay local)
+/local-notes/
+/scratch/
+/snapshots/
+
+# Never commit model weights or engine binaries (downloaded at run time)
+*.gguf
+*.safetensors
+/engines/
+
+# .NET build output
+bin/
+obj/
+publish/
+*.user
+*.suo
+.vs/
+.idea/
+*.swp
+
+# Release artifacts
+/packaging/out/
