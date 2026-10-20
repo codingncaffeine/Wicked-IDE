@@ -70,6 +70,12 @@ for f in "${files[@]}"; do
     fi
 done
 
+# Paths that only work on Linux break the Windows job; catch them at commit, not at the gate.
+if ! tools/windows-paths.sh > /dev/null; then
+    tools/windows-paths.sh
+    found=1
+fi
+
 if [[ $found -eq 0 ]]; then
     echo "precommit-scan: ${#files[@]} file(s) clean"
 fi
