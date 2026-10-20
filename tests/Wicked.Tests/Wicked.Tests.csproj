@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Wicked.Core\Wicked.Core.csproj" />
+    <ProjectReference Include="..\..\src\Wicked.Editor\Wicked.Editor.csproj" />
     <ProjectReference Include="..\..\src\Wicked.Daemon\Wicked.Daemon.csproj" />
     <ProjectReference Include="..\..\src\Wicked.App\Wicked.App.csproj" />
   </ItemGroup>

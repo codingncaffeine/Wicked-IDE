@@ -2,6 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/Wicked.Contracts/Wicked.Contracts.csproj" />
     <Project Path="src/Wicked.Core/Wicked.Core.csproj" />
+    <Project Path="src/Wicked.Editor/Wicked.Editor.csproj" />
     <Project Path="src/Wicked.Daemon/Wicked.Daemon.csproj" />
     <Project Path="src/Wicked.Cli/Wicked.Cli.csproj" />
     <Project Path="src/Wicked.App/Wicked.App.csproj" />
