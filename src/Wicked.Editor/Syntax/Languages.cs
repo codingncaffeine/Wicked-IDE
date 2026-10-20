@@ -60,6 +60,53 @@ public static class Languages
         }
     }
 
+    /// <summary>Names a code fence uses for languages whose id or extension is spelled differently.</summary>
+    private static readonly Dictionary<string, string> Aliases = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["js"] = "javascript",
+        ["jsx"] = "javascriptreact",
+        ["ts"] = "typescript",
+        ["tsx"] = "typescriptreact",
+        ["py"] = "python",
+        ["sh"] = "shellscript",
+        ["bash"] = "shellscript",
+        ["zsh"] = "shellscript",
+        ["shell"] = "shellscript",
+        ["console"] = "shellscript",
+        ["cs"] = "csharp",
+        ["c#"] = "csharp",
+        ["c++"] = "cpp",
+        ["cc"] = "cpp",
+        ["rs"] = "rust",
+        ["rb"] = "ruby",
+        ["yml"] = "yaml",
+        ["md"] = "markdown",
+        ["ps1"] = "powershell",
+        ["golang"] = "go",
+        ["kt"] = "kotlin",
+        ["docker"] = "dockerfile",
+        ["objc"] = "objective-c",
+        ["tex"] = "latex",
+        ["jsonc"] = "jsonc",
+    };
+
+    /// <summary>The language a Markdown code fence names ("py", "C#", "bash", "json"): by id, alias or extension. Null for plain text or a name no grammar covers.</summary>
+    public static LanguageInfo? ForName(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return null;
+        var key = name.Trim();
+        lock (Gate)
+        {
+            var options = Index.Value;
+            var wanted = Aliases.TryGetValue(key, out var alias) ? alias : key;
+            var language = options.GetAvailableLanguages().FirstOrDefault(l => string.Equals(l.Id, wanted, StringComparison.OrdinalIgnoreCase))
+                ?? options.GetLanguageByExtension("." + key.TrimStart('.'));
+            if (language is null) return null;
+            var scope = options.GetScopeByLanguageId(language.Id);
+            return scope is null ? null : new LanguageInfo(language.Id, scope, OptionsFrom(language.Configuration));
+        }
+    }
+
     /// <summary>Every language id, for a language picker.</summary>
     public static IReadOnlyList<string> All()
     {
