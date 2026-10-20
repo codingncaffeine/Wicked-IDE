@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
+    <PublishReadyToRun>true</PublishReadyToRun>
     <AssemblyName>wickedd</AssemblyName>
     <RootNamespace>Wicked.Daemon</RootNamespace>
   </PropertyGroup>

@@ -26,7 +26,9 @@ public partial class MainWindow : Window, IWorkbenchDialogs
 
     public MainWindow()
     {
+        StartupTimeline.Mark("platform window");
         InitializeComponent();
+        StartupTimeline.Mark("window XAML");
         WindowFrame.Apply(this);
         WindowFrame.Drags(this, TitleBar);
         Opened += OnFirstOpened;
@@ -229,5 +231,7 @@ public partial class MainWindow : Window, IWorkbenchDialogs
         // Opened fires on every Show; this runs once.
         Opened -= OnFirstOpened;
         WindowingBackend.WindowOpened(this);
+        StartupTimeline.Mark("shown");
+        RequestAnimationFrame(_ => StartupTimeline.FirstFrame());
     }
 }

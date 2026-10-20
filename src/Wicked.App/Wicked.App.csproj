@@ -12,6 +12,9 @@
     <ServerGarbageCollection>true</ServerGarbageCollection>
     <ApplicationIcon>Assets\icon.ico</ApplicationIcon>
     <ConcurrentGarbageCollection>true</ConcurrentGarbageCollection>
+    <!-- Published builds are precompiled: measured under Xvfb, the UI-thread work before the first frame fell from ~330 ms
+         (JIT) to ~170 ms, the window XAML from ~200 ms to ~75 ms (2026-10-20, StartupTimeline). Only a publish with a RID uses it. -->
+    <PublishReadyToRun>true</PublishReadyToRun>
   </PropertyGroup>
 
   <ItemGroup>

@@ -8,6 +8,7 @@ internal static class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        StartupTimeline.Begin();
         if (args.Any(a => a is "--version" or "-V"))
         {
             Console.WriteLine($"Wicked {BuildInfo.Stamp}");

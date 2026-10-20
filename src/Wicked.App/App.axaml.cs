@@ -26,10 +26,14 @@ public partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
+            StartupTimeline.Mark("framework");
             if (WatchUiThread) UiStallWatch.Start(Environment.GetEnvironmentVariable("WICKED_UI_TRACE") == "1");
             Editor.EditorServices.Start();
+            StartupTimeline.Mark("editor services");
             var shell = new ShellViewModel(Paths);
+            StartupTimeline.Mark("view model");
             desktop.MainWindow = new MainWindow { DataContext = shell };
+            StartupTimeline.Mark("window built");
             _ = shell.StartAsync();
             desktop.ShutdownRequested += (_, _) => shell.Dispose();
 

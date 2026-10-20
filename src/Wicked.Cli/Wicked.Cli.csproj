@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
+    <PublishReadyToRun>true</PublishReadyToRun>
     <AssemblyName>wicked-cli</AssemblyName>
     <RootNamespace>Wicked.Cli</RootNamespace>
   </PropertyGroup>
