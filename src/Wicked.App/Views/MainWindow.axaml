@@ -1,0 +1,207 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Wicked.App.ViewModels"
+        xmlns:shell="using:Wicked.App.Shell"
+        x:Class="Wicked.App.Views.MainWindow"
+        x:DataType="vm:ShellViewModel"
+        Title="{Binding Title}"
+        Width="1440" Height="900" MinWidth="900" MinHeight="560"
+        ExtendClientAreaToDecorationsHint="True"
+        WindowDecorations="None">
+
+  <Window.KeyBindings>
+    <KeyBinding Gesture="Ctrl+B" Command="{Binding ToggleSidebarCommand}" />
+    <KeyBinding Gesture="Ctrl+L" Command="{Binding ToggleAssistantCommand}" />
+  </Window.KeyBindings>
+
+  <Border Name="Frame" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1">
+    <Grid RowDefinitions="40,*,28">
+
+      <!-- ── Title bar: the mark, the command centre in the middle, the layout toggles and the caption buttons. ── -->
+      <Grid Name="TitleBar" Background="{DynamicResource Brush.Ground}" ColumnDefinitions="*,Auto,*">
+        <StackPanel Orientation="Horizontal" Spacing="9" Margin="14,0,0,0" VerticalAlignment="Center">
+          <Border Width="22" Height="22" CornerRadius="6">
+            <Border.Background>
+              <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                <GradientStop Offset="0" Color="#A194FA" />
+                <GradientStop Offset="1" Color="#6E5CF0" />
+              </LinearGradientBrush>
+            </Border.Background>
+            <shell:Icon Data="{StaticResource Mark.Wicked}" Size="16" StrokeWidth="2.6"
+                        Foreground="{DynamicResource Brush.Text.OnAccent}" />
+          </Border>
+          <TextBlock Text="Wicked" FontWeight="SemiBold" VerticalAlignment="Center" />
+        </StackPanel>
+
+        <Button Grid.Column="1" Name="CommandCentre" Classes="command-centre" Width="520"
+                ToolTip.Tip="Search files, commands and models">
+          <Grid ColumnDefinitions="Auto,*,Auto">
+            <shell:Icon Data="{StaticResource Icon.Search}" Size="14" Margin="0,0,8,0" />
+            <TextBlock Grid.Column="1" Text="Search files, commands and models" VerticalAlignment="Center" />
+            <Border Grid.Column="2" Classes="kbd"><TextBlock Text="Ctrl+Shift+P" /></Border>
+          </Grid>
+        </Button>
+
+        <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="2" Margin="0,0,6,0">
+          <Button Classes="quiet" Command="{Binding ToggleSidebarCommand}" ToolTip.Tip="Side bar (Ctrl+B)">
+            <shell:Icon Data="{StaticResource Icon.PanelLeft}" />
+          </Button>
+          <Button Classes="quiet" Command="{Binding ToggleAssistantCommand}" ToolTip.Tip="Assistant (Ctrl+L)">
+            <shell:Icon Data="{StaticResource Icon.PanelRight}" />
+          </Button>
+          <Rectangle Width="1" Height="16" Margin="6,0" Fill="{DynamicResource Brush.Border}" VerticalAlignment="Center" />
+          <Button Classes="caption" Click="OnMinimize" ToolTip.Tip="Minimise">
+            <shell:Icon Data="{StaticResource Icon.Minus}" Size="15" StrokeWidth="1.5" />
+          </Button>
+          <Button Classes="caption" Click="OnToggleMaximize" ToolTip.Tip="Maximise or restore">
+            <shell:Icon Data="{StaticResource Icon.Square}" Size="13" StrokeWidth="1.6" />
+          </Button>
+          <Button Classes="caption close" Click="OnClose" ToolTip.Tip="Close">
+            <shell:Icon Data="{StaticResource Icon.X}" Size="15" StrokeWidth="1.5" />
+          </Button>
+        </StackPanel>
+      </Grid>
+
+      <!-- ── Body: the rail on the ground, then the floating panels. ── -->
+      <Grid Grid.Row="1" Name="Body" Margin="0,0,6,0">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="52" />
+          <ColumnDefinition Width="260" MinWidth="0" />
+          <ColumnDefinition Width="6" />
+          <ColumnDefinition Width="*" MinWidth="320" />
+          <ColumnDefinition Width="6" />
+          <ColumnDefinition Width="380" MinWidth="0" />
+        </Grid.ColumnDefinitions>
+
+        <!-- The rail -->
+        <DockPanel Margin="0,2,0,8">
+          <StackPanel DockPanel.Dock="Bottom" HorizontalAlignment="Center">
+            <Button Classes="rail" ToolTip.Tip="Settings">
+              <shell:Icon Data="{StaticResource Icon.Settings}" Size="19" />
+            </Button>
+          </StackPanel>
+          <StackPanel Spacing="4" HorizontalAlignment="Center">
+            <Button Name="RailExplorer" Classes="rail" Classes.active="{Binding IsExplorer}" ToolTip.Tip="Explorer"
+                    Command="{Binding ShowPanelCommand}" CommandParameter="{x:Static vm:SidePanel.Explorer}">
+              <shell:Icon Data="{StaticResource Icon.Files}" Size="19" />
+            </Button>
+            <Button Name="RailSearch" Classes="rail" Classes.active="{Binding IsSearch}" ToolTip.Tip="Search"
+                    Command="{Binding ShowPanelCommand}" CommandParameter="{x:Static vm:SidePanel.Search}">
+              <shell:Icon Data="{StaticResource Icon.Search}" Size="19" />
+            </Button>
+            <Button Name="RailSourceControl" Classes="rail" Classes.active="{Binding IsSourceControl}" ToolTip.Tip="Source control"
+                    Command="{Binding ShowPanelCommand}" CommandParameter="{x:Static vm:SidePanel.SourceControl}">
+              <shell:Icon Data="{StaticResource Icon.GitBranch}" Size="19" />
+            </Button>
+            <Button Name="RailModels" Classes="rail" Classes.active="{Binding IsModels}" ToolTip.Tip="Models"
+                    Command="{Binding ShowPanelCommand}" CommandParameter="{x:Static vm:SidePanel.Models}">
+              <shell:Icon Data="{StaticResource Icon.Boxes}" Size="19" />
+            </Button>
+          </StackPanel>
+        </DockPanel>
+
+        <!-- The side panel -->
+        <Border Grid.Column="1" Name="SidePanel" Classes="panel" Margin="0,0,0,6" IsVisible="{Binding SidebarVisible}">
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Top" Classes="heading" Text="{Binding PanelTitle}" Margin="14,12,14,8" />
+            <StackPanel Margin="14,8" Spacing="4">
+              <TextBlock Text="{Binding PanelEmptyTitle}" />
+              <TextBlock Classes="muted" Text="{Binding PanelEmptyText}" TextWrapping="Wrap" />
+            </StackPanel>
+          </DockPanel>
+        </Border>
+        <GridSplitter Grid.Column="2" Classes="gap" ResizeDirection="Columns" IsVisible="{Binding SidebarVisible}" />
+
+        <!-- The editor area: the welcome page until a file is open. -->
+        <Border Grid.Column="3" Name="Editor" Classes="panel editor" Margin="0,0,0,6">
+          <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" MaxWidth="460">
+            <Border Width="64" Height="64" CornerRadius="16" HorizontalAlignment="Center">
+              <Border.Background>
+                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                  <GradientStop Offset="0" Color="#A194FA" />
+                  <GradientStop Offset="1" Color="#6E5CF0" />
+                </LinearGradientBrush>
+              </Border.Background>
+              <shell:Icon Data="{StaticResource Mark.Wicked}" Size="44" StrokeWidth="2.4"
+                          Foreground="{DynamicResource Brush.Text.OnAccent}" />
+            </Border>
+            <TextBlock Text="Wicked" FontSize="28" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,6,0,0" />
+            <TextBlock Classes="secondary" TextAlignment="Center" TextWrapping="Wrap"
+                       Text="Local models that stay up to date, and a real editor around them." />
+            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" Margin="0,18,0,0" Width="280">
+              <TextBlock Classes="secondary" Text="Show or hide the side bar" VerticalAlignment="Center" />
+              <Border Grid.Column="1" Classes="kbd"><TextBlock Text="Ctrl+B" /></Border>
+              <TextBlock Grid.Row="1" Classes="secondary" Text="Show or hide the assistant" Margin="0,8,0,0" VerticalAlignment="Center" />
+              <Border Grid.Row="1" Grid.Column="1" Classes="kbd" Margin="0,8,0,0"><TextBlock Text="Ctrl+L" /></Border>
+            </Grid>
+          </StackPanel>
+        </Border>
+        <GridSplitter Grid.Column="4" Classes="gap" ResizeDirection="Columns" IsVisible="{Binding AssistantVisible}" />
+
+        <!-- The assistant -->
+        <Border Grid.Column="5" Name="Assistant" Classes="panel" Margin="0,0,0,6" IsVisible="{Binding AssistantVisible}">
+          <DockPanel>
+            <Grid DockPanel.Dock="Top" ColumnDefinitions="Auto,*,Auto" Margin="14,8,8,4">
+              <shell:Icon Data="{StaticResource Icon.Sparkles}" Size="15" Foreground="{DynamicResource Brush.Accent}" />
+              <TextBlock Grid.Column="1" Text="Assistant" FontWeight="SemiBold" Margin="8,0" VerticalAlignment="Center" />
+              <Button Grid.Column="2" Classes="quiet" Command="{Binding ToggleAssistantCommand}" ToolTip.Tip="Hide (Ctrl+L)">
+                <shell:Icon Data="{StaticResource Icon.X}" Size="14" />
+              </Button>
+            </Grid>
+
+            <!-- The composer, as the AI editors set it: a rounded box at the foot of the panel. -->
+            <Border DockPanel.Dock="Bottom" Margin="10" Padding="10,8" CornerRadius="10"
+                    Background="{DynamicResource Brush.Raised}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1">
+              <StackPanel Spacing="8">
+                <TextBlock Classes="muted" Text="Ask anything, @ to add context" />
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                  <Border CornerRadius="5" Padding="7,2" Background="{DynamicResource Brush.Hover}">
+                    <StackPanel Orientation="Horizontal" Spacing="5">
+                      <shell:Icon Data="{StaticResource Icon.Cpu}" Size="12" Foreground="{DynamicResource Brush.Text.Muted}" />
+                      <TextBlock Classes="muted" FontSize="{DynamicResource Font.Size.Small}" Text="No model" />
+                    </StackPanel>
+                  </Border>
+                </Grid>
+              </StackPanel>
+            </Border>
+
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8" Margin="28,0">
+              <shell:Icon Data="{StaticResource Icon.Bot}" Size="30" StrokeWidth="1.4" Foreground="{DynamicResource Brush.Text.Muted}" />
+              <TextBlock Text="No model yet" HorizontalAlignment="Center" FontWeight="SemiBold" />
+              <TextBlock Classes="muted" TextAlignment="Center" TextWrapping="Wrap"
+                         Text="Wicked will suggest two or three models that fit this PC, and keep them up to date." />
+            </StackPanel>
+          </DockPanel>
+        </Border>
+      </Grid>
+
+      <!-- ── Footer: the waiting notice on the left (a click goes where it is dealt with), the daemon on the right. ── -->
+      <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto" Margin="10,0,8,0">
+        <Button Name="NoticeButton" Classes="quiet" Padding="6,2" HorizontalAlignment="Left"
+                IsVisible="{Binding Notice, Converter={x:Static ObjectConverters.IsNotNull}}"
+                Command="{Binding OpenNoticeCommand}" ToolTip.Tip="{Binding NoticeTip}">
+          <StackPanel Orientation="Horizontal" Spacing="7">
+            <Ellipse Width="7" Height="7" Fill="{Binding Notice.Kind, Converter={x:Static shell:NoticeBrush.Instance}}" VerticalAlignment="Center" />
+            <TextBlock Name="NoticeText" Text="{Binding Notice.Text}" FontSize="{DynamicResource Font.Size.Small}"
+                       Foreground="{DynamicResource Brush.Text.Secondary}" VerticalAlignment="Center" />
+            <ProgressBar Width="80" MinWidth="80" Height="3" MinHeight="3" VerticalAlignment="Center"
+                         Minimum="0" Maximum="1" Value="{Binding Notice.Progress, FallbackValue=0}"
+                         IsIndeterminate="{Binding Notice.Progress, Converter={x:Static ObjectConverters.IsNull}}"
+                         IsVisible="{Binding IsProgressNotice}" />
+            <TextBlock Text="{Binding MoreNotices}" FontSize="{DynamicResource Font.Size.Small}"
+                       Foreground="{DynamicResource Brush.Text.Muted}" VerticalAlignment="Center" />
+          </StackPanel>
+        </Button>
+
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" Margin="0,0,14,0" VerticalAlignment="Center">
+          <Ellipse Width="7" Height="7" VerticalAlignment="Center"
+                   Fill="{Binding DaemonRunning, Converter={x:Static shell:DaemonBrush.Instance}}" />
+          <TextBlock Name="DaemonText" Text="{Binding DaemonText}" FontSize="{DynamicResource Font.Size.Small}"
+                     Foreground="{DynamicResource Brush.Text.Muted}" VerticalAlignment="Center" />
+        </StackPanel>
+        <TextBlock Grid.Column="2" Text="{Binding VersionText}" FontSize="{DynamicResource Font.Size.Small}"
+                   Foreground="{DynamicResource Brush.Text.Muted}" VerticalAlignment="Center" />
+      </Grid>
+    </Grid>
+  </Border>
+</Window>

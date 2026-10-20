@@ -1,0 +1,48 @@
+<!-- Wicked Dark: the default theme's tokens. Every surface takes its colour from a key here, never a literal, so a theme
+     replaces this one dictionary and the whole window follows. -->
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- Surfaces: the ground shows between the floating panels; panels and the editor sit on it. -->
+  <SolidColorBrush x:Key="Brush.Ground" Color="#0D0E11" />
+  <SolidColorBrush x:Key="Brush.Surface" Color="#15171B" />
+  <SolidColorBrush x:Key="Brush.Editor" Color="#111216" />
+  <SolidColorBrush x:Key="Brush.Raised" Color="#1D2026" />
+  <SolidColorBrush x:Key="Brush.Hover" Color="#232730" />
+  <SolidColorBrush x:Key="Brush.Pressed" Color="#2A2E38" />
+
+  <!-- Lines -->
+  <SolidColorBrush x:Key="Brush.Border.Subtle" Color="#1F2228" />
+  <SolidColorBrush x:Key="Brush.Border" Color="#2C3038" />
+  <SolidColorBrush x:Key="Brush.Border.Focus" Color="#8B7BF7" />
+
+  <!-- Ink -->
+  <SolidColorBrush x:Key="Brush.Text" Color="#E7E9EE" />
+  <SolidColorBrush x:Key="Brush.Text.Secondary" Color="#A2A8B4" />
+  <SolidColorBrush x:Key="Brush.Text.Muted" Color="#6C7280" />
+  <SolidColorBrush x:Key="Brush.Text.OnAccent" Color="#0D0E11" />
+
+  <!-- Accent -->
+  <SolidColorBrush x:Key="Brush.Accent" Color="#8B7BF7" />
+  <SolidColorBrush x:Key="Brush.Accent.Hover" Color="#A194FA" />
+  <SolidColorBrush x:Key="Brush.Accent.Subtle" Color="#268B7BF7" />
+
+  <!-- Status -->
+  <SolidColorBrush x:Key="Brush.Success" Color="#3FCF8E" />
+  <SolidColorBrush x:Key="Brush.Warning" Color="#F2B84B" />
+  <SolidColorBrush x:Key="Brush.Danger" Color="#F0616D" />
+
+  <!-- Caption -->
+  <SolidColorBrush x:Key="Brush.Caption.Close" Color="#E5484D" />
+
+  <!-- Geometry -->
+  <CornerRadius x:Key="Radius.Panel">10</CornerRadius>
+  <CornerRadius x:Key="Radius.Control">6</CornerRadius>
+  <Thickness x:Key="Gap.Panel">6</Thickness>
+  <BoxShadows x:Key="Shadow.Panel">0 1 2 0 #40000000, 0 8 24 -8 #66000000</BoxShadows>
+
+  <!-- Type -->
+  <x:Double x:Key="Font.Size.Body">13</x:Double>
+  <x:Double x:Key="Font.Size.Small">11.5</x:Double>
+  <x:Double x:Key="Font.Size.Heading">11</x:Double>
+</ResourceDictionary>

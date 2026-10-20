@@ -20,3 +20,6 @@ publish/
 
 # Release artifacts
 /packaging/out/
+
+# Test output
+TestResults/

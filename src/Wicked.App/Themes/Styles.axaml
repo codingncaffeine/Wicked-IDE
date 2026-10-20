@@ -1,0 +1,145 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:shell="using:Wicked.App.Shell">
+
+  <Style Selector="Window">
+    <Setter Property="Background" Value="{DynamicResource Brush.Ground}" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+    <Setter Property="FontSize" Value="{DynamicResource Font.Size.Body}" />
+  </Style>
+
+  <Style Selector="TextBlock.secondary">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}" />
+  </Style>
+  <Style Selector="TextBlock.muted">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Muted}" />
+  </Style>
+  <!-- A panel's heading: small, spaced capitals, as the reference editors set them. -->
+  <Style Selector="TextBlock.heading">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}" />
+    <Setter Property="FontSize" Value="{DynamicResource Font.Size.Heading}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="LetterSpacing" Value="0.6" />
+  </Style>
+
+  <!-- The floating panels: rounded cards on the ground with a soft shadow. -->
+  <Style Selector="Border.panel">
+    <Setter Property="Background" Value="{DynamicResource Brush.Surface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Subtle}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Radius.Panel}" />
+    <Setter Property="BoxShadow" Value="{DynamicResource Shadow.Panel}" />
+    <Setter Property="ClipToBounds" Value="True" />
+  </Style>
+  <Style Selector="Border.panel.editor">
+    <Setter Property="Background" Value="{DynamicResource Brush.Editor}" />
+  </Style>
+
+  <!-- Quiet buttons: the rail, the title bar's toggles and every toolbar. -->
+  <Style Selector="Button.quiet">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Muted}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Radius.Control}" />
+    <Setter Property="Padding" Value="7" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Button.quiet:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Brush.Hover}" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+  </Style>
+  <Style Selector="Button.quiet:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Brush.Pressed}" />
+  </Style>
+  <Style Selector="Button.quiet:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+
+  <!-- The rail's buttons: the open panel's button is lit. -->
+  <Style Selector="Button.rail">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Muted}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Radius.Control}" />
+    <Setter Property="Width" Value="38" />
+    <Setter Property="Height" Value="38" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Button.rail:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Brush.Hover}" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+  </Style>
+  <Style Selector="Button.rail.active">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+  </Style>
+  <Style Selector="Button.rail.active /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Brush.Accent.Subtle}" />
+  </Style>
+
+  <!-- Caption buttons, drawn because the window draws its own title bar. -->
+  <Style Selector="Button.caption">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Radius.Control}" />
+    <Setter Property="Width" Value="38" />
+    <Setter Property="Height" Value="30" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Button.caption:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Brush.Hover}" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+  </Style>
+  <Style Selector="Button.caption.close:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Brush.Caption.Close}" />
+    <Setter Property="Foreground" Value="White" />
+  </Style>
+
+  <!-- The command centre in the title bar: a search field look, a button underneath. -->
+  <Style Selector="Button.command-centre">
+    <Setter Property="Background" Value="{DynamicResource Brush.Surface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Muted}" />
+    <Setter Property="Padding" Value="10,0" />
+    <Setter Property="Height" Value="28" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Button.command-centre:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Brush.Raised}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}" />
+  </Style>
+
+  <!-- A key cap in hints: "Ctrl+Shift+P". -->
+  <Style Selector="Border.kbd">
+    <Setter Property="Background" Value="{DynamicResource Brush.Raised}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="Padding" Value="5,1" />
+  </Style>
+  <Style Selector="Border.kbd > TextBlock">
+    <Setter Property="FontSize" Value="{DynamicResource Font.Size.Small}" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}" />
+  </Style>
+
+  <!-- The splitters between panels are the gaps themselves: invisible until the pointer finds them. -->
+  <Style Selector="GridSplitter.gap">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="MinWidth" Value="6" />
+  </Style>
+  <Style Selector="GridSplitter.gap:pointerover">
+    <Setter Property="Background" Value="{DynamicResource Brush.Accent.Subtle}" />
+  </Style>
+
+  <Style Selector="shell|Icon">
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+  </Style>
+</Styles>
