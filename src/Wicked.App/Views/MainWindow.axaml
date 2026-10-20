@@ -98,7 +98,8 @@
             </Grid>
             <Panel>
               <views:ExplorerView DataContext="{Binding Workbench}" IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).IsExplorer}" />
-              <StackPanel Margin="14,8" Spacing="4" IsVisible="{Binding !IsExplorer}">
+              <views:ModelsView DataContext="{Binding Models}" IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).IsModels}" />
+              <StackPanel Margin="14,8" Spacing="4" IsVisible="{Binding ShowsPanelPlaceholder}">
                 <TextBlock Text="{Binding PanelEmptyTitle}" />
                 <TextBlock Classes="muted" Text="{Binding PanelEmptyText}" TextWrapping="Wrap" />
               </StackPanel>

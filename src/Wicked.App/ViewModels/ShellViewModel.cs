@@ -47,6 +47,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         };
         Commands = BuildCommands();
         QuickInput = new QuickInputViewModel(this);
+        Models = new ModelsViewModel(paths, Notices);
         Keys = new KeyDispatcher(Commands);
         _ = Task.Run(() => WatchDaemonAsync(_stop.Token));
     }
@@ -56,6 +57,8 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     public IReadOnlyList<WorkbenchCommand> Commands { get; }
 
     public QuickInputViewModel QuickInput { get; }
+
+    public ModelsViewModel Models { get; }
 
     public KeyDispatcher Keys { get; }
 
@@ -142,6 +145,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         Settings = settings;
         if (problem is not null) Notices.Post(new Notice("settings", problem, NoticeKind.Warning));
         _session = await SessionState.ReadAsync(Paths.SessionFile, CancellationToken.None);
+        _ = Models.StartAsync(allowNetwork: Environment.GetEnvironmentVariable("WICKED_OFFLINE") != "1");
         if (!Settings.RestoreSession || _session.LastFolder is not { } folder || !Directory.Exists(folder)) return;
         await Workbench.OpenFolderAsync(folder);
         if (_session.OpenFiles.TryGetValue(folder, out var files))
@@ -230,7 +234,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     // ── Side panel and assistant ─────────────────────────────────────────────────────────────
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsExplorer), nameof(IsSearch), nameof(IsSourceControl), nameof(IsModels), nameof(PanelTitle), nameof(PanelEmptyTitle), nameof(PanelEmptyText))]
+    [NotifyPropertyChangedFor(nameof(IsExplorer), nameof(IsSearch), nameof(IsSourceControl), nameof(IsModels), nameof(PanelTitle), nameof(PanelEmptyTitle), nameof(PanelEmptyText), nameof(ShowsPanelPlaceholder))]
     private SidePanel _panel = SidePanel.Explorer;
 
     [ObservableProperty]
@@ -247,6 +251,9 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     public bool IsSourceControl => SidebarVisible && Panel == SidePanel.SourceControl;
 
     public bool IsModels => SidebarVisible && Panel == SidePanel.Models;
+
+    /// <summary>The panels not built yet (search, source control) show what they will hold.</summary>
+    public bool ShowsPanelPlaceholder => Panel is SidePanel.Search or SidePanel.SourceControl;
 
     public string PanelTitle => Panel switch
     {
@@ -375,6 +382,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     public void Dispose()
     {
         Workbench.Dispose();
+        _ = Models.DisposeAsync().AsTask();
         _stop.Cancel();
         _stop.Dispose();
     }
