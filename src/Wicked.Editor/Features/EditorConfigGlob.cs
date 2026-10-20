@@ -20,7 +20,7 @@ public sealed class EditorConfigGlob
     {
         Glob = glob;
         var anchored = HasSeparator(glob);
-        var body = anchored && glob.StartsWith('/') ? glob[1..] : glob;
+        var body = anchored && glob.StartsWith('/') ? glob[1..] : glob; // not a path: glob syntax
         var pattern = Convert(body);
         _regex = new Regex(anchored ? $"^{pattern}$" : $"^(?:.*/)?{pattern}$", RegexOptions.CultureInvariant | RegexOptions.Singleline, TimeSpan.FromSeconds(1));
     }

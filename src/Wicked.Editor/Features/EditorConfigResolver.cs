@@ -131,7 +131,7 @@ public sealed class EditorConfigResolver(Func<string, string?> read)
         for (var i = files.Count - 1; i >= 0; i--)
         {
             var (fileDir, file) = files[i];
-            var prefix = fileDir.Replace('\\', '/').TrimEnd('/') + "/";
+            var prefix = fileDir.Replace('\\', '/').TrimEnd('/') + "/"; // not a path: EditorConfig globs are written with / on every platform
             if (!path.StartsWith(prefix, StringComparison.Ordinal)) continue;
             var relative = path[prefix.Length..];
             foreach (var section in file.Sections)
