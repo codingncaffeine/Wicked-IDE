@@ -7,7 +7,7 @@ using Wicked.Editor.Model;
 namespace Wicked.App.ViewModels;
 
 /// <summary>One row of the palette: what it says, a quieter line beside it, its keys, and what choosing it does.</summary>
-public sealed record QuickItem(string Label, string Detail, string Keys, Func<Task> Choose);
+public sealed record QuickItem(string Label, string Detail, string Keys, Func<Task> Choose, Action? Preview = null);
 
 /// <summary>
 /// The palette at the top of the window (Ctrl+P, Ctrl+Shift+P, Ctrl+G). The first character picks the mode, as in VS
@@ -32,18 +32,42 @@ public sealed partial class QuickInputViewModel(ShellViewModel shell) : Observab
     [ObservableProperty]
     private string _placeholder = "";
 
+    private IReadOnlyList<QuickItem>? _list;
+    private Action? _onCancel;
+
     public void Open(string prefix)
     {
+        _list = null;
+        _onCancel = null;
         IsOpen = true;
         Query = prefix;
         _ = RefreshAsync();
     }
 
+    /// <summary>A list of choices of the caller's own (a theme picker): filtered by what is typed; Escape calls <paramref name="onCancel"/>.</summary>
+    public void OpenList(string placeholder, IReadOnlyList<QuickItem> items, int selected, Action? onCancel)
+    {
+        _list = items;
+        _onCancel = onCancel;
+        IsOpen = true;
+        Query = "";
+        Placeholder = placeholder;
+        _ = RefreshAsync().ContinueWith(_ => Selected = Math.Clamp(selected, 0, Math.Max(0, Items.Count - 1)), TaskScheduler.FromCurrentSynchronizationContext());
+    }
+
     public void Close()
     {
+        var cancel = _onCancel;
+        _onCancel = null;
         IsOpen = false;
         _search?.Cancel();
         Items.Clear();
+        cancel?.Invoke();
+    }
+
+    partial void OnSelectedChanged(int value)
+    {
+        if (value >= 0 && value < Items.Count) Items[value].Preview?.Invoke();
     }
 
     partial void OnQueryChanged(string value) => _ = RefreshAsync();
@@ -59,6 +83,7 @@ public sealed partial class QuickInputViewModel(ShellViewModel shell) : Observab
         index = index < 0 ? Selected : index;
         if (index < 0 || index >= Items.Count) return;
         var item = Items[index];
+        _onCancel = null; // chosen, not cancelled
         Close();
         await item.Choose();
     }
@@ -70,7 +95,11 @@ public sealed partial class QuickInputViewModel(ShellViewModel shell) : Observab
         var cts = _search = new CancellationTokenSource();
         var query = Query;
         List<QuickItem> items;
-        if (query.StartsWith('>'))
+        if (_list is { } list)
+        {
+            items = query.Length == 0 ? [.. list] : [.. list.Select(i => (Item: i, Score: FuzzyMatch.Score(query, i.Label))).Where(p => p.Score >= 0).OrderByDescending(p => p.Score).Select(p => p.Item)];
+        }
+        else if (query.StartsWith('>'))
         {
             Placeholder = "Type the name of a command";
             var text = query[1..].Trim();

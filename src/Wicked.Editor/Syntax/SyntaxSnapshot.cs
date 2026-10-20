@@ -41,9 +41,12 @@ public sealed class LineTokens(int[] packed)
 /// The theme's colours, by TextMate colour id, as 0xAARRGGBB. Id 1 is the colour of text no rule names: the theme's
 /// editor foreground (TextMate's own table holds black there).
 /// </summary>
-public sealed class ColorTable(ImmutableArray<uint> colors)
+public sealed class ColorTable(ImmutableArray<uint> colors, IReadOnlyDictionary<string, uint>? gui = null)
 {
     public ImmutableArray<uint> Colors { get; } = colors;
+
+    /// <summary>The theme's editor colours by VS Code's keys (editor.background, editor.selectionBackground, ...), where it gives them.</summary>
+    public IReadOnlyDictionary<string, uint> Gui { get; } = gui ?? new Dictionary<string, uint>();
 
     public uint this[int id] => (uint)id < (uint)Colors.Length && id > 0 ? Colors[id] : Default;
 
@@ -55,8 +58,10 @@ public sealed class ColorTable(ImmutableArray<uint> colors)
         var count = theme.GetColorMap().Count;
         var colors = new uint[count + 1];
         for (var id = 1; id <= count; id++) colors[id] = Parse(theme.GetColor(id), 0xFFD4D4D4);
-        if (theme.GetGuiColorDictionary().TryGetValue("editor.foreground", out var foreground)) colors[1] = Parse(foreground, 0xFFD4D4D4);
-        return new ColorTable([.. colors]);
+        var guiColors = theme.GetGuiColorDictionary();
+        if (guiColors.TryGetValue("editor.foreground", out var foreground)) colors[1] = Parse(foreground, 0xFFD4D4D4);
+        var gui = guiColors.Where(p => p.Value is { Length: >= 7 } v && v[0] == '#').ToDictionary(p => p.Key, p => Parse(p.Value, 0));
+        return new ColorTable([.. colors], gui);
     }
 
     public static uint Parse(string? hex, uint fallback)

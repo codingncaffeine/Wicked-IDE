@@ -1,6 +1,7 @@
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Wicked.App.Editor;
 using Wicked.App.Shell;
 using Wicked.Core;
 using Wicked.Core.Settings;
@@ -48,6 +49,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         Commands = BuildCommands();
         QuickInput = new QuickInputViewModel(this);
         Models = new ModelsViewModel(paths, Notices);
+        SettingsSheet = new SettingsViewModel(this);
         Keys = new KeyDispatcher(Commands);
         _ = Task.Run(() => WatchDaemonAsync(_stop.Token));
     }
@@ -60,9 +62,17 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
 
     public ModelsViewModel Models { get; }
 
+    public SettingsViewModel SettingsSheet { get; }
+
     public KeyDispatcher Keys { get; }
 
     public WickedSettings Settings { get; private set; } = new();
+
+    /// <summary>A notice's route to a file that is not open yet (settings.json with an error) opens it.</summary>
+    private async Task OpenFileRouteAsync(string path)
+    {
+        if (File.Exists(path)) await Workbench.OpenAsync(path);
+    }
 
     private SessionState _session = new();
 
@@ -106,8 +116,128 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             new("workbench.action.showCommands", "View", "Show All Commands", "Ctrl+Shift+P", () => Sync(() => OpenPalette(">"))),
             new("workbench.action.quickOpen", "Go", "Go to File...", "Ctrl+P", () => Sync(() => OpenPalette(""))),
             new("workbench.action.gotoLine", "Go", "Go to Line...", "Ctrl+G", () => Sync(() => OpenPalette(":"))),
+            new("editor.action.fontZoomIn", "View", "Zoom In", "Ctrl+OemPlus", () => UpdateSettingsAsync(st => st with { FontSize = Math.Min(72, st.FontSize + 1) })),
+            new("editor.action.fontZoomOut", "View", "Zoom Out", "Ctrl+OemMinus", () => UpdateSettingsAsync(st => st with { FontSize = Math.Max(6, st.FontSize - 1) })),
+            new("editor.action.fontZoomReset", "View", "Reset Zoom", "Ctrl+D0", () => UpdateSettingsAsync(st => st with { FontSize = new WickedSettings().FontSize })),
+            new("workbench.action.openSettings", "Preferences", "Open Settings", "Ctrl+OemComma", () => Sync(() => SettingsOpen = true)),
+            new("workbench.action.openSettingsJson", "Preferences", "Open Settings (JSON)", null, OpenSettingsJsonAsync),
+            new("workbench.action.selectTheme", "Preferences", "Code Colours", "Ctrl+K Ctrl+T", () => Sync(PickCodeColours)),
         ];
     }
+
+    // ── Settings, live ───────────────────────────────────────────────────────────────────────────
+
+    /// <summary>The Settings sheet (Ctrl+,).</summary>
+    [ObservableProperty]
+    private bool _settingsOpen;
+
+    [RelayCommand]
+    private void CloseSettings() => SettingsOpen = false;
+
+    [RelayCommand]
+    private void OpenSettings() => SettingsOpen = true;
+
+    private string? _lastWritten;
+    private FileSystemWatcher? _settingsWatcher;
+    private DispatcherTimer? _settingsSettle;
+
+    /// <summary>Puts settings in force everywhere: the editor services (fonts, code colours), every editor, the workbench.</summary>
+    public async Task ApplySettingsAsync(WickedSettings settings)
+    {
+        Settings = settings;
+        Workbench.Settings = settings;
+        OnPropertyChanged(nameof(Settings));
+        var services = await EditorServices.Ready;
+        services.Apply(settings);
+        foreach (var tab in Workbench.AllTabs) tab.Editor?.ApplySettings(settings);
+    }
+
+    /// <summary>A change from the Settings sheet or a command: applied now, written to settings.json on a worker.</summary>
+    public async Task UpdateSettingsAsync(Func<WickedSettings, WickedSettings> change)
+    {
+        var next = change(Settings);
+        if (next == Settings) return;
+        await ApplySettingsAsync(next);
+        var text = System.Text.Json.JsonSerializer.Serialize(next, WickedSettings.Json) + "\n";
+        _lastWritten = text;
+        try
+        {
+            await Task.Run(() => Wicked.Core.Files.TextFile.WriteAsync(Paths.SettingsFile, text, Wicked.Core.Files.FileEncoding.Utf8, CancellationToken.None));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Notices.Post(new Notice("settings", $"Settings could not be saved: {ex.Message}", NoticeKind.Error));
+        }
+    }
+
+    /// <summary>settings.json edited by hand (the code layer, D16): read again a moment after it changes, and applied.</summary>
+    private void WatchSettings()
+    {
+        _settingsWatcher?.Dispose();
+        try
+        {
+            Directory.CreateDirectory(Paths.Config);
+            _settingsWatcher = new FileSystemWatcher(Paths.Config, "settings.json") { NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.Size };
+            FileSystemEventHandler changed = (_, _) => _post(() =>
+            {
+                _settingsSettle ??= new DispatcherTimer(TimeSpan.FromMilliseconds(200), DispatcherPriority.Background, (_, _) => _ = ReloadSettingsAsync());
+                _settingsSettle.Stop();
+                _settingsSettle.Start();
+            });
+            _settingsWatcher.Changed += changed;
+            _settingsWatcher.Created += changed;
+            _settingsWatcher.Renamed += (_, e) => changed(this, e);
+            _settingsWatcher.EnableRaisingEvents = true;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            Log.Warn($"Cannot watch settings.json: {ex.Message}");
+        }
+    }
+
+    private async Task ReloadSettingsAsync()
+    {
+        _settingsSettle?.Stop();
+        var path = Paths.SettingsFile;
+        var text = await Task.Run(() => File.Exists(path) ? File.ReadAllText(path) : "");
+        if (text == _lastWritten) return; // our own write coming back
+        var (settings, problem) = await SettingsFile.ReadAsync(path, CancellationToken.None);
+        if (problem is not null)
+        {
+            Notices.Post(new Notice("settings", problem, NoticeKind.Error, $"tab/{path}"));
+            return;
+        }
+
+        Notices.Clear("settings");
+        await ApplySettingsAsync(settings);
+        Notices.Post(new Notice("settings-applied", "Settings applied", NoticeKind.Success));
+    }
+
+    /// <summary>Opens settings.json in an editor, writing the current settings into it first when it does not exist yet.</summary>
+    private async Task OpenSettingsJsonAsync()
+    {
+        var path = Paths.SettingsFile;
+        if (!File.Exists(path)) await Task.Run(() => Wicked.Core.Files.TextFile.WriteAsync(path, System.Text.Json.JsonSerializer.Serialize(Settings, WickedSettings.Json) + "\n", Wicked.Core.Files.FileEncoding.Utf8, CancellationToken.None));
+        await Workbench.OpenAsync(path);
+    }
+
+    /// <summary>Ctrl+K Ctrl+T: the code colour palettes, each previewed as the selection moves, kept on Enter, undone on Escape.</summary>
+    private void PickCodeColours()
+    {
+        var before = Settings;
+        var names = new List<(string Value, string Label)> { ("", "Wicked Dark (the theme's own)") };
+        names.AddRange(Wicked.Editor.Syntax.SyntaxService.Themes.Select(t => (t.ToString(), Friendly(t.ToString()))));
+        var items = names.Select(n => new QuickItem(n.Label, n.Value == before.CodeColorTheme ? "current" : "", "",
+            () => UpdateSettingsAsync(s => s with { CodeColorTheme = n.Value }),
+            () => _ = ApplySettingsAsync(Settings with { CodeColorTheme = n.Value }))).ToList();
+        var current = Math.Max(0, names.FindIndex(n => n.Value == before.CodeColorTheme));
+        QuickInput.OpenList("Select a colour theme for code (arrows preview it)", items, current, () => _ = ApplySettingsAsync(before));
+        PaletteRequested?.Invoke("");
+    }
+
+    /// <summary>"DarkPlus" as "Dark+", "OneDark" as "One Dark".</summary>
+    public static string Friendly(string themeName) =>
+        System.Text.RegularExpressions.Regex.Replace(themeName.Replace("Plus", "+"), "(?<=[a-z])(?=[A-Z])", " ");
 
     /// <summary>Asks the window to show the palette with a prefix typed (">" commands, ":" a line, "" files).</summary>
     public event Action<string>? PaletteRequested;
@@ -142,8 +272,9 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     public async Task StartAsync()
     {
         var (settings, problem) = await SettingsFile.ReadAsync(Paths.SettingsFile, CancellationToken.None);
-        Settings = settings;
-        if (problem is not null) Notices.Post(new Notice("settings", problem, NoticeKind.Warning));
+        await ApplySettingsAsync(settings);
+        WatchSettings();
+        if (problem is not null) Notices.Post(new Notice("settings", problem, NoticeKind.Warning, $"tab/{Paths.SettingsFile}"));
         _session = await SessionState.ReadAsync(Paths.SessionFile, CancellationToken.None);
         _ = Models.StartAsync(allowNetwork: Environment.GetEnvironmentVariable("WICKED_OFFLINE") != "1");
         if (!Settings.RestoreSession || _session.LastFolder is not { } folder || !Directory.Exists(folder)) return;
@@ -303,6 +434,12 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     public bool Navigate(string route)
     {
         if (Workbench.OpenRoute(route)) return true;
+        if (route.StartsWith("tab/", StringComparison.Ordinal))
+        {
+            _ = OpenFileRouteAsync(route[4..]);
+            return true;
+        }
+
         switch (route)
         {
             case ShellRoutes.Explorer: Panel = SidePanel.Explorer; SidebarVisible = true; return true;
@@ -381,6 +518,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
 
     public void Dispose()
     {
+        _settingsWatcher?.Dispose();
         Workbench.Dispose();
         _ = Models.DisposeAsync().AsTask();
         _stop.Cancel();

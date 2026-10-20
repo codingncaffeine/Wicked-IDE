@@ -35,4 +35,26 @@ public sealed record EditorTheme
     public float CaretWidth { get; init; } = 2;
 
     public static readonly EditorTheme WickedDark = new();
+
+    /// <summary>
+    /// This theme with the editor surface a code palette defines (background, text, selection, current line, line
+    /// numbers, caret), so a light palette reads on its own light background. Colours the palette leaves out stay.
+    /// </summary>
+    public EditorTheme WithPalette(IReadOnlyDictionary<string, uint> gui)
+    {
+        uint Pick(string key, uint fallback) => gui.TryGetValue(key, out var c) && c != 0 ? c : fallback;
+        var background = Pick("editor.background", Background);
+        return this with
+        {
+            Background = background,
+            Foreground = Pick("editor.foreground", Foreground),
+            CurrentLine = Pick("editor.lineHighlightBackground", Pick("editor.lineHighlightBorder", CurrentLine)),
+            Selection = Pick("editor.selectionBackground", Selection),
+            SelectionUnfocused = Pick("editor.inactiveSelectionBackground", SelectionUnfocused),
+            Caret = Pick("editorCursor.foreground", Caret),
+            LineNumber = Pick("editorLineNumber.foreground", LineNumber),
+            LineNumberActive = Pick("editorLineNumber.activeForeground", LineNumberActive),
+            IndentGuide = Pick("editorIndentGuide.background", IndentGuide),
+        };
+    }
 }

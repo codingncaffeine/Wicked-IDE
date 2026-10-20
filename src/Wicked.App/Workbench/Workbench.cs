@@ -52,6 +52,9 @@ public sealed partial class Workbench : ObservableObject, IDisposable
 
     public IWorkbenchDialogs? Dialogs { get; set; }
 
+    /// <summary>The settings in force; the shell sets them at start and whenever they change.</summary>
+    public Wicked.Core.Settings.WickedSettings Settings { get; set; } = new();
+
     public ObservableCollection<EditorGroup> Groups { get; } = [];
 
     [ObservableProperty]
@@ -248,6 +251,7 @@ public sealed partial class Workbench : ObservableObject, IDisposable
         });
 
         var tab = new EditorTab(path, document, language, loaded.Encoding, loaded.LastWriteUtc) { IsPreview = preview };
+        Track(tab);
         group.Add(tab);
         return tab;
     }
@@ -256,6 +260,45 @@ public sealed partial class Workbench : ObservableObject, IDisposable
     {
         var tab = new EditorTab(null, new Document(Rope.Empty), null, FileEncoding.Utf8, default);
         ActiveGroup.Add(tab);
+    }
+
+    // ── Auto save (files.autoSave, VS Code's four modes) ──────────────────────────────────────────
+
+    private readonly Dictionary<EditorTab, DispatcherTimer> _autoSave = [];
+
+    private WickedSettingsView SaveOptions => new(Settings.TrimTrailingWhitespace, Settings.InsertFinalNewline);
+
+    /// <summary>After a delay: every edit restarts the tab's timer; when it fires the tab is saved (untitled tabs never are).</summary>
+    private void Track(EditorTab tab) => tab.Document.Changed += change =>
+    {
+        if (Settings.AutoSave != "afterDelay" || tab.Path is null) return;
+        if (!_autoSave.TryGetValue(tab, out var timer))
+        {
+            timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(Math.Max(100, Settings.AutoSaveDelay)) };
+            timer.Tick += (_, _) =>
+            {
+                timer.Stop();
+                if (tab.IsDirty && AllTabs.Contains(tab)) _ = SaveAsync(tab, SaveOptions);
+            };
+            _autoSave[tab] = timer;
+        }
+
+        timer.Interval = TimeSpan.FromMilliseconds(Math.Max(100, Settings.AutoSaveDelay));
+        timer.Stop();
+        timer.Start();
+    };
+
+    /// <summary>The editor lost the keyboard: saved when the setting says so.</summary>
+    public void EditorLostFocus(EditorTab tab)
+    {
+        if (Settings.AutoSave == "onFocusChange" && tab.IsDirty && tab.Path is not null) _ = SaveAsync(tab, SaveOptions);
+    }
+
+    /// <summary>The window lost focus: every edited file saved when the setting says so.</summary>
+    public void WindowDeactivated()
+    {
+        if (Settings.AutoSave != "onWindowChange") return;
+        foreach (var tab in AllTabs.Where(t => t.IsDirty && t.Path is not null).ToList()) _ = SaveAsync(tab, SaveOptions);
     }
 
     public bool OpenRoute(string route)

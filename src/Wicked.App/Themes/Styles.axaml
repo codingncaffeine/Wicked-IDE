@@ -346,6 +346,11 @@
     <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
   </Style>
 
+  <Style Selector="Grid.settings > TextBlock">
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}" />
+  </Style>
+
   <Style Selector="shell|Icon">
     <Setter Property="VerticalAlignment" Value="Center" />
     <Setter Property="HorizontalAlignment" Value="Center" />

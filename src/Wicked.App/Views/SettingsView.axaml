@@ -1,0 +1,75 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Wicked.App.ViewModels"
+             xmlns:shell="using:Wicked.App.Shell"
+             x:Class="Wicked.App.Views.SettingsView"
+             x:DataType="vm:SettingsViewModel">
+  <Border Classes="dialog settings" Width="720" MaxHeight="640">
+    <DockPanel>
+      <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="0,0,0,12">
+        <TextBlock Text="Settings" FontSize="18" FontWeight="SemiBold" />
+        <Button Grid.Column="1" Name="CloseSettings" Classes="quiet" ToolTip.Tip="Close (Escape)"
+                Command="{Binding $parent[Window].((vm:ShellViewModel)DataContext).CloseSettingsCommand}">
+          <shell:Icon Data="{StaticResource Icon.X}" Size="15" />
+        </Button>
+      </Grid>
+      <Grid DockPanel.Dock="Bottom" ColumnDefinitions="*,Auto" Margin="0,14,0,0">
+        <TextBlock Classes="muted" FontSize="{DynamicResource Font.Size.Small}" VerticalAlignment="Center" TextWrapping="Wrap"
+                   Text="Changes apply at once and are kept in settings.json, which you can also edit by hand." />
+        <Button Grid.Column="1" Classes="secondary" Content="Edit settings.json" Command="{Binding OpenJsonCommand}" />
+      </Grid>
+
+      <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Spacing="22" Margin="0,0,10,0">
+          <StackPanel Spacing="10">
+            <TextBlock Classes="heading" Text="EDITOR" />
+            <Grid ColumnDefinitions="220,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="10" Classes="settings">
+              <TextBlock Text="Font size" />
+              <NumericUpDown Grid.Column="1" Name="FontSizeBox" Value="{Binding FontSize}" Minimum="6" Maximum="72" Increment="1" FormatString="0" Width="120" HorizontalAlignment="Left" />
+              <TextBlock Grid.Row="1" Text="Line height" />
+              <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding LineHeight}" Minimum="1" Maximum="3" Increment="0.1" FormatString="0.0" Width="120" HorizontalAlignment="Left" />
+              <TextBlock Grid.Row="2" Text="Programming ligatures" />
+              <ToggleSwitch Grid.Row="2" Grid.Column="1" IsChecked="{Binding Ligatures}" OnContent="" OffContent="" />
+              <TextBlock Grid.Row="3" Text="Tab size" />
+              <NumericUpDown Grid.Row="3" Grid.Column="1" Value="{Binding TabSize}" Minimum="1" Maximum="16" Increment="1" FormatString="0" Width="120" HorizontalAlignment="Left" />
+              <TextBlock Grid.Row="4" Text="Indent with spaces" />
+              <ToggleSwitch Grid.Row="4" Grid.Column="1" IsChecked="{Binding InsertSpaces}" OnContent="" OffContent="" />
+              <TextBlock Grid.Row="5" Text="Close brackets and quotes" />
+              <ToggleSwitch Grid.Row="5" Grid.Column="1" IsChecked="{Binding AutoClosingBrackets}" OnContent="" OffContent="" />
+            </Grid>
+          </StackPanel>
+
+          <StackPanel Spacing="10">
+            <TextBlock Classes="heading" Text="APPEARANCE" />
+            <Grid ColumnDefinitions="220,*" RowDefinitions="Auto" Classes="settings">
+              <TextBlock Text="Code colours" />
+              <ComboBox Grid.Column="1" Name="CodeThemeBox" ItemsSource="{Binding CodeThemes}" SelectedItem="{Binding CodeTheme}" Width="280" />
+            </Grid>
+          </StackPanel>
+
+          <StackPanel Spacing="10">
+            <TextBlock Classes="heading" Text="FILES" />
+            <Grid ColumnDefinitions="220,*" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="10" Classes="settings">
+              <TextBlock Text="Auto save" />
+              <ComboBox Grid.Column="1" ItemsSource="{Binding AutoSaveModes}" SelectedItem="{Binding AutoSave}" Width="280" />
+              <TextBlock Grid.Row="1" Text="Auto save delay (ms)" />
+              <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding AutoSaveDelay}" Minimum="100" Maximum="60000" Increment="100" FormatString="0" Width="120" HorizontalAlignment="Left" />
+              <TextBlock Grid.Row="2" Text="Trim trailing whitespace on save" />
+              <ToggleSwitch Grid.Row="2" Grid.Column="1" IsChecked="{Binding TrimTrailingWhitespace}" OnContent="" OffContent="" />
+              <TextBlock Grid.Row="3" Text="End files with a newline" />
+              <ToggleSwitch Grid.Row="3" Grid.Column="1" IsChecked="{Binding InsertFinalNewline}" OnContent="" OffContent="" />
+            </Grid>
+          </StackPanel>
+
+          <StackPanel Spacing="10">
+            <TextBlock Classes="heading" Text="SESSION" />
+            <Grid ColumnDefinitions="220,*" Classes="settings">
+              <TextBlock Text="Reopen the last folder and files" />
+              <ToggleSwitch Grid.Column="1" IsChecked="{Binding RestoreSession}" OnContent="" OffContent="" />
+            </Grid>
+          </StackPanel>
+        </StackPanel>
+      </ScrollViewer>
+    </DockPanel>
+  </Border>
+</UserControl>

@@ -49,7 +49,14 @@ public partial class EditorGroupView : UserControl
 
         var services = await EditorServices.Ready;
         if (_group?.Active != tab) return;
-        var editor = tab.EditorFor(services);
+        var fresh = tab.Editor is null;
+        var editor = tab.EditorFor(services, _group.Workbench.Settings);
+        if (fresh)
+        {
+            var bench = _group.Workbench;
+            editor.LostFocus += (_, _) => bench.EditorLostFocus(tab);
+        }
+
         Host.Content = editor;
         ShowFind(editor);
         // Focus once the editor is in the window: a control not yet attached ignores Focus() without a word.

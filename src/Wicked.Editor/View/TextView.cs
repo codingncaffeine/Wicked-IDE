@@ -54,6 +54,30 @@ public sealed class TextView
 
     public bool Focused { get; set; } = true;
 
+    /// <summary>The editor surface follows the code palette's own colours (a palette chosen apart from the window theme, D28).</summary>
+    public bool FollowPalette { get; set; }
+
+    // Worked out once per palette, not per line: a frame looks it up for every line it keys.
+    private EditorTheme EffectiveTheme
+    {
+        get
+        {
+            var colors = FollowPalette ? Syntax?.Colors : null;
+            if (!ReferenceEquals(colors, _paletteFor) || !ReferenceEquals(Theme, _themeFor))
+            {
+                _paletteFor = colors;
+                _themeFor = Theme;
+                _effective = colors is null ? Theme : Theme.WithPalette(colors.Gui);
+            }
+
+            return _effective ?? Theme;
+        }
+    }
+
+    private ColorTable? _paletteFor;
+    private EditorTheme? _themeFor;
+    private EditorTheme? _effective;
+
     public bool CaretsVisible { get; set; } = true;
 
     /// <summary>The find widget's matches (for the version they were found in), and which one it is on.</summary>
@@ -217,7 +241,7 @@ public sealed class TextView
             Generation = LayoutService.NextFrameGeneration(),
             Width = Width,
             Height = Height,
-            Theme = Theme,
+            Theme = EffectiveTheme,
             Fonts = Fonts,
             TabSize = Options.TabSize,
             GutterWidth = GutterWidth,
@@ -373,7 +397,7 @@ public sealed class TextView
     }
 
     private LineKey Key(int line) =>
-        new(LineText(line), Syntax?[line], Syntax?.Colors, Theme.Foreground, Options.TabSize, Fonts.Version);
+        new(LineText(line), Syntax?[line], Syntax?.Colors, EffectiveTheme.Foreground, Options.TabSize, Fonts.Version);
 
     private bool TryShaped(int line, out ShapedLine shaped)
     {

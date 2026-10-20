@@ -1,4 +1,6 @@
+using TextMateSharp.Grammars;
 using Wicked.Core;
+using Wicked.Core.Settings;
 using Wicked.Editor.Layout;
 using Wicked.Editor.Syntax;
 
@@ -12,12 +14,12 @@ public sealed class EditorServices : IDisposable
 {
     private EditorServices(EditorFonts fonts)
     {
-        Fonts = fonts;
         Layout = new LayoutService(fonts);
         Syntax = new SyntaxService();
     }
 
-    public EditorFonts Fonts { get; }
+    /// <summary>The fonts in use (the layout thread's); a size or ligature change replaces them.</summary>
+    public EditorFonts Fonts => Layout.Fonts;
 
     public LayoutService Layout { get; }
 
@@ -32,6 +34,17 @@ public sealed class EditorServices : IDisposable
         Log.Info($"Editor ready: {services.Fonts.Regular.FamilyName} {services.Fonts.Size} px, line height {services.Fonts.LineHeight} px");
         return services;
     }));
+
+    /// <summary>Applies the editor-wide settings: the font size, line height and ligatures, and the code colours.</summary>
+    public void Apply(WickedSettings settings)
+    {
+        var wanted = new EditorFontSettings((float)Math.Clamp(settings.FontSize, 6, 72), (float)Math.Clamp(settings.LineHeight, 1, 3), settings.FontLigatures);
+        if (wanted != Fonts.Settings) Layout.Fonts = Fonts.With(wanted);
+        Syntax.Theme = CodeTheme(settings.CodeColorTheme);
+    }
+
+    /// <summary>The code colour theme a setting names; empty (the window theme's own) is Dark+, which Wicked Dark is built around.</summary>
+    public static ThemeName CodeTheme(string name) => Enum.TryParse<ThemeName>(name, ignoreCase: true, out var theme) ? theme : ThemeName.DarkPlus;
 
     /// <summary>Starts the services in the background now, so the first file opens without waiting.</summary>
     public static void Start() => _ = Ready;

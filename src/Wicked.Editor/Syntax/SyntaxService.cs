@@ -27,8 +27,9 @@ public sealed class SyntaxService : IDisposable
     private readonly AutoResetEvent _wake = new(false);
     private readonly Lock _gate = new();
     private readonly List<SyntaxSession> _sessions = [];
-    private readonly ThemeName _theme;
+    private ThemeName _theme;
     private volatile bool _stopping;
+    private volatile bool _themeChanged;
 
     // Owned by the syntax thread.
     private Registry? _registry;
@@ -55,6 +56,22 @@ public sealed class SyntaxService : IDisposable
 
     internal void Wake() => _wake.Set();
 
+    /// <summary>The colour theme for code. Every document is highlighted afresh in the new colours, the ones in sight first.</summary>
+    public ThemeName Theme
+    {
+        get => _theme;
+        set
+        {
+            if (value == _theme) return;
+            _theme = value;
+            _themeChanged = true;
+            _wake.Set();
+        }
+    }
+
+    /// <summary>The bundled code colour themes, for the theme picker.</summary>
+    public static IReadOnlyList<ThemeName> Themes { get; } = Enum.GetValues<ThemeName>();
+
     internal void Remove(SyntaxSession session)
     {
         lock (_gate) _sessions.Remove(session);
@@ -73,6 +90,7 @@ public sealed class SyntaxService : IDisposable
         try
         {
             _registry = new Registry(Languages.Registry);
+            _registry.SetTheme(Languages.Registry.LoadTheme(_theme));
             _colors = ColorTable.From(_registry.GetTheme());
         }
         catch (Exception ex)
@@ -83,6 +101,16 @@ public sealed class SyntaxService : IDisposable
 
         while (!_stopping)
         {
+            if (_themeChanged)
+            {
+                _themeChanged = false;
+                _registry.SetTheme(Languages.Registry.LoadTheme(_theme));
+                _colors = ColorTable.From(_registry.GetTheme());
+                List<SyntaxSession> all;
+                lock (_gate) all = [.. _sessions];
+                foreach (var session in all) session.Restart();
+            }
+
             SyntaxSession[] sessions;
             lock (_gate) sessions = [.. _sessions.OrderByDescending(s => s.Visible)];
 
@@ -194,6 +222,19 @@ public sealed class SyntaxSession
         _closed = true;
         _service.Remove(this);
         _service.Wake();
+    }
+
+    /// <summary>
+    /// Highlights from the top again (new colours): the old tokens stay until their lines are redone, and the lines in
+    /// sight are done first through the viewport pass.
+    /// </summary>
+    internal void Restart()
+    {
+        _valid = 0;
+        _dirtyUntil = int.MaxValue;
+        for (var i = 0; i < _endStates.Count; i++) _endStates[i] = null;
+        _approximated = -1;
+        _publishedValid = -1;
     }
 
     /// <summary>Does one slice of work; true when there was work to do.</summary>

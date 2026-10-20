@@ -55,12 +55,23 @@ public sealed class LayoutService : IDisposable
 
     public LayoutService(EditorFonts fonts)
     {
-        Fonts = fonts;
+        _fonts = fonts;
         _thread = new Thread(Run) { IsBackground = true, Name = "Wicked layout" };
         _thread.Start();
     }
 
-    public EditorFonts Fonts { get; }
+    private volatile EditorFonts _fonts;
+
+    /// <summary>The fonts lines are shaped with. Changing them (a zoom, a new size) shapes lines afresh: the cache key holds the fonts' version, so old lines simply age out.</summary>
+    public EditorFonts Fonts
+    {
+        get => _fonts;
+        set
+        {
+            _fonts = value;
+            _wake.Set();
+        }
+    }
 
     /// <summary>Raised on the layout thread after a batch of lines is ready; listeners post a redraw to their own thread.</summary>
     public event Action? Ready;
@@ -108,9 +119,17 @@ public sealed class LayoutService : IDisposable
 
     private void Run()
     {
-        using var shaper = new LineShaper(Fonts);
+        var shaperFonts = Fonts;
+        var shaper = new LineShaper(shaperFonts);
         while (!_stopping)
         {
+            if (!ReferenceEquals(shaperFonts, Fonts))
+            {
+                shaper.Dispose();
+                shaperFonts = Fonts;
+                shaper = new LineShaper(shaperFonts);
+            }
+
             if (!_requests.TryPop(out var batch))
             {
                 Sweep();
@@ -121,7 +140,7 @@ public sealed class LayoutService : IDisposable
             var shaped = 0;
             foreach (var key in batch)
             {
-                if (_cache.ContainsKey(key)) continue;
+                if (_cache.ContainsKey(key) || key.FontVersion != shaperFonts.Version) continue;
                 try
                 {
                     var line = shaper.Shape(key.Text, key.Tokens, key.Colors, key.DefaultColor, key.TabSize);
@@ -154,6 +173,7 @@ public sealed class LayoutService : IDisposable
             if (_cache.Count > Capacity) Evict();
         }
 
+        shaper.Dispose();
         foreach (var line in _cache.Values) line.Dispose();
     }
 

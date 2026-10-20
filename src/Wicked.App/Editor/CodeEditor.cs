@@ -133,6 +133,20 @@ public sealed class CodeEditor : Control
         }, DispatcherPriority.Render);
     }
 
+    /// <summary>The settings that shape this editor: indentation and bracket closing over the language's rules, the palette surface.</summary>
+    public void ApplySettings(Wicked.Core.Settings.WickedSettings settings)
+    {
+        _view.Options = (Language?.Options ?? EditOptions.Default) with
+        {
+            TabSize = Math.Clamp(settings.TabSize, 1, 16),
+            InsertSpaces = settings.InsertSpaces,
+            AutoClosePairs = settings.AutoClosingBrackets,
+            AutoSurround = settings.AutoClosingBrackets,
+        };
+        _view.FollowPalette = settings.CodeColorTheme.Length > 0;
+        InvalidateVisual();
+    }
+
     /// <summary>Scrolls <paramref name="offset"/> into sight without taking the keyboard (the find widget keeps it).</summary>
     public void Reveal(int offset)
     {

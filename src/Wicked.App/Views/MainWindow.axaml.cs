@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using Avalonia.VisualTree;
 using Wicked.App.Shell;
 using Wicked.App.ViewModels;
 using Wicked.App.Workbench;
@@ -29,7 +30,17 @@ public partial class MainWindow : Window, IWorkbenchDialogs
         WindowFrame.Apply(this);
         WindowFrame.Drags(this, TitleBar);
         Opened += OnFirstOpened;
+        Deactivated += (_, _) => _shell?.Workbench.WindowDeactivated();
         AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Bubble);
+        // Escape closes the Settings sheet before whatever has the keyboard sees it.
+        AddHandler(KeyDownEvent, (_, e) =>
+        {
+            if (_shell is { SettingsOpen: true } && e.Key == Key.Escape)
+            {
+                _shell.SettingsOpen = false;
+                e.Handled = true;
+            }
+        }, RoutingStrategies.Tunnel);
         DataContextChanged += (_, _) =>
         {
             if (_shell is not null)
@@ -49,6 +60,17 @@ public partial class MainWindow : Window, IWorkbenchDialogs
 
     private void OnShellChanged(object? sender, PropertyChangedEventArgs e)
     {
+        // The sheet takes the keyboard when it opens (so typing does not go to the editor behind it) and gives it back.
+        if (e.PropertyName == nameof(ShellViewModel.SettingsOpen) && _shell is not null)
+        {
+            var open = _shell.SettingsOpen;
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                if (open) this.GetVisualDescendants().OfType<NumericUpDown>().FirstOrDefault(n => n.Name == "FontSizeBox")?.Focus();
+                else _shell.Workbench.ActiveTab?.Editor?.Focus();
+            }, Avalonia.Threading.DispatcherPriority.Loaded);
+        }
+
         if (e.PropertyName is nameof(ShellViewModel.SidebarVisible) or nameof(ShellViewModel.AssistantVisible)) ApplyColumns();
     }
 
@@ -71,6 +93,7 @@ public partial class MainWindow : Window, IWorkbenchDialogs
     private void OnKeyDown(object? sender, KeyEventArgs e)
     {
         if (e.Handled || _shell is null || DialogLayer.IsVisible) return;
+
         if (_shell.Keys.Match(e) is not { } command) return;
         e.Handled = true;
         _ = RunAsync(command);

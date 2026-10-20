@@ -58,7 +58,13 @@ public sealed partial class EditorTab : ObservableObject
     /// <summary>The editor control, made by the group view the first time the tab is shown.</summary>
     public CodeEditor? Editor { get; private set; }
 
-    public CodeEditor EditorFor(EditorServices services) => Editor ??= new CodeEditor(services, Document, Language);
+    public CodeEditor EditorFor(EditorServices services, Wicked.Core.Settings.WickedSettings settings)
+    {
+        if (Editor is not null) return Editor;
+        Editor = new CodeEditor(services, Document, Language);
+        Editor.ApplySettings(settings);
+        return Editor;
+    }
 
     /// <summary>After Save As: a new name may mean a new language.</summary>
     public void Renamed(string path)
