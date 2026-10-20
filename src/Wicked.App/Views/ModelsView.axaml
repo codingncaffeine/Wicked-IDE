@@ -4,6 +4,13 @@
              xmlns:shell="using:Wicked.App.Shell"
              x:Class="Wicked.App.Views.ModelsView"
              x:DataType="vm:ModelsViewModel">
+  <DockPanel>
+  <Button DockPanel.Dock="Bottom" Name="BrowseAll" Classes="accent-soft" Command="{Binding OpenBrowseCommand}" Margin="12,0,12,12" HorizontalAlignment="Stretch">
+    <StackPanel Orientation="Horizontal" Spacing="7" HorizontalAlignment="Center">
+      <shell:Icon Data="{StaticResource Icon.Boxes}" Size="14" />
+      <TextBlock Text="Browse all models" />
+    </StackPanel>
+  </Button>
   <ScrollViewer HorizontalScrollBarVisibility="Disabled">
     <StackPanel Margin="12,0,12,12" Spacing="14">
       <!-- This PC -->
@@ -125,4 +132,5 @@
       </StackPanel>
     </StackPanel>
   </ScrollViewer>
+  </DockPanel>
 </UserControl>

@@ -1,0 +1,32 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Wicked.App.ViewModels"
+             xmlns:shell="using:Wicked.App.Shell"
+             x:Class="Wicked.App.Views.InstallControls"
+             x:DataType="vm:IInstallable">
+  <!-- What a row offers for its install: Install, or the bar with pause / resume / cancel while it downloads, or Installed. -->
+  <StackPanel Width="170" VerticalAlignment="Center" Spacing="4">
+    <Button Classes="primary" Content="Install" HorizontalAlignment="Right" Command="{Binding InstallCommand}" IsVisible="{Binding CanInstall}" />
+    <StackPanel Orientation="Horizontal" Spacing="5" HorizontalAlignment="Right" IsVisible="{Binding Installed}">
+      <shell:Icon Data="{StaticResource Icon.CircleCheck}" Size="14" Foreground="{DynamicResource Brush.Success}" />
+      <TextBlock Text="Installed" Foreground="{DynamicResource Brush.Success}" FontSize="{DynamicResource Font.Size.Small}" />
+    </StackPanel>
+    <StackPanel Spacing="4" IsVisible="{Binding Item.Busy}">
+      <ProgressBar Height="3" MinHeight="3" Minimum="0" Maximum="1" Value="{Binding Item.Progress}" />
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock Text="{Binding Item.Status}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="0">
+          <Button Classes="quiet" Padding="4" Command="{Binding Item.PauseCommand}" IsVisible="{Binding Item.CanPause}" ToolTip.Tip="Pause the download" AutomationProperties.Name="Pause">
+            <shell:Icon Data="{StaticResource Icon.Pause}" Size="13" />
+          </Button>
+          <Button Classes="quiet" Padding="4" Command="{Binding Item.ResumeCommand}" IsVisible="{Binding Item.CanResume}" ToolTip.Tip="Resume the download" AutomationProperties.Name="Resume">
+            <shell:Icon Data="{StaticResource Icon.Play}" Size="13" />
+          </Button>
+          <Button Classes="quiet" Padding="4" Command="{Binding Item.CancelCommand}" ToolTip.Tip="Cancel and remove what was downloaded" AutomationProperties.Name="Cancel">
+            <shell:Icon Data="{StaticResource Icon.X}" Size="13" />
+          </Button>
+        </StackPanel>
+      </Grid>
+    </StackPanel>
+  </StackPanel>
+</UserControl>

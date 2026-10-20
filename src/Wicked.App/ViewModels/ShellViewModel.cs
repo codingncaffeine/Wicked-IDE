@@ -49,6 +49,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         Commands = BuildCommands();
         QuickInput = new QuickInputViewModel(this);
         Models = new ModelsViewModel(paths, Notices);
+        Models.RouteRequested += route => Navigate(route);
         SettingsSheet = new SettingsViewModel(this);
         Keys = new KeyDispatcher(Commands);
         _ = Task.Run(() => WatchDaemonAsync(_stop.Token));
@@ -448,7 +449,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             case ShellRoutes.SourceControl: Panel = SidePanel.SourceControl; SidebarVisible = true; return true;
             case ShellRoutes.Models: Panel = SidePanel.Models; SidebarVisible = true; return true;
             case ShellRoutes.Assistant: AssistantVisible = true; return true;
-            case ShellRoutes.SettingsModels: Models.Prompt = null; SettingsOpen = true; SettingsSheet.RequestSection("models"); return true;
+            case ShellRoutes.SettingsModels: Models.Prompt = null; Models.Browse.Close(); SettingsOpen = true; SettingsSheet.RequestSection("models"); return true;
             default:
                 Log.Warn($"No place called '{route}' to go to");
                 return false;

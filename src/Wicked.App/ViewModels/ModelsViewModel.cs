@@ -117,7 +117,14 @@ public sealed partial class ModelsViewModel : ObservableObject, IAsyncDisposable
         Services = ServicesFactory?.Invoke(paths) ?? new ModelServices(paths);
         Services.Changed += state => Dispatcher.UIThread.Post(() => Apply(state));
         Services.Progress += p => Dispatcher.UIThread.Post(() => OnProgress(p));
+        Browse = new BrowseViewModel(this);
     }
+
+    /// <summary>The Browse page: the whole catalog with fit badges, and Hugging Face search.</summary>
+    public BrowseViewModel Browse { get; }
+
+    [RelayCommand]
+    private void OpenBrowse() => Browse.Open();
 
     public ModelServices Services { get; }
 
@@ -140,6 +147,34 @@ public sealed partial class ModelsViewModel : ObservableObject, IAsyncDisposable
     /// <summary>The question being asked (a licence to accept, a delete to confirm), or null.</summary>
     [ObservableProperty]
     private ModelPrompt? _prompt;
+
+    /// <summary>The last install problem, shown on the Browse page (its dim layer covers the footer notice), with where it is dealt with.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasAlert), nameof(AlertHasAction))]
+    private string? _alert;
+
+    private string? _alertRoute;
+
+    public bool HasAlert => Alert is not null;
+
+    public bool AlertHasAction => Alert is not null && _alertRoute is not null;
+
+    /// <summary>Raised when something here wants the window to go to a place (see <c>ShellRoutes</c>).</summary>
+    public event Action<string>? RouteRequested;
+
+    [RelayCommand]
+    private void OpenAlert()
+    {
+        if (_alertRoute is { } route) RouteRequested?.Invoke(route);
+        Alert = null;
+    }
+
+    private void RaiseAlert(string text, string? route)
+    {
+        _alertRoute = route;
+        Alert = text;
+        OnPropertyChanged(nameof(AlertHasAction));
+    }
 
     [ObservableProperty]
     private string _updateStatus = "";
@@ -275,6 +310,7 @@ public sealed partial class ModelsViewModel : ObservableObject, IAsyncDisposable
     private async Task RunInstallAsync(InstallJob job, bool accepted)
     {
         var item = Item(job.Id);
+        Alert = null;
         _running.Add(job.Id);
         item.Busy = true;
         item.Paused = false;
@@ -308,6 +344,7 @@ public sealed partial class ModelsViewModel : ObservableObject, IAsyncDisposable
                 ? $"{job.Name} is gated: add your Hugging Face token in Settings, then install it again"
                 : $"Hugging Face has not given your account access to {job.Name}: accept its terms on the model's page, then install it again";
             _notices.Post(new Notice($"gated:{job.Id}", text, NoticeKind.Warning, ShellRoutes.SettingsModels));
+            RaiseAlert(text, ShellRoutes.SettingsModels);
         }
         catch (Exception ex)
         {
@@ -315,6 +352,7 @@ public sealed partial class ModelsViewModel : ObservableObject, IAsyncDisposable
             item.Status = $"Failed: {ex.Message}";
             _notices.Clear($"install:{job.Id}");
             _notices.Post(new Notice($"install-failed:{job.Id}", $"{job.Name} could not be installed: {ex.Message}", NoticeKind.Error, ShellRoutes.Models));
+            RaiseAlert($"{job.Name} could not be installed: {ex.Message}", null);
         }
         finally
         {
@@ -439,7 +477,9 @@ public sealed partial class ModelsViewModel : ObservableObject, IAsyncDisposable
 
     public static string Size(long bytes) => bytes >= 1L << 30
         ? (bytes / (double)(1L << 30)).ToString("0.0", CultureInfo.InvariantCulture) + " GB"
-        : (bytes / (double)(1L << 20)).ToString("0", CultureInfo.InvariantCulture) + " MB";
+        : bytes >= 1L << 20
+            ? (bytes / (double)(1L << 20)).ToString("0", CultureInfo.InvariantCulture) + " MB"
+            : (bytes / 1024.0).ToString("0", CultureInfo.InvariantCulture) + " KB";
 
     public ValueTask DisposeAsync() => Services.DisposeAsync();
 }

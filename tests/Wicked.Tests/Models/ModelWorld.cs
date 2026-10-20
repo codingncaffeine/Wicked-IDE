@@ -82,6 +82,13 @@ internal sealed class ModelWorld : IAsyncDisposable
         new(id, name, repo, "rev1", license, licenseUrl, gated, [Capability.Chat, Capability.Tools], 32768, new ParameterCount(3), released, scores, supersedes, Shape,
             [Tier(repo, "Q4_K_M", 90), Tier(repo, "Q8_0", 99)]);
 
+    public const string Huge = "test/Huge-GGUF";
+
+    /// <summary>A model no machine has room for (900 GB, declared only: nothing serves its files), for the "Won't fit" badge.</summary>
+    private static CatalogModel HugeModel() => new(
+        "huge", "Huge Model", Huge, "rev1", "apache-2.0", null, false, [Capability.Chat], 131072, new ParameterCount(900), new(2026, 5, 1), new(Everyday: 99), [], Shape,
+        [new QuantTier("Q4_K_M", [new CatalogFile("huge-Q4_K_M.gguf", 900L << 30, new string('a', 64))], 90), new QuantTier("Q8_0", [new CatalogFile("huge-Q8_0.gguf", 1000L << 30, new string('b', 64))], 99)]);
+
     public static async Task<ModelWorld> StartAsync()
     {
         var models = new[]
@@ -96,6 +103,7 @@ internal sealed class ModelWorld : IAsyncDisposable
         [
             new CatalogFamily("tiny", "Tiny", "Tests", "Small models for tests", [models[0], models[3], models[2], models[1]]),
             new CatalogFamily("gate", "Gated", "Tests", null, [models[4]]),
+            new CatalogFamily("huge", "Huge", "Tests", null, [HugeModel()]),
         ]);
 
         var repos = models.Select(m => new HubRepo(m.Repo, "rev1") { License = m.LicenseId, Gated = m.Gated ? "manual" : null }).ToList();
