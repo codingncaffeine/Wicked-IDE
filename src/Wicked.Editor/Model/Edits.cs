@@ -615,8 +615,12 @@ public static class Edits
         });
     }
 
-    /// <summary>Removes the spaces and tabs at the end of every line (a save option); the carets stay on their lines.</summary>
-    public static bool TrimTrailingWhitespace(Document doc)
+    /// <summary>
+    /// Removes the spaces and tabs at the end of every line (a save option); the carets stay on their lines. An auto save
+    /// keeps the blanks a caret sits in (<paramref name="keepAtCarets"/>), so typing is not disturbed; a save the user asks
+    /// for trims every line, as VS Code does.
+    /// </summary>
+    public static bool TrimTrailingWhitespace(Document doc, bool keepAtCarets = false)
     {
         var rope = doc.Text;
         var changes = new List<TextChange>();
@@ -627,7 +631,7 @@ public static class Edits
             var trimmed = text.TrimEnd(' ', '\t').Length;
             if (trimmed == text.Length) continue;
             // A caret in the trailing blanks keeps them, as VS Code does, so typing is not undone under the user.
-            if (caretLines.Contains(line) && doc.Selections.Any(s => s.Active > rope.LineStart(line) + trimmed && rope.LineOf(s.Active) == line)) continue;
+            if (keepAtCarets && caretLines.Contains(line) && doc.Selections.Any(s => s.Active > rope.LineStart(line) + trimmed && rope.LineOf(s.Active) == line)) continue;
             changes.Add(new TextChange(rope.LineStart(line) + trimmed, text.Length - trimmed, ""));
         }
 

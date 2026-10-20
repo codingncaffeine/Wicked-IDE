@@ -374,3 +374,35 @@ public sealed class WayfindingTests
         });
     }
 }
+
+/// <summary>A project's .editorconfig governs its files: indentation, line endings and tidying on save.</summary>
+public sealed class EditorConfigWindowTests
+{
+    [Fact]
+    public async Task TheProjectsEditorConfigShapesIndentationAndSaves()
+    {
+        using var profile = new TempProfile();
+        var root = Path.Combine(profile.Root, "proj");
+        Directory.CreateDirectory(root);
+        File.WriteAllText(Path.Combine(root, ".editorconfig"), "root = true\n\n[*.py]\nindent_size = 2\nend_of_line = crlf\ntrim_trailing_whitespace = true\n");
+        File.WriteAllText(Path.Combine(root, "a.py"), "def f():\n    pass\n");
+        await Ui.Run(() =>
+        {
+            var (window, shell) = Ui.Start(profile.Paths);
+            var open = shell.OpenFolderAndRememberAsync(root);
+            Assert.True(Ui.PumpUntil(() => open.IsCompleted, 5));
+            var opening = shell.Workbench.OpenAsync(Path.Combine(root, "a.py"));
+            Assert.True(Ui.PumpUntil(() => opening.IsCompleted && shell.Workbench.ActiveTab?.Editor is not null, 5));
+            var tab = shell.Workbench.ActiveTab!;
+            Assert.Equal(2, tab.Editor!.Options.TabSize);
+
+            tab.Document.SetSelections([Wicked.Editor.Model.Selection.Caret(tab.Document.Text.Length)]);
+            Wicked.Editor.Model.Edits.Type(tab.Document, "x = 1   ", Wicked.Editor.Model.EditOptions.Default);
+            var save = shell.Workbench.SaveAsync(tab);
+            Assert.True(Ui.PumpUntil(() => save.IsCompleted, 5));
+            Assert.Equal("def f():\r\n    pass\r\nx = 1", File.ReadAllText(Path.Combine(root, "a.py")));
+            window.Close();
+            return 0;
+        });
+    }
+}

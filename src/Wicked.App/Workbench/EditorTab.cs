@@ -45,6 +45,9 @@ public sealed partial class EditorTab : ObservableObject
 
     public FileEncoding Encoding { get; set; }
 
+    /// <summary>What the project's .editorconfig says for this file (resolved on a worker when it opened).</summary>
+    public Wicked.Editor.Features.EditorConfigProperties EditorConfig { get; set; } = Wicked.Editor.Features.EditorConfigProperties.Empty;
+
     public DateTime LastWriteUtc { get; set; }
 
     private string? UntitledName { get; }
@@ -61,7 +64,7 @@ public sealed partial class EditorTab : ObservableObject
     public CodeEditor EditorFor(EditorServices services, Wicked.Core.Settings.WickedSettings settings)
     {
         if (Editor is not null) return Editor;
-        Editor = new CodeEditor(services, Document, Language);
+        Editor = new CodeEditor(services, Document, Language) { EditorConfig = EditorConfig };
         Editor.ApplySettings(settings);
         return Editor;
     }

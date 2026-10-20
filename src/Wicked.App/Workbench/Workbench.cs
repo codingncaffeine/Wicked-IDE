@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using Avalonia.Threading;
 using Wicked.Core;
 using Wicked.Core.Files;
+using Wicked.Editor.Features;
 using Wicked.Editor.Model;
 using Wicked.Editor.Syntax;
 using Wicked.Editor.Text;
@@ -289,13 +290,24 @@ public sealed partial class Workbench : ObservableObject, IDisposable
             loaded = await TextFile.ReadAsync(path, true, CancellationToken.None);
         }
 
-        var (document, language) = await Task.Run(() =>
+        var (document, language, config) = await Task.Run(() =>
         {
             var (rope, lineBreak) = TextLoading.Normalise(loaded.Text);
-            return (new Document(rope, lineBreak), Languages.ForFile(path));
+            var config = EditorConfigResolver.Disk.Resolve(path);
+            // .editorconfig's end_of_line is how the file is written from now on (on its next save), as its plugins do.
+            return (new Document(rope, config.LineBreak ?? lineBreak), Languages.ForFile(path), config);
         });
 
-        var tab = new EditorTab(path, document, language, loaded.Encoding, loaded.LastWriteUtc) { IsPreview = preview };
+        var encoding = config.Charset switch
+        {
+            "utf-8" => new FileEncoding("utf-8", false),
+            "utf-8-bom" => new FileEncoding("utf-8", true),
+            "latin1" => new FileEncoding("latin1", false),
+            "utf-16le" => new FileEncoding("utf-16le", true),
+            "utf-16be" => new FileEncoding("utf-16be", true),
+            _ => loaded.Encoding,
+        };
+        var tab = new EditorTab(path, document, language, encoding, loaded.LastWriteUtc) { IsPreview = preview, EditorConfig = config };
         Track(tab);
         group.Add(tab);
         return tab;
@@ -323,7 +335,7 @@ public sealed partial class Workbench : ObservableObject, IDisposable
             timer.Tick += (_, _) =>
             {
                 timer.Stop();
-                if (tab.IsDirty && AllTabs.Contains(tab)) _ = SaveAsync(tab, SaveOptions);
+                if (tab.IsDirty && AllTabs.Contains(tab)) _ = SaveAsync(tab, SaveOptions, auto: true);
             };
             _autoSave[tab] = timer;
         }
@@ -336,14 +348,14 @@ public sealed partial class Workbench : ObservableObject, IDisposable
     /// <summary>The editor lost the keyboard: saved when the setting says so.</summary>
     public void EditorLostFocus(EditorTab tab)
     {
-        if (Settings.AutoSave == "onFocusChange" && tab.IsDirty && tab.Path is not null) _ = SaveAsync(tab, SaveOptions);
+        if (Settings.AutoSave == "onFocusChange" && tab.IsDirty && tab.Path is not null) _ = SaveAsync(tab, SaveOptions, auto: true);
     }
 
     /// <summary>The window lost focus: every edited file saved when the setting says so.</summary>
     public void WindowDeactivated()
     {
         if (Settings.AutoSave != "onWindowChange") return;
-        foreach (var tab in AllTabs.Where(t => t.IsDirty && t.Path is not null).ToList()) _ = SaveAsync(tab, SaveOptions);
+        foreach (var tab in AllTabs.Where(t => t.IsDirty && t.Path is not null).ToList()) _ = SaveAsync(tab, SaveOptions, auto: true);
     }
 
     public bool OpenRoute(string route)
@@ -365,11 +377,15 @@ public sealed partial class Workbench : ObservableObject, IDisposable
     // ── Saving and closing ───────────────────────────────────────────────────────────────────────
 
     /// <summary>Saves a tab; one never saved asks for a name. Returns false when nothing was saved.</summary>
-    public async Task<bool> SaveAsync(EditorTab tab, WickedSettingsView? settings = null)
+    public async Task<bool> SaveAsync(EditorTab tab, WickedSettingsView? settings = null, bool auto = false)
     {
         if (tab.Path is null) return await SaveAsAsync(tab, settings);
+        // The project's .editorconfig has the last word on tidying a file it governs.
+        settings = new WickedSettingsView(
+            tab.EditorConfig.TrimTrailingWhitespace ?? settings?.TrimTrailingWhitespace ?? false,
+            tab.EditorConfig.InsertFinalNewline ?? settings?.InsertFinalNewline ?? false);
         var doc = tab.Document;
-        if (settings?.TrimTrailingWhitespace == true) Edits.TrimTrailingWhitespace(doc);
+        if (settings?.TrimTrailingWhitespace == true) Edits.TrimTrailingWhitespace(doc, keepAtCarets: auto);
         if (settings?.InsertFinalNewline == true && doc.Text.Length > 0 && doc.Text[doc.Text.Length - 1] != '\n')
         {
             var keep = doc.Selections;
@@ -391,6 +407,7 @@ public sealed partial class Workbench : ObservableObject, IDisposable
         }
 
         if (ReferenceEquals(doc.Text, snapshot.Text)) doc.MarkSaved();
+        if (Path.GetFileName(path) == ".editorconfig") EditorConfigResolver.Disk.Invalidate(Path.GetDirectoryName(path));
         _notices.Clear($"conflict:{path}");
         _notices.Post(new Notice($"saved:{path}", $"Saved {tab.Title}", NoticeKind.Success));
         return true;

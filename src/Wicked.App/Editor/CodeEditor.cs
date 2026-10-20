@@ -115,6 +115,9 @@ public sealed class CodeEditor : Control
 
     public FindViewModel Find { get; }
 
+    /// <summary>The project's .editorconfig for this file; set before the first settings are applied.</summary>
+    public EditorConfigProperties EditorConfig { get; init; } = EditorConfigProperties.Empty;
+
     private readonly FeatureWorker _features;
 
     /// <summary>Up/Down by the lines shown: a folded range counts as its first line.</summary>
@@ -231,13 +234,14 @@ public sealed class CodeEditor : Control
     /// <summary>The settings that shape this editor: indentation and bracket closing over the language's rules, the palette surface.</summary>
     public void ApplySettings(Wicked.Core.Settings.WickedSettings settings)
     {
-        _view.Options = (Language?.Options ?? EditOptions.Default) with
+        // The user's settings, then the project's .editorconfig over them for indentation (it governs its files).
+        _view.Options = EditorConfig.Apply((Language?.Options ?? EditOptions.Default) with
         {
             TabSize = Math.Clamp(settings.TabSize, 1, 16),
             InsertSpaces = settings.InsertSpaces,
             AutoClosePairs = settings.AutoClosingBrackets,
             AutoSurround = settings.AutoClosingBrackets,
-        };
+        });
         _view.FollowPalette = settings.CodeColorTheme.Length > 0;
         _view.BracketColors = settings.BracketPairColorization;
         _view.ShowMinimap = settings.Minimap;

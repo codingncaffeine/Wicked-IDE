@@ -254,8 +254,12 @@ public sealed class EditsTests
         Assert.Equal("a1| a2| a3|", After("a| a| a|", d => Edits.Paste(d, "1\n2\n3", false)));
 
     [Fact]
-    public void TrimTrailingWhitespaceLeavesTheCaretsBlanks() =>
-        Assert.Equal("a\nb  |\nc", After("a  \nb  |\nc\t", d => Edits.TrimTrailingWhitespace(d)));
+    public void AnAutoSaveTrimLeavesTheCaretsBlanks() =>
+        Assert.Equal("a\nb  |\nc", After("a  \nb  |\nc\t", d => Edits.TrimTrailingWhitespace(d, keepAtCarets: true)));
+
+    [Fact]
+    public void ASaveTheUserAsksForTrimsEveryLine() =>
+        Assert.Equal("a\nb|\nc", After("a  \nb  |\nc\t", d => Edits.TrimTrailingWhitespace(d)));
 
     [Fact]
     public void SavingWritesTheDocumentsLineBreaks()
