@@ -6,7 +6,8 @@ set -euo pipefail
 cd "$(dirname "$0")/../.."
 VERSION=1.60.0
 ICONS=(arrow-down arrow-up bot boxes case-sensitive chevron-down chevron-right circle-alert circle-check copy cpu file-code file-text files folder folder-open git-branch message-square minus panel-left panel-right plus regex replace replace-all search whole-word
-       settings sparkles square terminal x)
+       settings sparkles square terminal x
+       download ellipsis external-link hard-drive key-round pause play refresh-cw trash-2 undo-2)
 dir=scratch/lucide-$VERSION
 mkdir -p "$dir"
 for name in "${ICONS[@]}"; do
