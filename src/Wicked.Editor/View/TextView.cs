@@ -37,6 +37,7 @@ public sealed class TextView
         _layout = layout;
         Options = options;
         Theme = theme ?? EditorTheme.WickedDark;
+        document.Changed += OnDocumentChanged;
     }
 
     public Document Document { get; }
@@ -94,18 +95,192 @@ public sealed class TextView
 
     private bool FoldsValid => Folds.LineCount == Document.Text.LineCount;
 
-    /// <summary>A document line's place among the lines shown (folded lines take none).</summary>
-    public int VisualOf(int line) => FoldsValid ? Folds.VisualLine(line) : line;
+    /// <summary>A document line's first row among the rows shown (folded lines take none, wrapped lines several).</summary>
+    public int VisualOf(int line) => Wrap is { } w ? w.FirstRow(line) : FoldsValid ? Folds.VisualLine(line) : line;
 
-    /// <summary>The document line shown at a visual line.</summary>
-    public int DocumentOf(int visual) => FoldsValid ? Folds.DocumentLine(Math.Clamp(visual, 0, Folds.VisualLineCount - 1)) : visual;
+    /// <summary>The document line shown on a row.</summary>
+    public int DocumentOf(int visual) => Wrap is { } w ? w.LineAtRow(visual).Line : FoldsValid ? Folds.DocumentLine(Math.Clamp(visual, 0, Folds.VisualLineCount - 1)) : visual;
 
-    public int VisualLineCount => FoldsValid ? Folds.VisualLineCount : Document.Text.LineCount;
+    /// <summary>The rows the document takes on screen.</summary>
+    public int VisualLineCount => Wrap?.RowCount ?? (FoldsValid ? Folds.VisualLineCount : Document.Text.LineCount);
 
     public bool IsHidden(int line) => FoldsValid && Folds.IsHidden(line);
 
     /// <summary>Where a document line's top is drawn.</summary>
     public float LineTop(int line) => VisualOf(line) * LineHeight - ScrollY;
+
+    // ── Word wrap ────────────────────────────────────────────────────────────────────────────────
+
+    /// <summary>How lines wrap: off unless the settings or Alt+Z say otherwise.</summary>
+    public WordWrap WordWrap { get; set; } = WordWrap.Off;
+
+    /// <summary>
+    /// Runs a whole document's wrap on a worker and hands the result back on the UI thread. Without one (tests) the wrap
+    /// is worked out here; so is a document short enough to wrap in a fraction of a millisecond, so that a resize never
+    /// shows a frame of rows wrapped for the old width.
+    /// </summary>
+    public Action<Func<WrapMap>, Action<WrapMap>>? WrapWorker { get; set; }
+
+    private const int WrapHereLines = 2000;
+    private WrapLayout? _wrap;
+    private bool _wrapRequested;
+    private readonly List<DocumentChange> _sinceWrapRequest = [];
+
+    /// <summary>Whether lines are wrapped now: wrap is on and its rows are in step with the text.</summary>
+    public bool Wrapping => Wrap is not null;
+
+    private WrapLayout? Wrap
+    {
+        get
+        {
+            if (_wrap is not { } w || w.LineCount != Document.Text.LineCount) return null;
+            w.Sync(FoldsValid ? Folds : null);
+            return w;
+        }
+    }
+
+    /// <summary>What the lines should be wrapped for now, or null when wrap is off.</summary>
+    private WrapOptions? WantedWrap()
+    {
+        if (WordWrap.Mode == WordWrapMode.Off || Width <= 0) return null;
+        var view = TextAreaWidth - Fonts.CharAdvance; // room for a caret at a row's end
+        var column = Math.Max(1, WordWrap.Column) * Fonts.CharAdvance;
+        var width = WordWrap.Mode switch
+        {
+            WordWrapMode.WordWrapColumn => column,
+            WordWrapMode.Bounded => Math.Min(view, column),
+            _ => view,
+        };
+        return new WrapOptions { Width = Math.Max(width, Fonts.CharAdvance * 8), CharWidth = Fonts.CharAdvance, TabSize = Options.TabSize, Indent = WordWrap.Indent };
+    }
+
+    /// <summary>Brings the wrap in line with the settings, the width and the font: here for a short document, on the worker for a long one.</summary>
+    private void EnsureWrap()
+    {
+        var wanted = WantedWrap();
+        if (wanted is null)
+        {
+            _wrap = null;
+            return;
+        }
+
+        if (_wrap is { } w && w.Options == wanted && w.LineCount == Document.Text.LineCount) return;
+        if (_wrapRequested) return; // one at a time: a frame after it lands asks again if the width moved on meanwhile
+        var rope = Document.Text;
+        var version = Document.Version;
+        if (WrapWorker is null || rope.LineCount <= WrapHereLines)
+        {
+            _wrap = WrapLayout.From(WrapMap.Compute(rope, version, wanted));
+            return;
+        }
+
+        _wrapRequested = true;
+        _sinceWrapRequest.Clear();
+        WrapWorker(() => WrapMap.Compute(rope, version, wanted), AdoptWrap);
+    }
+
+    private void AdoptWrap(WrapMap map)
+    {
+        _wrapRequested = false;
+        var layout = WrapLayout.From(map);
+        // The edits made while the worker wrapped go on top, so the rows are for the text as it is now.
+        foreach (var change in _sinceWrapRequest) layout.Apply(change);
+        _sinceWrapRequest.Clear();
+        if (WordWrap.Mode != WordWrapMode.Off) _wrap = layout;
+    }
+
+    private void OnDocumentChanged(DocumentChange change)
+    {
+        if (_wrap is { } w)
+        {
+            if (w.LineCount == change.Before.LineCount) w.Apply(change);
+            else _wrap = null;
+        }
+
+        if (_wrapRequested) _sinceWrapRequest.Add(change);
+    }
+
+    /// <summary>Wraps the lines in sight again along their shaped widths once those are in (wide characters, fallback fonts).</summary>
+    private void ReshapeInSight()
+    {
+        if (Wrap is not { } w || VisualLineCount == 0) return;
+        var line = w.LineAtRow((int)(ScrollY / LineHeight)).Line;
+        var last = w.LineAtRow(Math.Min(VisualLineCount - 1, (int)((ScrollY + Height) / LineHeight))).Line;
+        for (; line <= last; line++)
+        {
+            if (w.FollowsShape(line) || IsHidden(line) || !_layout.TryGet(Key(line), out var shaped)) continue;
+            w.Reshape(line, shaped.Text, shaped.CaretX);
+        }
+    }
+
+    /// <summary>The row a text position is drawn on, and its x from the text's left edge (before horizontal scrolling).</summary>
+    public (int Row, float X) Place(int line, int column)
+    {
+        if (Wrap is not { } w) return (VisualOf(line), XOf(line, column));
+        var sub = w.SubOf(line, column);
+        var (start, _) = w.Segment(line, sub, LineText(line).Length);
+        return (w.FirstRow(line) + sub, XOf(line, column) - XOf(line, start) + w.IndentOf(line, sub));
+    }
+
+    /// <summary>The line on a row and its column nearest an x (from the text's left edge); a wrapped row's end stays on it.</summary>
+    public (int Line, int Column) PositionOnRow(int row, float x)
+    {
+        if (Wrap is not { } w)
+        {
+            var plain = DocumentOf(row);
+            return (plain, ColumnAt(plain, x));
+        }
+
+        var (line, sub) = w.LineAtRow(row);
+        var (start, end) = w.Segment(line, sub, LineText(line).Length);
+        var column = ColumnAt(line, x - w.IndentOf(line, sub) + XOf(line, start));
+        // A break column is drawn at the next row's start, so a row other than the line's last ends just before it.
+        var last = sub < w.RowsOf(line) - 1 ? Math.Max(start, end - 1) : end;
+        return (line, Math.Clamp(column, start, last));
+    }
+
+    /// <summary>
+    /// Where a caret lands <paramref name="rows"/> rows up or down when lines wrap, keeping the x it aims for
+    /// (<paramref name="goal"/> in whole pixels, -1 for where it is): the offset reached and the goal to keep.
+    /// </summary>
+    public (int To, int Goal) RowStep(int offset, int rows, int goal)
+    {
+        var rope = Document.Text;
+        var (line, column) = rope.Position(offset);
+        var (row, x) = Place(line, column);
+        var want = goal >= 0 ? goal : (int)MathF.Round(x);
+        var target = row + rows;
+        if (target < 0) return (0, want);
+        if (target >= VisualLineCount) return (rope.Length, want);
+        var (toLine, toColumn) = PositionOnRow(target, want);
+        return (rope.LineStart(toLine) + toColumn, want);
+    }
+
+    /// <summary>End on a wrapped row: the row's end, then the line's (VS Code's order).</summary>
+    public int RowEnd(int offset)
+    {
+        var rope = Document.Text;
+        var (line, column) = rope.Position(offset);
+        var lineEnd = rope.LineStart(line) + rope.LineLength(line);
+        if (Wrap is not { } w) return lineEnd;
+        var sub = w.SubOf(line, column);
+        if (sub == w.RowsOf(line) - 1) return lineEnd;
+        var (start, end) = w.Segment(line, sub, rope.LineLength(line));
+        var rowEnd = rope.LineStart(line) + Math.Max(start, end - 1);
+        return offset == rowEnd ? lineEnd : rowEnd;
+    }
+
+    /// <summary>Home on a wrapped row after the first: the row's start; null where the line's own Home applies.</summary>
+    public int? RowHome(int offset)
+    {
+        if (Wrap is not { } w) return null;
+        var rope = Document.Text;
+        var (line, column) = rope.Position(offset);
+        var sub = w.SubOf(line, column);
+        if (sub == 0) return null;
+        var (start, _) = w.Segment(line, sub, rope.LineLength(line));
+        return column == start ? null : rope.LineStart(line) + start;
+    }
 
     /// <summary>Brackets and indent guides for a recent version of the text (the feature worker's).</summary>
     public FeatureSnapshot? Features { get; set; }
@@ -187,8 +362,9 @@ public sealed class TextView
         get
         {
             var (line, column) = Document.Text.Position(Document.Primary.Active);
-            var x = TextLeft - ScrollX + XOf(line, column);
-            var y = LineTop(line);
+            var (row, at) = Place(line, column);
+            var x = TextLeft - ScrollX + at;
+            var y = row * LineHeight - ScrollY;
             return new SKRect(x, y, x + Theme.CaretWidth, y + LineHeight);
         }
     }
@@ -219,7 +395,9 @@ public sealed class TextView
     /// <summary>The farthest scroll: the last line may come up to the top, as VS Code allows.</summary>
     public float MaxScrollY => Math.Max(0, (VisualLineCount - 1) * LineHeight);
 
-    public float MaxScrollX => Math.Max(0, _widest + Fonts.CharAdvance * 4 - TextAreaWidth);
+    public float MaxScrollX => Wrap is { } w
+        ? Math.Max(0, w.Options.Width + Fonts.CharAdvance - TextAreaWidth)
+        : Math.Max(0, _widest + Fonts.CharAdvance * 4 - TextAreaWidth);
 
     public void Resize(float width, float height)
     {
@@ -243,12 +421,12 @@ public sealed class TextView
         var (line, column) = rope.Position(Math.Clamp(offset, 0, rope.Length));
         // A caret that lands in folded text opens the fold, as in VS Code.
         if (IsHidden(line)) Folds = Folds.Reveal(line);
-        var top = VisualOf(line) * LineHeight;
+        var (row, x) = Place(line, column);
+        var top = row * LineHeight;
         var y = ScrollY;
         if (top < y) y = top;
         else if (top + LineHeight > y + Height) y = top + LineHeight - Height;
 
-        var x = XOf(line, column);
         var sx = ScrollX;
         var margin = Fonts.CharAdvance * 4;
         if (x < sx + margin) sx = Math.Max(0, x - margin);
@@ -260,10 +438,9 @@ public sealed class TextView
     /// <summary>The text offset under a point in the view (clamped into the text).</summary>
     public int OffsetAt(float x, float y)
     {
-        var rope = Document.Text;
-        var line = LineAt(y);
-        var lineX = x - TextLeft + ScrollX;
-        return rope.LineStart(line) + ColumnAt(line, lineX);
+        var row = Math.Clamp((int)MathF.Floor((y + ScrollY) / LineHeight), 0, Math.Max(0, VisualLineCount - 1));
+        var (line, column) = PositionOnRow(row, x - TextLeft + ScrollX);
+        return Document.Text.LineStart(line) + column;
     }
 
     /// <summary>The visual column a point falls in (for column selection), counting past the end of the line.</summary>
@@ -294,30 +471,55 @@ public sealed class TextView
             _textFor = rope;
         }
 
+        EnsureWrap();
+        ReshapeInSight();
         _shapedInSight.Clear();
         var first = FirstVisibleLine;
         var last = LastVisibleLine;
         var currentLines = Document.Selections.Where(s => s.IsEmpty).Select(s => rope.LineOf(s.Active)).ToHashSet();
         var lines = new List<FrameLine>(last - first + 1);
         var missing = new List<LineKey>();
-        var lastVisual = VisualOf(last);
-        for (var visual = VisualOf(first); visual <= lastVisual; visual++)
+        var wrap = Wrap;
+        var rows = VisualLineCount;
+        var firstRow = Math.Clamp((int)(ScrollY / LineHeight), 0, Math.Max(0, rows - 1));
+        var lastRow = Math.Clamp((int)((ScrollY + Height) / LineHeight), 0, Math.Max(0, rows - 1));
+        var keyLine = -1;
+        LineKey key = default;
+        ShapedLine? shaped = null;
+        for (var row = firstRow; row <= lastRow && rows > 0; row++)
         {
-            var line = DocumentOf(visual);
-            var key = Key(line);
-            var y = visual * LineHeight - ScrollY;
-            if (_layout.TryGet(key, out var shaped))
+            var (line, sub) = wrap is not null ? wrap.LineAtRow(row) : (DocumentOf(row), 0);
+            var y = row * LineHeight - ScrollY;
+            if (line != keyLine)
             {
-                _shapedInSight[line] = shaped;
-                _widest = Math.Max(_widest, shaped.Width);
-            }
-            else
-            {
-                missing.Add(key);
-                shaped = null!;
+                // A wrapped line's rows share its key and shaped line.
+                keyLine = line;
+                key = Key(line);
+                if (_layout.TryGet(key, out var found))
+                {
+                    shaped = found;
+                    _shapedInSight[line] = found;
+                    _widest = Math.Max(_widest, found.Width);
+                }
+                else
+                {
+                    shaped = null;
+                    missing.Add(key);
+                }
             }
 
-            lines.Add(new FrameLine(line, y, shaped, key.Text, key.Tokens, key.Colors, currentLines.Contains(line), FoldMark(line)));
+            if (wrap is null)
+            {
+                lines.Add(new FrameLine(line, y, shaped, key.Text, key.Tokens, key.Colors, currentLines.Contains(line), FoldMark(line)));
+                continue;
+            }
+
+            // A row of a wrapped line: the line drawn shifted so the row's first character sits at its indent, clipped to the row.
+            var (start, end) = wrap.Segment(line, sub, key.Text.Length);
+            var lastSub = sub == wrap.RowsOf(line) - 1;
+            var left = XOf(line, start);
+            var right = lastSub ? float.PositiveInfinity : XOf(line, end);
+            lines.Add(new FrameLine(line, y, shaped, key.Text, key.Tokens, key.Colors, currentLines.Contains(line), FoldMark(line), sub, lastSub, left, right, wrap.IndentOf(line, sub) - left));
         }
 
         // Scrolled to new lines: shape a screen above and below too, so the next scroll finds them ready.
@@ -435,22 +637,45 @@ public sealed class TextView
                     var lineStart = rope.LineStart(line);
                     var from = line == selStartLine ? s.Start - lineStart : 0;
                     var to = line == selEndLine ? s.End - lineStart : rope.LineLength(line);
-                    var x0 = XOf(line, from);
                     // A selected line break shows as a sliver past the line's end, as in every editor.
-                    var x1 = XOf(line, to) + (line != selEndLine ? Fonts.SpaceAdvance * 0.6f : 0);
-                    var y = LineTop(line);
-                    if (x1 > x0) selections.Add(new SKRect(origin + x0, y, origin + x1, y + LineHeight));
+                    AddSpan(selections, line, from, to, line != selEndLine ? Fonts.SpaceAdvance * 0.6f : 0, 0, 0);
                 }
             }
 
             var (caretLine, caretColumn) = rope.Position(s.Active);
             if (caretLine < first || caretLine > last || IsHidden(caretLine)) continue;
-            var cx = origin + XOf(caretLine, caretColumn);
-            var cy = LineTop(caretLine);
+            var (caretRow, caretX) = Place(caretLine, caretColumn);
+            var cx = origin + caretX;
+            var cy = caretRow * LineHeight - ScrollY;
             carets.Add(new SKRect(cx - Theme.CaretWidth / 2, cy + 1, cx + Theme.CaretWidth / 2, cy + LineHeight - 1));
         }
 
         return (selections, carets);
+    }
+
+    /// <summary>
+    /// The rectangles over columns [from, to) of a line: one, or one per row when the line wraps. <paramref name="tail"/>
+    /// widens the last (a selected line break), <paramref name="inset"/> trims top and bottom, <paramref name="minWidth"/>
+    /// keeps an empty match in sight.
+    /// </summary>
+    private void AddSpan(List<SKRect> into, int line, int from, int to, float tail, float inset, float minWidth)
+    {
+        var origin = TextLeft - ScrollX;
+        var w = Wrap;
+        var length = LineText(line).Length;
+        var firstSub = w?.SubOf(line, from) ?? 0;
+        var lastSub = w is null ? 0 : to > from ? w.SubOf(line, to - 1) : firstSub;
+        var firstRow = VisualOf(line);
+        for (var sub = firstSub; sub <= lastSub; sub++)
+        {
+            var (start, end) = w?.Segment(line, sub, length) ?? (0, length);
+            var shift = (w?.IndentOf(line, sub) ?? 0) - XOf(line, start);
+            var x0 = XOf(line, Math.Max(from, start)) + shift;
+            var x1 = XOf(line, sub < lastSub ? end : Math.Min(to, end)) + shift + (sub == lastSub ? tail : 0);
+            x1 = Math.Max(x1, x0 + minWidth);
+            var y = (firstRow + sub) * LineHeight - ScrollY;
+            if (x1 > x0) into.Add(new SKRect(origin + x0, y + inset, origin + x1, y + LineHeight - inset));
+        }
     }
 
     /// <summary>What the minimap draws: the model, the visual lines on its rows, the slider.</summary>
@@ -460,7 +685,19 @@ public sealed class TextView
         var first = (int)MinimapFirstLine;
         var rows = Math.Min((int)(Height / MinimapLineHeight) + 1, VisualLineCount - first);
         var lines = new int[Math.Max(0, rows)];
-        for (var i = 0; i < lines.Length; i++) lines[i] = DocumentOf(first + i);
+        var wrap = Wrap;
+        for (var i = 0; i < lines.Length; i++)
+        {
+            if (wrap is null)
+            {
+                lines[i] = DocumentOf(first + i);
+                continue;
+            }
+
+            // A wrapped line is drawn once, on its first row; its other rows stay empty.
+            var (line, sub) = wrap.LineAtRow(first + i);
+            lines[i] = sub == 0 ? line : -1;
+        }
         var offset = (MinimapFirstLine - first) * MinimapLineHeight;
         return new MinimapFrame(model, lines, MinimapLeft, -offset, MinimapSlider);
     }
@@ -485,9 +722,10 @@ public sealed class TextView
         {
             var (line, column) = rope.Position(offset);
             if (line < first || line > last || IsHidden(line)) continue;
-            var x0 = TextLeft - ScrollX + XOf(line, column);
-            var x1 = TextLeft - ScrollX + XOf(line, column + 1);
-            var y = LineTop(line);
+            var (row, x) = Place(line, column);
+            var x0 = TextLeft - ScrollX + x;
+            var x1 = x0 + XOf(line, column + 1) - XOf(line, column);
+            var y = row * LineHeight - ScrollY;
             boxes.Add(new SKRect(x0 + 0.5f, y + 1.5f, x1 - 0.5f, y + LineHeight - 1.5f));
         }
 
@@ -509,7 +747,7 @@ public sealed class TextView
             var x = MathF.Round(origin + (g.Level - 1) * step);
             if (x < GutterWidth || IsHidden(g.Line)) continue;
             var y = LineTop(g.Line);
-            result.Add((x, y, y + LineHeight, g.IsActive));
+            result.Add((x, y, y + LineHeight * (Wrap?.RowsOf(g.Line) ?? 1), g.IsActive));
         }
 
         return result;
@@ -526,6 +764,7 @@ public sealed class TextView
         var origin = TextLeft - ScrollX;
         foreach (var line in lines)
         {
+            if (line.Sub != 0) continue; // a wrapped line's marks are placed from its first row
             ranges.Clear();
             marks.Clear();
             if (RenderWhitespace == WhitespaceMode.Selection) WhitespaceMarks.SelectedRanges(Document.Selections, rope.LineStart(line.Line), line.Text.Length, ranges);
@@ -533,8 +772,9 @@ public sealed class TextView
             WhitespaceMarks.Collect(line.Text, RenderWhitespace, System.Runtime.InteropServices.CollectionsMarshal.AsSpan(ranges), marks);
             foreach (var mark in marks)
             {
-                var x = origin + XOf(line.Line, mark.Column);
-                var y = line.Y + LineHeight / 2;
+                var (row, at) = Place(line.Line, mark.Column);
+                var x = origin + at;
+                var y = row * LineHeight - ScrollY + LineHeight / 2;
                 result.Add((new SKPoint(mark.IsTab ? x + 2 : x + Fonts.SpaceAdvance / 2, y), mark.IsTab));
             }
         }
@@ -601,10 +841,7 @@ public sealed class TextView
                 var lineStart = rope.LineStart(line);
                 var from = Math.Max(start, lineStart) - lineStart;
                 var to = Math.Min(start + length, lineStart + rope.LineLength(line)) - lineStart;
-                var y = line * LineHeight - ScrollY;
-                var x0 = XOf(line, from);
-                var x1 = Math.Max(XOf(line, to), x0 + 2);
-                target.Add(new SKRect(origin + x0, y + 1, origin + x1, y + LineHeight - 1));
+                AddSpan(target, line, from, to, 0, 1, 2);
             }
         }
 

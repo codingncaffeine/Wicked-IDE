@@ -128,6 +128,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             new("workbench.action.selectTheme", "Preferences", "Code Colours", "Ctrl+K Ctrl+T", () => Sync(PickCodeColours)),
             new("editor.foldAll", "View", "Fold All", "Ctrl+K Ctrl+D0", () => Sync(() => Workbench.ActiveTab?.Editor?.FoldAll())),
             new("editor.unfoldAll", "View", "Unfold All", "Ctrl+K Ctrl+J", () => Sync(() => Workbench.ActiveTab?.Editor?.UnfoldAll())),
+            new("editor.action.toggleWordWrap", "View", "Toggle Word Wrap", "Alt+Z", () => Sync(() => Workbench.ActiveTab?.Editor?.ToggleWordWrap())),
             new("editor.action.insertSnippet", "Snippets", "Insert Snippet", null, () => Sync(PickSnippet)),
             new("workbench.action.openSnippets", "Snippets", "Configure Snippets", null, ConfigureSnippetsAsync),
             new("workbench.action.openGlobalKeybindingsFile", "Preferences", "Open Keyboard Shortcuts (JSON)", null, OpenKeybindingsJsonAsync),

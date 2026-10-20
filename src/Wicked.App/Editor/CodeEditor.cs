@@ -53,6 +53,16 @@ public sealed class CodeEditor : Control
         _ime = new EditorIme(this);
         Find = new FindViewModel(this);
         _view.Folds = FoldState.None(document.Text.LineCount);
+        // A long document is wrapped on a worker; the rows come back to the UI thread and the editor draws again.
+        _view.WrapWorker = (compute, done) => Task.Run(compute).ContinueWith(task =>
+        {
+            if (task.IsCompletedSuccessfully) Dispatcher.UIThread.Post(() =>
+            {
+                done(task.Result);
+                InvalidateVisual();
+            });
+            else Wicked.Core.Log.Warn($"Word wrap failed: {task.Exception?.GetBaseException().Message}");
+        }, TaskScheduler.Default);
         _features = new FeatureWorker(snapshot => Dispatcher.UIThread.Post(() =>
         {
             if (snapshot.Version < (_view.Features?.Version ?? -1)) return;
@@ -354,6 +364,8 @@ public sealed class CodeEditor : Control
         _view.FollowPalette = settings.CodeColorTheme.Length > 0;
         _view.BracketColors = settings.BracketPairColorization;
         TabCompletion = settings.TabCompletion is "on" or "onlySnippets";
+        _settingsWrap = WrapFrom(settings);
+        _view.WordWrap = _wrapOverride ?? _settingsWrap;
         _view.ShowMinimap = settings.Minimap;
         _view.ShowIndentGuides = settings.IndentGuides;
         _view.RenderWhitespace = Enum.TryParse<Wicked.Editor.Features.WhitespaceMode>(settings.RenderWhitespace, ignoreCase: true, out var mode) ? mode : Wicked.Editor.Features.WhitespaceMode.Selection;
@@ -440,11 +452,66 @@ public sealed class CodeEditor : Control
     /// <summary>PageUp/PageDown: the carets and the view move together by a screen.</summary>
     public void Page(int direction, bool select)
     {
-        var lines = Math.Max(1, _view.LastVisibleLine - _view.FirstVisibleLine - 1);
-        if (direction < 0) Edits.Up(Document, select, Options, lines, StepLines);
-        else Edits.Down(Document, select, Options, lines, StepLines);
-        _view.ScrollBy(0, direction * lines * _view.LineHeight);
+        var rows = Math.Max(1, (int)(_view.Height / _view.LineHeight) - 1);
+        CaretRows(direction * rows, select);
+        _view.ScrollBy(0, direction * rows * _view.LineHeight);
     }
+
+    /// <summary>Up or down: by the rows on screen when lines wrap, by lines (stepping over folds) when they do not.</summary>
+    internal void CaretRows(int rows, bool select)
+    {
+        if (_view.Wrapping) Edits.ByRows(Document, rows, select, _view.RowStep);
+        else if (rows < 0) Edits.Up(Document, select, Options, -rows, StepLines);
+        else Edits.Down(Document, select, Options, rows, StepLines);
+    }
+
+    /// <summary>Home: a wrapped row's start first, then the line's smart home.</summary>
+    internal void LineHome(bool select)
+    {
+        if (_view.Wrapping) Edits.MoveCarets(Document, select, offset => _view.RowHome(offset) ?? Edits.SmartHome(Document.Text, offset));
+        else Edits.Home(Document, select);
+    }
+
+    /// <summary>End: a wrapped row's end first, then the line's.</summary>
+    internal void LineEnd(bool select)
+    {
+        if (_view.Wrapping) Edits.MoveCarets(Document, select, _view.RowEnd);
+        else Edits.End(Document, select);
+    }
+
+    private WordWrap _settingsWrap = WordWrap.Off;
+    private WordWrap? _wrapOverride;
+
+    /// <summary>How this editor wraps now (the settings', or Alt+Z's for this editor).</summary>
+    public WordWrap WordWrap => _view.WordWrap;
+
+    /// <summary>Alt+Z: wrap on or off for this editor, whatever the settings say (VS Code's View: Toggle Word Wrap).</summary>
+    public void ToggleWordWrap()
+    {
+        var on = _view.WordWrap.Mode != WordWrapMode.Off;
+        _wrapOverride = on ? WordWrap.Off : _settingsWrap.Mode != WordWrapMode.Off ? _settingsWrap : _settingsWrap with { Mode = WordWrapMode.On };
+        _view.WordWrap = _wrapOverride;
+        if (on) _view.ScrollTo(0, _view.ScrollY);
+        RevealCaret();
+    }
+
+    /// <summary>VS Code's editor.wordWrap, editor.wordWrapColumn and editor.wrappingIndent.</summary>
+    private static WordWrap WrapFrom(Wicked.Core.Settings.WickedSettings settings) => new(
+        settings.WordWrap switch
+        {
+            "on" => WordWrapMode.On,
+            "wordWrapColumn" => WordWrapMode.WordWrapColumn,
+            "bounded" => WordWrapMode.Bounded,
+            _ => WordWrapMode.Off,
+        },
+        Math.Clamp(settings.WordWrapColumn, 1, 10_000),
+        settings.WrappingIndent switch
+        {
+            "none" => WrapIndent.None,
+            "indent" => WrapIndent.Indent,
+            "deepIndent" => WrapIndent.DeepIndent,
+            _ => WrapIndent.Same,
+        });
 
     public async Task CopyAsync()
     {

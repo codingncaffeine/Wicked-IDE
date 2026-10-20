@@ -1,4 +1,5 @@
 using System.Text;
+using Wicked.Editor.Text;
 
 namespace Wicked.Editor.Model;
 
@@ -230,13 +231,29 @@ public static class Edits
     public static void Down(Document doc, bool select, EditOptions options, int lines = 1, Func<int, int, int>? step = null) => Vertical(doc, lines, select, options, step);
 
     /// <summary>Home: to the first non-blank character, or to column 0 when already there (smart home).</summary>
-    public static void Home(Document doc, bool select) => Move(doc, s =>
+    public static void Home(Document doc, bool select) => Move(doc, s => Extend(s, SmartHome(doc.Text, s.Active), select));
+
+    /// <summary>Where Home takes a caret: the line's first non-blank character, or column 0 from there.</summary>
+    public static int SmartHome(Rope rope, int offset)
     {
-        var rope = doc.Text;
-        var line = rope.LineOf(s.Active);
+        var line = rope.LineOf(offset);
         var start = rope.LineStart(line);
         var first = start + TextNavigation.Indentation(rope.Line(line)).Length;
-        return Extend(s, s.Active == first ? start : first, select);
+        return offset == first ? start : first;
+    }
+
+    /// <summary>Every caret moved to where <paramref name="to"/> says (a view's own Home and End: wrapped rows).</summary>
+    public static void MoveCarets(Document doc, bool select, Func<int, int> to) => Move(doc, s => Extend(s, to(s.Active), select));
+
+    /// <summary>
+    /// Up or down by the rows a view shows (wrapped lines): <paramref name="row"/> takes a caret's offset, the rows to
+    /// move and the x it aims for (-1 for none), and gives the offset reached and the aim to keep.
+    /// </summary>
+    public static void ByRows(Document doc, int rows, bool select, Func<int, int, int, (int To, int Goal)> row) => Move(doc, s =>
+    {
+        if (!select && !s.IsEmpty) s = Selection.Caret(rows < 0 ? s.Start : s.End);
+        var (to, goal) = row(s.Active, rows, s.Column);
+        return select ? new Selection(s.Anchor, to, goal) : Selection.Caret(to, goal);
     });
 
     public static void End(Document doc, bool select) => Move(doc, s =>

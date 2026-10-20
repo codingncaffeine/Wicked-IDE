@@ -46,12 +46,12 @@ public static class EditorKeymap
             var select = shift.Length > 0;
             Add($"{shift}Left", $"cursorLeft{suffix}", "Caret left", e => Edits.Left(e.Document, select));
             Add($"{shift}Right", $"cursorRight{suffix}", "Caret right", e => Edits.Right(e.Document, select));
-            Add($"{shift}Up", $"cursorUp{suffix}", "Caret up", e => Edits.Up(e.Document, select, e.Options, 1, e.StepLines));
-            Add($"{shift}Down", $"cursorDown{suffix}", "Caret down", e => Edits.Down(e.Document, select, e.Options, 1, e.StepLines));
+            Add($"{shift}Up", $"cursorUp{suffix}", "Caret up", e => e.CaretRows(-1, select));
+            Add($"{shift}Down", $"cursorDown{suffix}", "Caret down", e => e.CaretRows(1, select));
             Add($"{shift}Ctrl+Left", $"cursorWordStartLeft{suffix}", "Word left", e => Edits.WordLeft(e.Document, select));
             Add($"{shift}Ctrl+Right", $"cursorWordEndRight{suffix}", "Word right", e => Edits.WordRight(e.Document, select));
-            Add($"{shift}Home", $"cursorHome{suffix}", "Line start", e => Edits.Home(e.Document, select));
-            Add($"{shift}End", $"cursorEnd{suffix}", "Line end", e => Edits.End(e.Document, select));
+            Add($"{shift}Home", $"cursorHome{suffix}", "Line start", e => e.LineHome(select));
+            Add($"{shift}End", $"cursorEnd{suffix}", "Line end", e => e.LineEnd(select));
             Add($"{shift}Ctrl+Home", $"cursorTop{suffix}", "Document start", e => Edits.DocumentStart(e.Document, select));
             Add($"{shift}Ctrl+End", $"cursorBottom{suffix}", "Document end", e => Edits.DocumentEnd(e.Document, select));
             Add($"{shift}PageUp", $"cursorPageUp{suffix}", "Page up", e => e.Page(-1, select));

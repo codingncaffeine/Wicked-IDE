@@ -63,6 +63,12 @@ public sealed class FoldState
 
     public static FoldState None(int lineCount) => new(lineCount, []);
 
+    /// <summary>How many separate runs of lines are hidden (nested folds merged into their outer one).</summary>
+    public int HiddenSpanCount => _hiddenFirst.Length;
+
+    /// <summary>The <paramref name="index"/>th run of hidden lines, in order: lines First..Last inclusive.</summary>
+    public (int First, int Last) HiddenSpan(int index) => (_hiddenFirst[index], _hiddenLast[index]);
+
     /// <summary>The document's line count this state describes.</summary>
     public int LineCount { get; }
 

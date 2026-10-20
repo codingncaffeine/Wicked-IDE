@@ -14,6 +14,9 @@ public enum WrapIndent
 
     /// <summary>Like <see cref="Same"/>, plus one indentation unit (VS Code's "indent").</summary>
     Indent,
+
+    /// <summary>Like <see cref="Same"/>, plus two indentation units (VS Code's "deepIndent").</summary>
+    DeepIndent,
 }
 
 /// <summary>
@@ -253,6 +256,7 @@ public sealed class WrapMap
             while (indentChars < length && text[indentChars] is ' ' or '\t') indentChars++;
             offset = pos[indentChars] - pos[0];
             if (options.Indent == WrapIndent.Indent) offset += options.CharWidth * options.TabSize;
+            if (options.Indent == WrapIndent.DeepIndent) offset += 2 * options.CharWidth * options.TabSize;
             if (offset > options.Width / 2) offset = 0; // VS Code gives up on the indent when it takes over half the width
         }
 

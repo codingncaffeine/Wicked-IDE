@@ -30,6 +30,17 @@ public sealed record WickedSettings
     [JsonPropertyName("editor.bracketPairColorization.enabled")]
     public bool BracketPairColorization { get; init; } = true;
 
+    /// <summary>off, on, wordWrapColumn or bounded, as in VS Code.</summary>
+    [JsonPropertyName("editor.wordWrap")]
+    public string WordWrap { get; init; } = "off";
+
+    [JsonPropertyName("editor.wordWrapColumn")]
+    public int WordWrapColumn { get; init; } = 80;
+
+    /// <summary>none, same, indent or deepIndent: where wrapped rows start.</summary>
+    [JsonPropertyName("editor.wrappingIndent")]
+    public string WrappingIndent { get; init; } = "same";
+
     /// <summary>off, on or onlySnippets, as VS Code names them: Tab after a snippet's prefix expands it.</summary>
     [JsonPropertyName("editor.tabCompletion")]
     public string TabCompletion { get; init; } = "off";

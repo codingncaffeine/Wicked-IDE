@@ -46,28 +46,39 @@ public static class EditorPainter
         foreach (var line in frame.Lines)
         {
             var baseline = line.Y + frame.Fonts.Baseline;
+            var x = origin + line.Shift;
+            if (line.IsPiece)
+            {
+                // A row of a wrapped line: the whole line moved left, only this row's piece showing.
+                canvas.Save();
+                var right = float.IsPositiveInfinity(line.ClipRight) ? frame.Width : x + line.ClipRight;
+                canvas.ClipRect(new SKRect(x + line.ClipLeft, line.Y, right, line.Y + lineHeight));
+            }
+
             if (line.Shaped is { } shaped)
             {
                 foreach (var run in shaped.Runs)
                 {
                     paint.Color = new SKColor(run.Color);
-                    canvas.DrawText(run.Blob, origin, baseline, paint);
+                    canvas.DrawText(run.Blob, x, baseline, paint);
                 }
 
-                foreach (var d in shaped.Decorations) Fill(canvas, paint, new SKRect(origin + d.Rect.Left, baseline + d.Rect.Top, origin + d.Rect.Right, baseline + d.Rect.Bottom), d.Color);
+                foreach (var d in shaped.Decorations) Fill(canvas, paint, new SKRect(x + d.Rect.Left, baseline + d.Rect.Top, x + d.Rect.Right, baseline + d.Rect.Bottom), d.Color);
+            }
+            else if (line.Text.Length > 0)
+            {
+                DrawPlain(canvas, paint, frame, line, x, baseline);
             }
 
-            if (line.Fold == FoldMark.Folded)
+            if (line.IsPiece) canvas.Restore();
+
+            if (line.Fold == FoldMark.Folded && line.LastRow)
             {
-                var end = origin + (line.Shaped?.Width ?? line.Text.Length * frame.Fonts.CharAdvance) + frame.Fonts.CharAdvance;
+                var end = x + (line.Shaped?.Width ?? line.Text.Length * frame.Fonts.CharAdvance) + frame.Fonts.CharAdvance;
                 var badge = new SKRect(end, line.Y + 4, end + frame.Fonts.CharAdvance * 3, line.Y + lineHeight - 4);
                 FillRound(canvas, paint, badge, theme.Selection, 4);
                 paint.Color = new SKColor(theme.Foreground);
                 for (var dot = 0; dot < 3; dot++) canvas.DrawCircle(badge.Left + badge.Width * (dot + 1) / 4, badge.MidY, 1.2f, paint);
-            }
-            else if (line.Text.Length > 0)
-            {
-                DrawPlain(canvas, paint, frame, line, origin, baseline);
             }
         }
 
@@ -109,6 +120,7 @@ public static class EditorPainter
         var numbers = Font(frame.Fonts.Regular, frame.Fonts.Size, frame.Fonts);
         foreach (var line in frame.Lines)
         {
+            if (line.Sub > 0) continue; // a wrapped line's number and fold arrow go on its first row only
             paint.Color = new SKColor(line.Current ? theme.LineNumberActive : theme.LineNumber);
             var label = (line.Line + 1).ToString(CultureInfo.InvariantCulture);
             canvas.DrawText(label, frame.GutterWidth - 22, line.Y + frame.Fonts.Baseline, SKTextAlign.Right, numbers, paint);

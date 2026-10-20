@@ -4,8 +4,29 @@ using Wicked.Editor.Syntax;
 
 namespace Wicked.Editor.View;
 
-/// <summary>A line as a frame shows it: shaped when the layout thread has done it, otherwise its text and tokens for a plain draw.</summary>
-public readonly record struct FrameLine(int Line, float Y, ShapedLine? Shaped, string Text, LineTokens? Tokens, ColorTable? Colors, bool Current, FoldMark Fold = FoldMark.None);
+/// <summary>
+/// A row as a frame shows it: its line, shaped when the layout thread has done it, otherwise its text and tokens for a
+/// plain draw. A wrapped line has a row per piece: <see cref="Sub"/> says which, the line is drawn moved by
+/// <see cref="Shift"/> and clipped to [<see cref="ClipLeft"/>, <see cref="ClipRight"/>) of its own x.
+/// </summary>
+public readonly record struct FrameLine(
+    int Line,
+    float Y,
+    ShapedLine? Shaped,
+    string Text,
+    LineTokens? Tokens,
+    ColorTable? Colors,
+    bool Current,
+    FoldMark Fold = FoldMark.None,
+    int Sub = 0,
+    bool LastRow = true,
+    float ClipLeft = 0,
+    float ClipRight = float.PositiveInfinity,
+    float Shift = 0)
+{
+    /// <summary>Whether this row is a piece of a wrapped line (and so needs its clip).</summary>
+    public bool IsPiece => Sub > 0 || !float.IsPositiveInfinity(ClipRight);
+}
 
 /// <summary>The minimap's part of a frame: the model, the document line on each row (folds skipped), where it starts, the slider.</summary>
 public sealed record MinimapFrame(Wicked.Editor.Features.MinimapModel Model, int[] Lines, float Left, float Top, SKRect Slider);
