@@ -143,7 +143,9 @@ internal sealed class ModelWorld : IAsyncDisposable
         ModelsViewModel.ServicesFactory = Services;
         try
         {
-            return Ui.Start(paths);
+            var started = Ui.Start(paths);
+            started.Shell.AllowNetwork = true; // this world's network is the loopback hub, so offline mode (CI, the gate) keeps it
+            return started;
         }
         finally
         {

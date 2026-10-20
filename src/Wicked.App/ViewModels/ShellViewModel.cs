@@ -66,6 +66,9 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
 
     public ModelsViewModel Models { get; }
 
+    /// <summary>Whether the model half may reach the network at start (off under <c>WICKED_OFFLINE</c>; a test world on loopback turns it on).</summary>
+    public bool AllowNetwork { get; set; } = !Wicked.Core.Http.WickedHttp.IsOffline;
+
     public SettingsViewModel SettingsSheet { get; }
 
     public KeyDispatcher Keys { get; private set; }
@@ -372,7 +375,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         if (problem is not null) Notices.Post(new Notice("settings", problem, NoticeKind.Warning, $"tab/{Paths.SettingsFile}"));
         _session = await SessionState.ReadAsync(Paths.SessionFile, CancellationToken.None);
         ShowRecent();
-        _ = Models.StartAsync(allowNetwork: Environment.GetEnvironmentVariable("WICKED_OFFLINE") != "1");
+        _ = Models.StartAsync(AllowNetwork);
         if (!Settings.RestoreSession || _session.LastFolder is not { } folder || !Directory.Exists(folder)) return;
         await Workbench.OpenFolderAsync(folder);
         if (_session.OpenFiles.TryGetValue(folder, out var files))
