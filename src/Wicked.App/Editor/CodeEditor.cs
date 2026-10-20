@@ -147,6 +147,33 @@ public sealed class CodeEditor : Control
         InvalidateVisual();
     }
 
+    /// <summary>
+    /// What a click on a line's fold arrow does: a folded line opens (the fold state follows every edit at once, so this
+    /// never waits); an open range folds, using ranges worked out for the text as it is now.
+    /// </summary>
+    private Action? FoldArrowAt(int line)
+    {
+        if (_view.Folds.LineCount == Document.Text.LineCount && _view.Folds.IsCollapsedHeader(line, out _))
+        {
+            return () =>
+            {
+                _view.Folds = _view.Folds.Expand(line);
+                InvalidateVisual();
+            };
+        }
+
+        if (_view.Features is { } features && features.Version == Document.Version && features.Folding.IndexStartingAt(line) >= 0)
+        {
+            return () =>
+            {
+                _view.Folds = _view.Folds.Toggle(features.Folding, line);
+                MoveCaretOutOfFolds();
+            };
+        }
+
+        return null;
+    }
+
     /// <summary>A caret that a fold just hid goes to the fold's first line, so it stays in sight.</summary>
     private void MoveCaretOutOfFolds()
     {
@@ -338,11 +365,9 @@ public sealed class CodeEditor : Control
             InvalidateVisual();
             return;
         }
-        else if (x < _view.GutterWidth && x >= _view.GutterWidth - 20 && _view.Features?.Folding is { } ranges && ranges.IndexStartingAt(_view.LineAt(y)) >= 0)
+        else if (x < _view.GutterWidth && x >= _view.GutterWidth - 20 && FoldArrowAt(_view.LineAt(y)) is { } toggle)
         {
-            var header = _view.LineAt(y);
-            _view.Folds = _view.Folds.Toggle(ranges, header);
-            MoveCaretOutOfFolds();
+            toggle();
             e.Handled = true;
             return;
         }
