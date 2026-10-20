@@ -30,6 +30,7 @@
   <PropertyGroup>
     <AvaloniaVersion>12.1.4</AvaloniaVersion>
     <AvaloniaEditVersion>12.0.0</AvaloniaEditVersion>
+    <TextMateSharpVersion>2.0.3</TextMateSharpVersion>
     <MvvmToolkitVersion>8.4.2</MvvmToolkitVersion>
     <TimeTestingVersion>10.11.0</TimeTestingVersion>
     <TestSdkVersion>18.10.1</TestSdkVersion>

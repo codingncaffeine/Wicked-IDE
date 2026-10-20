@@ -9,6 +9,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="TextMateSharp" Version="$(TextMateSharpVersion)" />
+    <PackageReference Include="TextMateSharp.Grammars" Version="$(TextMateSharpVersion)" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Wicked.Core\Wicked.Core.csproj" />
   </ItemGroup>
 
