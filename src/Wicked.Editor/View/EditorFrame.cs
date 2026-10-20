@@ -38,6 +38,15 @@ public sealed record EditorFrame
 
     public required IReadOnlyList<SKRect> Carets { get; init; }
 
+    /// <summary>Boxes round the bracket at the caret and its partner.</summary>
+    public IReadOnlyList<SKRect> BracketBoxes { get; init; } = [];
+
+    /// <summary>Indent guides in sight: x, top, bottom, and whether the guide is the caret's block's.</summary>
+    public IReadOnlyList<(float X, float Top, float Bottom, bool Active)> Guides { get; init; } = [];
+
+    /// <summary>Spaces (a dot) and tabs (an arrow) made visible: where, and which.</summary>
+    public IReadOnlyList<(SKPoint At, bool Tab)> Whitespace { get; init; } = [];
+
     /// <summary>Find matches in sight; the current one drawn brighter.</summary>
     public IReadOnlyList<SKRect> Matches { get; init; } = [];
 

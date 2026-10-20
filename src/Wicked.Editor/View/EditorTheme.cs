@@ -22,6 +22,19 @@ public sealed record EditorTheme
 
     public uint IndentGuide { get; init; } = 0xFF23262D;
 
+    public uint IndentGuideActive { get; init; } = 0xFF3A3F49;
+
+    /// <summary>The box drawn round a bracket and its partner at the caret.</summary>
+    public uint BracketMatch { get; init; } = 0x998B7BF7;
+
+    /// <summary>Spaces and tabs made visible (in a selection, by default).</summary>
+    public uint Whitespace { get; init; } = 0x66A2A8B4;
+
+    /// <summary>Bracket-pair colours by depth (VS Code's defaults), and the colour of a bracket with no partner.</summary>
+    public uint[] BracketColors { get; init; } = [0xFFFFD700, 0xFFDA70D6, 0xFF179FFF];
+
+    public uint BracketUnmatched { get; init; } = 0xFFFF1212;
+
     /// <summary>Every find match, and the one the find widget is on (amber, as editors mark them).</summary>
     public uint FindMatch { get; init; } = 0x40F2B84B;
 

@@ -27,6 +27,16 @@ public sealed record WickedSettings
     [JsonPropertyName("editor.autoClosingBrackets")]
     public bool AutoClosingBrackets { get; init; } = true;
 
+    [JsonPropertyName("editor.bracketPairColorization.enabled")]
+    public bool BracketPairColorization { get; init; } = true;
+
+    [JsonPropertyName("editor.guides.indentation")]
+    public bool IndentGuides { get; init; } = true;
+
+    /// <summary>none, boundary, selection, trailing or all, as VS Code names them.</summary>
+    [JsonPropertyName("editor.renderWhitespace")]
+    public string RenderWhitespace { get; init; } = "selection";
+
     [JsonPropertyName("files.autoSave")]
     public string AutoSave { get; init; } = "off";
 

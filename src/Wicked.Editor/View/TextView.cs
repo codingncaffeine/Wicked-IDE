@@ -1,4 +1,5 @@
 using SkiaSharp;
+using Wicked.Editor.Features;
 using Wicked.Editor.Layout;
 using Wicked.Editor.Model;
 using Wicked.Editor.Search;
@@ -79,6 +80,15 @@ public sealed class TextView
     private EditorTheme? _effective;
 
     public bool CaretsVisible { get; set; } = true;
+
+    /// <summary>Brackets and indent guides for a recent version of the text (the feature worker's).</summary>
+    public FeatureSnapshot? Features { get; set; }
+
+    public bool BracketColors { get; set; } = true;
+
+    public bool ShowIndentGuides { get; set; } = true;
+
+    public WhitespaceMode RenderWhitespace { get; set; } = WhitespaceMode.Selection;
 
     /// <summary>The find widget's matches (for the version they were found in), and which one it is on.</summary>
     public SearchResult Found { get; set; } = SearchResult.None;
@@ -235,6 +245,9 @@ public sealed class TextView
         _layout.Request([.. missing]);
         var (selections, carets) = SelectionGeometry(first, last);
         var (matches, current) = MatchGeometry(first, last);
+        var bracketBoxes = BracketBoxes(first, last);
+        var guides = GuideGeometry(first, last);
+        var whitespace = WhitespaceGeometry(lines);
         var (vThumb, hThumb) = Thumbs();
         return new EditorFrame
         {
@@ -251,6 +264,9 @@ public sealed class TextView
             Selections = selections,
             Carets = carets,
             Matches = matches,
+            BracketBoxes = bracketBoxes,
+            Guides = guides,
+            Whitespace = whitespace,
             CurrentMatch = current,
             CaretsVisible = CaretsVisible && Focused,
             Focused = Focused,
@@ -347,6 +363,101 @@ public sealed class TextView
         return (selections, carets);
     }
 
+    /// <summary>The features worked out for the text as it is now (brackets move with every edit, so stale ones are not drawn).</summary>
+    private FeatureSnapshot? CurrentFeatures => Features is { } f && f.Version == Document.Version ? f : null;
+
+    /// <summary>Boxes round the bracket touching the primary caret and its partner, as VS Code draws them.</summary>
+    private List<SKRect> BracketBoxes(int first, int last)
+    {
+        var boxes = new List<SKRect>(2);
+        if (CurrentFeatures?.Brackets.MatchAt(Document.Primary.Active) is not { } match) return boxes;
+        var rope = Document.Text;
+        foreach (var offset in new[] { match.Open, match.Close })
+        {
+            var (line, column) = rope.Position(offset);
+            if (line < first || line > last) continue;
+            var x0 = TextLeft - ScrollX + XOf(line, column);
+            var x1 = TextLeft - ScrollX + XOf(line, column + 1);
+            var y = line * LineHeight - ScrollY;
+            boxes.Add(new SKRect(x0 + 0.5f, y + 1.5f, x1 - 0.5f, y + LineHeight - 1.5f));
+        }
+
+        return boxes;
+    }
+
+    /// <summary>The indent guides in sight, the caret's block's drawn brighter. Guides of a slightly older version still hold while the line count does.</summary>
+    private List<(float X, float Top, float Bottom, bool Active)> GuideGeometry(int first, int last)
+    {
+        var result = new List<(float, float, float, bool)>();
+        if (!ShowIndentGuides || Features is not { } features || features.LineCount != Document.Text.LineCount) return result;
+        var guides = new List<IndentGuide>();
+        var active = features.Guides.ActiveFor(Document.Text.LineOf(Document.Primary.Active));
+        features.Guides.Collect(first, last, active, guides);
+        var step = Options.TabSize * Fonts.SpaceAdvance;
+        var origin = TextLeft - ScrollX;
+        foreach (var g in guides)
+        {
+            var x = MathF.Round(origin + (g.Level - 1) * step);
+            if (x < GutterWidth) continue;
+            var y = g.Line * LineHeight - ScrollY;
+            result.Add((x, y, y + LineHeight, g.IsActive));
+        }
+
+        return result;
+    }
+
+    /// <summary>Spaces and tabs made visible, by the renderWhitespace mode (in selections, by default).</summary>
+    private List<(SKPoint, bool)> WhitespaceGeometry(List<FrameLine> lines)
+    {
+        var result = new List<(SKPoint, bool)>();
+        if (RenderWhitespace == WhitespaceMode.None) return result;
+        var rope = Document.Text;
+        var ranges = new List<(int Start, int End)>();
+        var marks = new List<WhitespaceMark>();
+        var origin = TextLeft - ScrollX;
+        foreach (var line in lines)
+        {
+            ranges.Clear();
+            marks.Clear();
+            if (RenderWhitespace == WhitespaceMode.Selection) WhitespaceMarks.SelectedRanges(Document.Selections, rope.LineStart(line.Line), line.Text.Length, ranges);
+            if (RenderWhitespace == WhitespaceMode.Selection && ranges.Count == 0) continue;
+            WhitespaceMarks.Collect(line.Text, RenderWhitespace, System.Runtime.InteropServices.CollectionsMarshal.AsSpan(ranges), marks);
+            foreach (var mark in marks)
+            {
+                var x = origin + XOf(line.Line, mark.Column);
+                var y = line.Y + LineHeight / 2;
+                result.Add((new SKPoint(mark.IsTab ? x + 2 : x + Fonts.SpaceAdvance / 2, y), mark.IsTab));
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// A line's brackets coloured by depth (VS Code's bracket-pair colours), from the newest bracket index. One a few
+    /// edits old still serves for a line whose brackets sit where they were: each is checked against the text.
+    /// </summary>
+    private ColorOverrides BracketOverrides(int line, string text)
+    {
+        if (!BracketColors || Features is not { } features || features.LineCount != Document.Text.LineCount) return default;
+        var brackets = features.Brackets;
+        var start = Document.Text.LineStart(line);
+        var i = brackets.FirstAtOrAfter(start);
+        List<int>? columns = null;
+        List<uint>? colors = null;
+        for (; i >= 0 && i < brackets.Count; i++)
+        {
+            var offset = brackets.Offset(i);
+            if (offset >= start + text.Length) break;
+            var column = offset - start;
+            if (text[column] != brackets.Char(i)) return default; // the line changed since: plain colours until the worker catches up
+            (columns ??= []).Add(column);
+            (colors ??= []).Add(brackets.IsMatched(i) ? Theme.BracketColors[brackets.Depth(i) % Theme.BracketColors.Length] : Theme.BracketUnmatched);
+        }
+
+        return columns is null ? default : new ColorOverrides([.. columns], [.. colors!]);
+    }
+
     /// <summary>The rectangles of the find matches in sight: a binary search to the first, then only those in view.</summary>
     private (List<SKRect> Matches, List<SKRect> Current) MatchGeometry(int first, int last)
     {
@@ -396,8 +507,11 @@ public sealed class TextView
         if (!_layout.TryGet(key, out _)) missing.Add(key);
     }
 
-    private LineKey Key(int line) =>
-        new(LineText(line), Syntax?[line], Syntax?.Colors, EffectiveTheme.Foreground, Options.TabSize, Fonts.Version);
+    private LineKey Key(int line)
+    {
+        var text = LineText(line);
+        return new(text, Syntax?[line], Syntax?.Colors, EffectiveTheme.Foreground, Options.TabSize, Fonts.Version, BracketOverrides(line, text));
+    }
 
     private bool TryShaped(int line, out ShapedLine shaped)
     {

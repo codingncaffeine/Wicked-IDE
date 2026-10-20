@@ -29,7 +29,7 @@ internal sealed class LineShaper : IDisposable
         _features = fonts.Settings.Ligatures ? [] : [Feature.Parse("liga=0"), Feature.Parse("calt=0"), Feature.Parse("dlig=0")];
     }
 
-    public ShapedLine Shape(string text, LineTokens? tokens, ColorTable? colors, uint defaultColor, int tabSize)
+    public ShapedLine Shape(string text, LineTokens? tokens, ColorTable? colors, uint defaultColor, int tabSize, ColorOverrides overrides = default)
     {
         var caretX = new float[text.Length + 1];
         var builders = new Dictionary<uint, SKTextBlobBuilder>();
@@ -37,14 +37,8 @@ internal sealed class LineShaper : IDisposable
         var tabWidth = tabSize * _fonts.SpaceAdvance;
         var x = 0f;
 
-        var segments = tokens is { Count: > 0 } ? tokens.Count : 1;
-        for (var t = 0; t < segments; t++)
+        foreach (var (start, end, color, style) in Segments(text, tokens, colors, defaultColor, overrides))
         {
-            var start = tokens is { Count: > 0 } ? Math.Min(tokens.Start(t), text.Length) : 0;
-            var end = tokens is { Count: > 0 } && t + 1 < tokens.Count ? Math.Min(tokens.Start(t + 1), text.Length) : text.Length;
-            if (end <= start) continue;
-            var color = tokens is { Count: > 0 } && colors is not null ? colors[tokens.Foreground(t)] : defaultColor;
-            var style = tokens is { Count: > 0 } ? tokens.Style(t) : TokenStyle.None;
             var primary = _fonts.For(style);
             var segmentStart = x;
 
@@ -86,6 +80,39 @@ internal sealed class LineShaper : IDisposable
         }
 
         return new ShapedLine(text, runs, caretX, decorations);
+    }
+
+    /// <summary>
+    /// The line's coloured stretches: one per token, with each overridden character (a bracket coloured by its depth)
+    /// split out as a stretch of its own.
+    /// </summary>
+    internal static List<(int Start, int End, uint Color, TokenStyle Style)> Segments(string text, LineTokens? tokens, ColorTable? colors, uint defaultColor, ColorOverrides overrides)
+    {
+        var list = new List<(int, int, uint, TokenStyle)>();
+        var count = tokens is { Count: > 0 } ? tokens.Count : 1;
+        var o = 0;
+        for (var t = 0; t < count; t++)
+        {
+            var start = tokens is { Count: > 0 } ? Math.Min(tokens.Start(t), text.Length) : 0;
+            var end = tokens is { Count: > 0 } && t + 1 < tokens.Count ? Math.Min(tokens.Start(t + 1), text.Length) : text.Length;
+            if (end <= start) continue;
+            var color = tokens is { Count: > 0 } && colors is not null ? colors[tokens.Foreground(t)] : defaultColor;
+            var style = tokens is { Count: > 0 } ? tokens.Style(t) : TokenStyle.None;
+            var at = start;
+            while (o < overrides.Count && overrides.Column(o) < start) o++;
+            while (o < overrides.Count && overrides.Column(o) < end)
+            {
+                var column = overrides.Column(o);
+                if (column > at) list.Add((at, column, color, style));
+                list.Add((column, column + 1, overrides.Color(o), style));
+                at = column + 1;
+                o++;
+            }
+
+            if (at < end) list.Add((at, end, color, style));
+        }
+
+        return list;
     }
 
     private float ShapeRun(string text, int start, int length, SKTypeface typeface, uint color, float x, float[] caretX, Dictionary<uint, SKTextBlobBuilder> builders)

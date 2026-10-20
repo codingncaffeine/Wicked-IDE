@@ -9,8 +9,43 @@ namespace Wicked.Editor.Layout;
 /// tokens are new objects), the default colour, the tab size and the fonts. Two lines that agree on all of it look the
 /// same, wherever they are.
 /// </summary>
-public readonly struct LineKey(string text, LineTokens? tokens, ColorTable? colors, uint defaultColor, int tabSize, int fontVersion) : IEquatable<LineKey>
+/// <summary>
+/// Single characters drawn in a colour of their own over their token's (brackets coloured by depth), sorted by column.
+/// Compared by content: two lines with the same brackets at the same depths share a cache entry.
+/// </summary>
+public readonly struct ColorOverrides(int[]? columns, uint[]? colors) : IEquatable<ColorOverrides>
 {
+    private readonly int[] _columns = columns ?? [];
+    private readonly uint[] _colors = colors ?? [];
+
+    public int Count => _columns?.Length ?? 0;
+
+    public int Column(int i) => _columns[i];
+
+    public uint Color(int i) => _colors[i];
+
+    public bool Equals(ColorOverrides other) =>
+        (_columns ?? []).AsSpan().SequenceEqual(other._columns ?? []) && (_colors ?? []).AsSpan().SequenceEqual(other._colors ?? []);
+
+    public override bool Equals(object? obj) => obj is ColorOverrides other && Equals(other);
+
+    public override int GetHashCode()
+    {
+        var hash = new HashCode();
+        for (var i = 0; i < Count; i++)
+        {
+            hash.Add(_columns[i]);
+            hash.Add(_colors[i]);
+        }
+
+        return hash.ToHashCode();
+    }
+}
+
+public readonly struct LineKey(string text, LineTokens? tokens, ColorTable? colors, uint defaultColor, int tabSize, int fontVersion, ColorOverrides overrides = default) : IEquatable<LineKey>
+{
+    public ColorOverrides Overrides { get; } = overrides;
+
     public string Text { get; } = text;
 
     public LineTokens? Tokens { get; } = tokens;
@@ -25,12 +60,12 @@ public readonly struct LineKey(string text, LineTokens? tokens, ColorTable? colo
 
     public bool Equals(LineKey other) =>
         ReferenceEquals(Tokens, other.Tokens) && ReferenceEquals(Colors, other.Colors) && DefaultColor == other.DefaultColor
-        && TabSize == other.TabSize && FontVersion == other.FontVersion && string.Equals(Text, other.Text, StringComparison.Ordinal);
+        && TabSize == other.TabSize && FontVersion == other.FontVersion && Overrides.Equals(other.Overrides) && string.Equals(Text, other.Text, StringComparison.Ordinal);
 
     public override bool Equals(object? obj) => obj is LineKey other && Equals(other);
 
     public override int GetHashCode() =>
-        HashCode.Combine(string.GetHashCode(Text, StringComparison.Ordinal), Tokens is null ? 0 : System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(Tokens), DefaultColor, TabSize, FontVersion);
+        HashCode.Combine(string.GetHashCode(Text, StringComparison.Ordinal), Tokens is null ? 0 : System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(Tokens), DefaultColor, TabSize, FontVersion, Overrides.GetHashCode());
 }
 
 /// <summary>
@@ -143,7 +178,7 @@ public sealed class LayoutService : IDisposable
                 if (_cache.ContainsKey(key) || key.FontVersion != shaperFonts.Version) continue;
                 try
                 {
-                    var line = shaper.Shape(key.Text, key.Tokens, key.Colors, key.DefaultColor, key.TabSize);
+                    var line = shaper.Shape(key.Text, key.Tokens, key.Colors, key.DefaultColor, key.TabSize, key.Overrides);
                     line.LastUsed = Interlocked.Increment(ref _clock);
                     if (_cache.TryAdd(key, line)) shaped++;
                     else line.Dispose();

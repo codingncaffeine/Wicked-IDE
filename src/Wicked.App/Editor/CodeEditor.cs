@@ -50,6 +50,11 @@ public sealed class CodeEditor : Control
         _view = new TextView(document, services.Layout, language?.Options ?? EditOptions.Default);
         _ime = new EditorIme(this);
         Find = new FindViewModel(this);
+        _features = new FeatureWorker(snapshot => Dispatcher.UIThread.Post(() =>
+        {
+            if (snapshot.Version >= (_view.Features?.Version ?? -1)) _view.Features = snapshot;
+            InvalidateVisual();
+        }, DispatcherPriority.Render));
         Focusable = true;
         ClipToBounds = true;
         Cursor = new Cursor(StandardCursorType.Ibeam);
@@ -57,9 +62,13 @@ public sealed class CodeEditor : Control
         _syntax = services.Syntax.Open(document.Text, document.Version, language, snapshot => Dispatcher.UIThread.Post(() =>
         {
             if (snapshot.Version > (_view.Syntax?.Version ?? -1) || snapshot.ValidLines != _view.Syntax?.ValidLines) _view.Syntax = snapshot;
+            // Strings and comments known: brackets inside them stop counting.
+            if (snapshot.ValidLines == document.Text.LineCount && snapshot.Version == document.Version) RequestFeatures();
             InvalidateVisual();
         }, DispatcherPriority.Render));
         document.Changed += _syntax.Edit;
+        document.Changed += _ => RequestFeatures();
+        RequestFeatures();
         services.Layout.Ready += OnLinesReady;
 
         _blink = new DispatcherTimer { Interval = Blink };
@@ -95,6 +104,10 @@ public sealed class CodeEditor : Control
     public EditOptions Options => _view.Options;
 
     public FindViewModel Find { get; }
+
+    private readonly FeatureWorker _features;
+
+    private void RequestFeatures() => _features.Request(Document.Text, Document.Version, _view.Syntax, _view.Options);
 
     internal TextView View => _view;
 
@@ -144,6 +157,10 @@ public sealed class CodeEditor : Control
             AutoSurround = settings.AutoClosingBrackets,
         };
         _view.FollowPalette = settings.CodeColorTheme.Length > 0;
+        _view.BracketColors = settings.BracketPairColorization;
+        _view.ShowIndentGuides = settings.IndentGuides;
+        _view.RenderWhitespace = Enum.TryParse<Wicked.Editor.Features.WhitespaceMode>(settings.RenderWhitespace, ignoreCase: true, out var mode) ? mode : Wicked.Editor.Features.WhitespaceMode.Selection;
+        RequestFeatures();
         InvalidateVisual();
     }
 

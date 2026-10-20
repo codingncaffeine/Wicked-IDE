@@ -36,6 +36,7 @@ public static class EditorPainter
         // The text area: selections, text and carets, clipped so nothing scrolls under the gutter.
         canvas.Save();
         canvas.ClipRect(new SKRect(frame.GutterWidth, 0, frame.Width, frame.Height));
+        foreach (var (x, top, bottom, active) in frame.Guides) Fill(canvas, paint, new SKRect(x, top, x + 1, bottom), active ? theme.IndentGuideActive : theme.IndentGuide);
         foreach (var rect in frame.Matches) FillRound(canvas, paint, rect, theme.FindMatch, 3);
         foreach (var rect in frame.CurrentMatch) FillRound(canvas, paint, rect, theme.FindMatchCurrent, 3);
         var selection = frame.Focused ? theme.Selection : theme.SelectionUnfocused;
@@ -58,6 +59,33 @@ public static class EditorPainter
             else if (line.Text.Length > 0)
             {
                 DrawPlain(canvas, paint, frame, line, origin, baseline);
+            }
+        }
+
+        foreach (var box in frame.BracketBoxes)
+        {
+            paint.Color = new SKColor(theme.BracketMatch);
+            paint.Style = SKPaintStyle.Stroke;
+            paint.StrokeWidth = 1;
+            canvas.DrawRect(box, paint);
+            paint.Style = SKPaintStyle.Fill;
+        }
+
+        foreach (var (at, tab) in frame.Whitespace)
+        {
+            paint.Color = new SKColor(theme.Whitespace);
+            if (tab)
+            {
+                paint.Style = SKPaintStyle.Stroke;
+                paint.StrokeWidth = 1;
+                canvas.DrawLine(at.X, at.Y, at.X + frame.Fonts.CharAdvance * 1.6f, at.Y, paint);
+                canvas.DrawLine(at.X + frame.Fonts.CharAdvance * 1.6f - 3, at.Y - 3, at.X + frame.Fonts.CharAdvance * 1.6f, at.Y, paint);
+                canvas.DrawLine(at.X + frame.Fonts.CharAdvance * 1.6f - 3, at.Y + 3, at.X + frame.Fonts.CharAdvance * 1.6f, at.Y, paint);
+                paint.Style = SKPaintStyle.Fill;
+            }
+            else
+            {
+                canvas.DrawCircle(at, 1.1f, paint);
             }
         }
 
