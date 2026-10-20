@@ -181,7 +181,7 @@ public sealed class CodeEditor : Control
 
     protected override void OnKeyDown(KeyEventArgs e)
     {
-        foreach (var (gesture, command) in EditorKeymap.Defaults)
+        foreach (var (gesture, command) in EditorKeymap.Effective)
         {
             if (!gesture.Matches(e)) continue;
             command.Run(this);

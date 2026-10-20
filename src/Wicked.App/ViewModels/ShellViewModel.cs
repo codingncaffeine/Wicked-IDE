@@ -64,7 +64,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
 
     public SettingsViewModel SettingsSheet { get; }
 
-    public KeyDispatcher Keys { get; }
+    public KeyDispatcher Keys { get; private set; }
 
     public WickedSettings Settings { get; private set; } = new();
 
@@ -122,6 +122,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             new("workbench.action.openSettings", "Preferences", "Open Settings", "Ctrl+OemComma", () => Sync(() => SettingsOpen = true)),
             new("workbench.action.openSettingsJson", "Preferences", "Open Settings (JSON)", null, OpenSettingsJsonAsync),
             new("workbench.action.selectTheme", "Preferences", "Code Colours", "Ctrl+K Ctrl+T", () => Sync(PickCodeColours)),
+            new("workbench.action.openGlobalKeybindingsFile", "Preferences", "Open Keyboard Shortcuts (JSON)", null, OpenKeybindingsJsonAsync),
         ];
     }
 
@@ -140,6 +141,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     private string? _lastWritten;
     private FileSystemWatcher? _settingsWatcher;
     private DispatcherTimer? _settingsSettle;
+    private DispatcherTimer? _keysSettle;
 
     /// <summary>Puts settings in force everywhere: the editor services (fonts, code colours), every editor, the workbench.</summary>
     public async Task ApplySettingsAsync(WickedSettings settings)
@@ -177,9 +179,22 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         try
         {
             Directory.CreateDirectory(Paths.Config);
-            _settingsWatcher = new FileSystemWatcher(Paths.Config, "settings.json") { NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.Size };
-            FileSystemEventHandler changed = (_, _) => _post(() =>
+            _settingsWatcher = new FileSystemWatcher(Paths.Config, "*.json") { NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.Size };
+            FileSystemEventHandler changed = (_, e) => _post(() =>
             {
+                if (string.Equals(e.Name, "keybindings.json", StringComparison.Ordinal))
+                {
+                    _keysSettle ??= new DispatcherTimer(TimeSpan.FromMilliseconds(200), DispatcherPriority.Background, (_, _) =>
+                    {
+                        _keysSettle!.Stop();
+                        _ = ReloadKeybindingsAsync();
+                    });
+                    _keysSettle.Stop();
+                    _keysSettle.Start();
+                    return;
+                }
+
+                if (!string.Equals(e.Name, "settings.json", StringComparison.Ordinal)) return;
                 _settingsSettle ??= new DispatcherTimer(TimeSpan.FromMilliseconds(200), DispatcherPriority.Background, (_, _) => _ = ReloadSettingsAsync());
                 _settingsSettle.Stop();
                 _settingsSettle.Start();
@@ -193,6 +208,33 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         {
             Log.Warn($"Cannot watch settings.json: {ex.Message}");
         }
+    }
+
+    /// <summary>keybindings.json read again and applied to both keymaps (the editor's and the workbench's).</summary>
+    public async Task ReloadKeybindingsAsync()
+    {
+        var (bindings, problem) = await Wicked.Core.Settings.Keybindings.ReadAsync(Paths.KeybindingsFile, CancellationToken.None);
+        if (problem is not null)
+        {
+            Notices.Post(new Notice("keybindings", problem, NoticeKind.Error, $"tab/{Paths.KeybindingsFile}"));
+            return;
+        }
+
+        Notices.Clear("keybindings");
+        EditorKeymap.Apply(bindings);
+        Keys = new KeyDispatcher(Commands, bindings);
+    }
+
+    private async Task OpenKeybindingsJsonAsync()
+    {
+        var path = Paths.KeybindingsFile;
+        if (!File.Exists(path))
+        {
+            const string Starter = "// Your key bindings, in VS Code's format. A binding adds keys to a command; \"-command\" removes a default.\n// For example: { \"key\": \"ctrl+shift+d\", \"command\": \"copyLinesDown\" }\n[\n]\n";
+            await Task.Run(() => Wicked.Core.Files.TextFile.WriteAsync(path, Starter, Wicked.Core.Files.FileEncoding.Utf8, CancellationToken.None));
+        }
+
+        await Workbench.OpenAsync(path);
     }
 
     private async Task ReloadSettingsAsync()
@@ -273,6 +315,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     {
         var (settings, problem) = await SettingsFile.ReadAsync(Paths.SettingsFile, CancellationToken.None);
         await ApplySettingsAsync(settings);
+        await ReloadKeybindingsAsync();
         WatchSettings();
         if (problem is not null) Notices.Post(new Notice("settings", problem, NoticeKind.Warning, $"tab/{Paths.SettingsFile}"));
         _session = await SessionState.ReadAsync(Paths.SessionFile, CancellationToken.None);

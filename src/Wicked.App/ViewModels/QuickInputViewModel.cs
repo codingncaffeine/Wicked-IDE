@@ -136,7 +136,7 @@ public sealed partial class QuickInputViewModel(ShellViewModel shell) : Observab
                 .Select(c => (Command: c, Score: text.Length == 0 ? 0 : FuzzyMatch.Score(text, c.Label)))
                 .Where(p => p.Score >= 0)
                 .OrderByDescending(p => p.Score).ThenBy(p => p.Command.Label, StringComparer.Ordinal)
-                .Select(p => new QuickItem(p.Command.Label, "", p.Command.Keys ?? "", p.Command.Run))];
+                .Select(p => new QuickItem(p.Command.Label, "", shell.Keys.KeysFor(p.Command.Id), p.Command.Run))];
         }
         else if (query.StartsWith(':'))
         {
