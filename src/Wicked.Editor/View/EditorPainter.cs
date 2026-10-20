@@ -36,6 +36,8 @@ public static class EditorPainter
         // The text area: selections, text and carets, clipped so nothing scrolls under the gutter.
         canvas.Save();
         canvas.ClipRect(new SKRect(frame.GutterWidth, 0, frame.Width, frame.Height));
+        foreach (var rect in frame.Matches) FillRound(canvas, paint, rect, theme.FindMatch, 3);
+        foreach (var rect in frame.CurrentMatch) FillRound(canvas, paint, rect, theme.FindMatchCurrent, 3);
         var selection = frame.Focused ? theme.Selection : theme.SelectionUnfocused;
         foreach (var rect in frame.Selections) FillRound(canvas, paint, rect, selection, 3);
 

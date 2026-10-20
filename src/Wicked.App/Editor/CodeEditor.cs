@@ -49,6 +49,7 @@ public sealed class CodeEditor : Control
         Language = language;
         _view = new TextView(document, services.Layout, language?.Options ?? EditOptions.Default);
         _ime = new EditorIme(this);
+        Find = new FindViewModel(this);
         Focusable = true;
         ClipToBounds = true;
         Cursor = new Cursor(StandardCursorType.Ibeam);
@@ -93,6 +94,8 @@ public sealed class CodeEditor : Control
 
     public EditOptions Options => _view.Options;
 
+    public FindViewModel Find { get; }
+
     internal TextView View => _view;
 
     /// <summary>Stops highlighting this document (the tab closed).</summary>
@@ -128,6 +131,13 @@ public sealed class CodeEditor : Control
             Volatile.Write(ref _redrawPosted, 0);
             InvalidateVisual();
         }, DispatcherPriority.Render);
+    }
+
+    /// <summary>Scrolls <paramref name="offset"/> into sight without taking the keyboard (the find widget keeps it).</summary>
+    public void Reveal(int offset)
+    {
+        _view.Reveal(offset);
+        InvalidateVisual();
     }
 
     /// <summary>Brings the primary caret into sight and the keyboard to the editor (after go-to-line, a search hit).</summary>

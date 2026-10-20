@@ -5,7 +5,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/../.."
 VERSION=1.60.0
-ICONS=(bot boxes circle-alert circle-check copy cpu file-code file-text files folder folder-open git-branch message-square minus panel-left panel-right plus search
+ICONS=(arrow-down arrow-up bot boxes case-sensitive chevron-down chevron-right circle-alert circle-check copy cpu file-code file-text files folder folder-open git-branch message-square minus panel-left panel-right plus regex replace replace-all search whole-word
        settings sparkles square terminal x)
 dir=scratch/lucide-$VERSION
 mkdir -p "$dir"

@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:wb="using:Wicked.App.Workbench"
              xmlns:shell="using:Wicked.App.Shell"
+             xmlns:views="using:Wicked.App.Views"
              x:Class="Wicked.App.Views.EditorGroupView"
              x:DataType="wb:EditorGroup">
   <DockPanel>
@@ -36,6 +37,7 @@
 
     <Panel>
       <ContentControl Name="Host" />
+      <views:FindWidget Name="FindBar" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,6,22,0" IsVisible="False" />
       <!-- An empty group shows the welcome. -->
       <StackPanel Name="Welcome" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" MaxWidth="460">
         <Image Source="/Assets/logo.png" Width="96" Height="96" HorizontalAlignment="Center" RenderOptions.BitmapInterpolationMode="HighQuality" />

@@ -43,6 +43,7 @@ public partial class EditorGroupView : UserControl
         if (tab is null)
         {
             Host.Content = null;
+            FindBar.IsVisible = false;
             return;
         }
 
@@ -50,11 +51,29 @@ public partial class EditorGroupView : UserControl
         if (_group?.Active != tab) return;
         var editor = tab.EditorFor(services);
         Host.Content = editor;
+        ShowFind(editor);
         // Focus once the editor is in the window: a control not yet attached ignores Focus() without a word.
         Avalonia.Threading.Dispatcher.UIThread.Post(() =>
         {
             if (_group?.Active == tab) editor.Focus();
         }, Avalonia.Threading.DispatcherPriority.Loaded);
+    }
+
+    /// <summary>The find widget belongs to the editor shown: it follows its open state and its query.</summary>
+    private void ShowFind(CodeEditor editor)
+    {
+        if (_findOf is not null) _findOf.PropertyChanged -= OnFindChanged;
+        _findOf = editor.Find;
+        _findOf.PropertyChanged += OnFindChanged;
+        FindBar.DataContext = _findOf;
+        FindBar.IsVisible = _findOf.IsOpen;
+    }
+
+    private FindViewModel? _findOf;
+
+    private void OnFindChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(FindViewModel.IsOpen) && _findOf is not null) FindBar.IsVisible = _findOf.IsOpen;
     }
 
     private void OnTabPointer(object? sender, PointerReleasedEventArgs e)

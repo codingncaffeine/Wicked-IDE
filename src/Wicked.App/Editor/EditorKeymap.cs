@@ -52,7 +52,15 @@ public static class EditorKeymap
         Add("Ctrl+Shift+Z", "redo", "Redo", e => e.Document.Redo());
         Add("Ctrl+Y", "redoAlt", "Redo", e => e.Document.Redo());
         Add("Ctrl+A", "selectAll", "Select all", e => Edits.SelectAll(e.Document));
-        Add("Escape", "removeSecondaryCursors", "Single caret", e => Edits.SingleCaret(e.Document));
+        Add("Escape", "removeSecondaryCursors", "Single caret", e =>
+        {
+            if (e.Find.IsOpen) e.Find.Close();
+            else Edits.SingleCaret(e.Document);
+        });
+        Add("Ctrl+F", "actions.find", "Find", e => e.Find.Open(replace: false));
+        Add("Ctrl+H", "editor.action.startFindReplaceAction", "Replace", e => e.Find.Open(replace: true));
+        Add("F3", "editor.action.nextMatchFindAction", "Find next", e => e.Find.Next());
+        Add("Shift+F3", "editor.action.previousMatchFindAction", "Find previous", e => e.Find.Previous());
         Add("Ctrl+C", "clipboardCopy", "Copy", e => _ = e.CopyAsync());
         Add("Ctrl+Insert", "clipboardCopyAlt", "Copy", e => _ = e.CopyAsync());
         Add("Ctrl+X", "clipboardCut", "Cut", e => _ = e.CutAsync());

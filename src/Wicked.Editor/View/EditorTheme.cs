@@ -22,6 +22,11 @@ public sealed record EditorTheme
 
     public uint IndentGuide { get; init; } = 0xFF23262D;
 
+    /// <summary>Every find match, and the one the find widget is on (amber, as editors mark them).</summary>
+    public uint FindMatch { get; init; } = 0x40F2B84B;
+
+    public uint FindMatchCurrent { get; init; } = 0x99F2B84B;
+
     public uint ScrollbarThumb { get; init; } = 0x26FFFFFF;
 
     public uint ScrollbarThumbActive { get; init; } = 0x40FFFFFF;

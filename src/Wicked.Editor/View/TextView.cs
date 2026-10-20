@@ -1,6 +1,7 @@
 using SkiaSharp;
 using Wicked.Editor.Layout;
 using Wicked.Editor.Model;
+using Wicked.Editor.Search;
 using Wicked.Editor.Syntax;
 using Wicked.Editor.Text;
 
@@ -54,6 +55,11 @@ public sealed class TextView
     public bool Focused { get; set; } = true;
 
     public bool CaretsVisible { get; set; } = true;
+
+    /// <summary>The find widget's matches (for the version they were found in), and which one it is on.</summary>
+    public SearchResult Found { get; set; } = SearchResult.None;
+
+    public int CurrentMatch { get; set; } = -1;
 
     /// <summary>The text an input method is composing at the primary caret, or null.</summary>
     public string? Preedit { get; set; }
@@ -204,6 +210,7 @@ public sealed class TextView
 
         _layout.Request([.. missing]);
         var (selections, carets) = SelectionGeometry(first, last);
+        var (matches, current) = MatchGeometry(first, last);
         var (vThumb, hThumb) = Thumbs();
         return new EditorFrame
         {
@@ -219,6 +226,8 @@ public sealed class TextView
             Lines = lines,
             Selections = selections,
             Carets = carets,
+            Matches = matches,
+            CurrentMatch = current,
             CaretsVisible = CaretsVisible && Focused,
             Focused = Focused,
             VerticalThumb = vThumb,
@@ -312,6 +321,49 @@ public sealed class TextView
         }
 
         return (selections, carets);
+    }
+
+    /// <summary>The rectangles of the find matches in sight: a binary search to the first, then only those in view.</summary>
+    private (List<SKRect> Matches, List<SKRect> Current) MatchGeometry(int first, int last)
+    {
+        var all = new List<SKRect>();
+        var current = new List<SKRect>();
+        var found = Found;
+        if (found.Matches.IsEmpty || found.Version != Document.Version) return (all, current);
+        var rope = Document.Text;
+        var firstOffset = rope.LineStart(first);
+        var lastOffset = rope.LineStart(last) + rope.LineLength(last);
+        var origin = TextLeft - ScrollX;
+
+        // The first match that ends inside or after the first line in sight (matches are sorted and do not overlap).
+        int lo = 0, hi = found.Matches.Length;
+        while (lo < hi)
+        {
+            var mid = (lo + hi) / 2;
+            if (found.Matches[mid].Start + found.Matches[mid].Length <= firstOffset) lo = mid + 1;
+            else hi = mid;
+        }
+
+        for (var i = lo; i < found.Matches.Length; i++)
+        {
+            var (start, length) = found.Matches[i];
+            if (start > lastOffset) break;
+            var target = i == CurrentMatch ? current : all;
+            var startLine = rope.LineOf(Math.Max(start, firstOffset));
+            var endLine = rope.LineOf(Math.Min(start + length, lastOffset));
+            for (var line = startLine; line <= endLine; line++)
+            {
+                var lineStart = rope.LineStart(line);
+                var from = Math.Max(start, lineStart) - lineStart;
+                var to = Math.Min(start + length, lineStart + rope.LineLength(line)) - lineStart;
+                var y = line * LineHeight - ScrollY;
+                var x0 = XOf(line, from);
+                var x1 = Math.Max(XOf(line, to), x0 + 2);
+                target.Add(new SKRect(origin + x0, y + 1, origin + x1, y + LineHeight - 1));
+            }
+        }
+
+        return (all, current);
     }
 
     private void AddIfMissing(List<LineKey> missing, int line)

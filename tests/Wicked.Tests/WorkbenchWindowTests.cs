@@ -211,3 +211,59 @@ public sealed class WorkbenchWindowTests
         });
     }
 }
+
+/// <summary>Find and replace through the window.</summary>
+public sealed class FindWindowTests
+{
+    [Fact]
+    public async Task CtrlFFindsCtrlHReplacesAndEscapeCloses()
+    {
+        using var profile = new TempProfile();
+        var root = Path.Combine(profile.Root, "p");
+        Directory.CreateDirectory(root);
+        File.WriteAllText(Path.Combine(root, "a.txt"), "cat dog cat bird cat\n");
+        await Ui.Run(() =>
+        {
+            var (window, shell) = Ui.Start(profile.Paths);
+            var open = shell.OpenFolderAndRememberAsync(root);
+            Assert.True(Ui.PumpUntil(() => open.IsCompleted, 5));
+            var opening = shell.Workbench.OpenAsync(Path.Combine(root, "a.txt"));
+            Assert.True(Ui.PumpUntil(() => opening.IsCompleted && shell.Workbench.ActiveTab?.Editor?.IsAttachedToVisualTree() == true, 5));
+            var editor = shell.Workbench.ActiveTab!.Editor!;
+            Input.Click(window, editor);
+
+            Input.Chord(window, Avalonia.Input.Key.F, Avalonia.Input.RawInputModifiers.Control);
+            Assert.True(editor.Find.IsOpen);
+            window.KeyTextInput("cat");
+            Assert.True(Ui.PumpUntil(() => editor.Find.Status == "1 of 3", 5), editor.Find.Status);
+            Assert.Equal(new Wicked.Editor.Model.Selection(0, 3), editor.Document.Primary);
+            if (Environment.GetEnvironmentVariable("WICKED_SCREENSHOT_FIND") is { Length: > 0 } shot)
+            {
+                editor.Find.ShowReplace = true;
+                Ui.Pump(0.3);
+                using var frame = window.CaptureRenderedFrame();
+                frame?.Save(shot, new Avalonia.Media.Imaging.PngBitmapEncoderOptions());
+                editor.Find.ShowReplace = false;
+            }
+
+
+            window.KeyPress(Avalonia.Input.Key.Enter, Avalonia.Input.RawInputModifiers.None, Avalonia.Input.PhysicalKey.Enter, null);
+            Ui.Pump(0.1);
+            Assert.Equal("2 of 3", editor.Find.Status);
+            Assert.Equal(8, editor.Document.Primary.Start);
+
+            editor.Find.ShowReplace = true;
+            editor.Find.Replacement = "lion";
+            editor.Find.ReplaceAll();
+            Assert.True(Ui.PumpUntil(() => editor.Find.Status == "No results", 5), editor.Find.Status);
+            Assert.Equal("lion dog lion bird lion\n", editor.Document.Text.ToString());
+
+            window.KeyPress(Avalonia.Input.Key.Escape, Avalonia.Input.RawInputModifiers.None, Avalonia.Input.PhysicalKey.Escape, null);
+            Ui.Pump(0.1);
+            Assert.False(editor.Find.IsOpen);
+            Assert.True(editor.IsFocused);
+            window.Close();
+            return 0;
+        });
+    }
+}

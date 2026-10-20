@@ -38,6 +38,11 @@ public sealed record EditorFrame
 
     public required IReadOnlyList<SKRect> Carets { get; init; }
 
+    /// <summary>Find matches in sight; the current one drawn brighter.</summary>
+    public IReadOnlyList<SKRect> Matches { get; init; } = [];
+
+    public IReadOnlyList<SKRect> CurrentMatch { get; init; } = [];
+
     public required bool CaretsVisible { get; init; }
 
     public required bool Focused { get; init; }

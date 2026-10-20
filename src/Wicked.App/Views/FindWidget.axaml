@@ -1,0 +1,54 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ed="using:Wicked.App.Editor"
+             xmlns:shell="using:Wicked.App.Shell"
+             x:Class="Wicked.App.Views.FindWidget"
+             x:DataType="ed:FindViewModel">
+  <Border Classes="findwidget">
+    <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" RowSpacing="4">
+      <Button Grid.RowSpan="2" Classes="quiet findtoggle" Command="{Binding ToggleReplaceCommand}" ToolTip.Tip="Toggle Replace" VerticalAlignment="Stretch" Padding="2,0">
+        <Panel>
+          <shell:Icon Data="{StaticResource Icon.ChevronRight}" Size="14" IsVisible="{Binding !ShowReplace}" />
+          <shell:Icon Data="{StaticResource Icon.ChevronDown}" Size="14" IsVisible="{Binding ShowReplace}" />
+        </Panel>
+      </Button>
+
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
+        <Panel Width="250">
+          <TextBox Name="QueryBox" Classes="find" Classes.error="{Binding HasError}" Text="{Binding Query}" PlaceholderText="Find" />
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,4,0" Spacing="1">
+            <ToggleButton Classes="findopt" IsChecked="{Binding MatchCase}" ToolTip.Tip="Match Case (Alt+C)">
+              <shell:Icon Data="{StaticResource Icon.CaseSensitive}" Size="14" />
+            </ToggleButton>
+            <ToggleButton Classes="findopt" IsChecked="{Binding WholeWord}" ToolTip.Tip="Match Whole Word (Alt+W)">
+              <shell:Icon Data="{StaticResource Icon.WholeWord}" Size="14" />
+            </ToggleButton>
+            <ToggleButton Classes="findopt" IsChecked="{Binding Regex}" ToolTip.Tip="Use Regular Expression (Alt+R)">
+              <shell:Icon Data="{StaticResource Icon.Regex}" Size="14" />
+            </ToggleButton>
+          </StackPanel>
+        </Panel>
+        <TextBlock Name="FindStatus" Text="{Binding Status}" Width="78" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" VerticalAlignment="Center" Margin="4,0" />
+        <Button Classes="quiet" Command="{Binding PreviousCommand}" ToolTip.Tip="Previous Match (Shift+Enter)" Padding="5">
+          <shell:Icon Data="{StaticResource Icon.ArrowUp}" Size="14" />
+        </Button>
+        <Button Classes="quiet" Command="{Binding NextCommand}" ToolTip.Tip="Next Match (Enter)" Padding="5">
+          <shell:Icon Data="{StaticResource Icon.ArrowDown}" Size="14" />
+        </Button>
+        <Button Classes="quiet" Command="{Binding CloseCommand}" ToolTip.Tip="Close (Escape)" Padding="5">
+          <shell:Icon Data="{StaticResource Icon.X}" Size="14" />
+        </Button>
+      </StackPanel>
+
+      <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Spacing="4" IsVisible="{Binding ShowReplace}">
+        <TextBox Name="ReplaceBox" Classes="find" Width="250" Text="{Binding Replacement}" PlaceholderText="Replace" />
+        <Button Classes="quiet" Command="{Binding ReplaceOneCommand}" ToolTip.Tip="Replace (Enter)" Padding="5">
+          <shell:Icon Data="{StaticResource Icon.Replace}" Size="14" />
+        </Button>
+        <Button Classes="quiet" Command="{Binding ReplaceAllCommand}" ToolTip.Tip="Replace All (Ctrl+Alt+Enter)" Padding="5">
+          <shell:Icon Data="{StaticResource Icon.ReplaceAll}" Size="14" />
+        </Button>
+      </StackPanel>
+    </Grid>
+  </Border>
+</UserControl>
