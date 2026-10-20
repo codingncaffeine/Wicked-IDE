@@ -187,6 +187,15 @@
         <views:SettingsView DataContext="{Binding SettingsSheet}" HorizontalAlignment="Center" VerticalAlignment="Center" />
       </Border>
 
+      <Border Name="BrowseLayer" Grid.RowSpan="3" Background="#99000000" IsVisible="{Binding Models.Browse.IsOpen}">
+        <views:BrowseView DataContext="{Binding Models.Browse}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+      </Border>
+
+      <!-- A question from the model half: the licence to accept, a delete to confirm. Above the sheets, below the save prompt. -->
+      <Border Name="PromptLayer" Grid.RowSpan="3" Background="#99000000" IsVisible="{Binding Models.Prompt, Converter={x:Static ObjectConverters.IsNotNull}}">
+        <views:PromptView DataContext="{Binding Models.Prompt}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+      </Border>
+
       <Border Name="DialogLayer" Grid.RowSpan="3" Background="#99000000" IsVisible="False">
         <Border Classes="dialog" Width="460" HorizontalAlignment="Center" VerticalAlignment="Center">
           <StackPanel Spacing="10">

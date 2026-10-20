@@ -1,3 +1,5 @@
+using System.Globalization;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Wicked.Core.Settings;
@@ -24,14 +26,30 @@ public sealed partial class SettingsViewModel : ObservableObject
     {
         _shell = shell;
         CodeThemes = [new("", "Wicked Dark (the theme's own)"), .. SyntaxService.Themes.Select(t => new SettingChoice(t.ToString(), ShellViewModel.Friendly(t.ToString())))];
+        DownloadLimits = [new("0", "Unlimited"), .. new[] { 1, 2, 5, 10, 25, 50, 100 }.Select(n => new SettingChoice(n.ToString(CultureInfo.InvariantCulture), n + " MB/s"))];
+        Runtime = new RuntimeViewModel(shell.Models, shell.UpdateSettingsAsync);
         shell.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(ShellViewModel.Settings)) Load(shell.Settings);
+            if (e.PropertyName == nameof(ShellViewModel.SettingsOpen) && shell.SettingsOpen) _ = Runtime.RefreshAsync();
         };
         Load(shell.Settings);
     }
 
+    /// <summary>Raised when something outside the sheet (a footer notice) wants a section shown: "models", "runtime".</summary>
+    public event Action<string>? SectionRequested;
+
+    public void RequestSection(string section) => SectionRequested?.Invoke(section);
+
     public IReadOnlyList<SettingChoice> CodeThemes { get; }
+
+    /// <summary>Settings → Runtime: the engine, its devices, the backend choice, updates and rollback.</summary>
+    public RuntimeViewModel Runtime { get; }
+
+    public IReadOnlyList<SettingChoice> DownloadLimits { get; }
+
+    /// <summary>Asks the user for a folder (set by the sheet, which owns the window's storage provider); null when they decline.</summary>
+    public Func<Task<string?>>? FolderPicker { get; set; }
 
     public IReadOnlyList<SettingChoice> AutoSaveModes { get; } =
     [
@@ -77,6 +95,24 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private bool _restoreSession;
 
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(StoreLocationText), nameof(UsesDefaultStore))]
+    private string _storeLocation = "";
+
+    [ObservableProperty]
+    private string _huggingFaceToken = "";
+
+    [ObservableProperty]
+    private bool _showToken;
+
+    [ObservableProperty]
+    private SettingChoice? _downloadLimit;
+
+    public bool UsesDefaultStore => StoreLocation.Length == 0;
+
+    /// <summary>Where new models go, in words: the folder, or the default one named.</summary>
+    public string StoreLocationText => StoreLocation.Length > 0 ? StoreLocation : $"{Path.Combine(_shell.Paths.Data, "models")}  (default)";
+
     private void Load(WickedSettings s)
     {
         _loading = true;
@@ -92,6 +128,11 @@ public sealed partial class SettingsViewModel : ObservableObject
         TrimTrailingWhitespace = s.TrimTrailingWhitespace;
         InsertFinalNewline = s.InsertFinalNewline;
         RestoreSession = s.RestoreSession;
+        StoreLocation = s.StoreLocation;
+        HuggingFaceToken = s.HuggingFaceToken;
+        var limit = s.DownloadLimit.ToString("0.##", CultureInfo.InvariantCulture);
+        DownloadLimit = DownloadLimits.FirstOrDefault(c => c.Value == limit) ?? new SettingChoice(limit, limit + " MB/s");
+        Runtime.Load(s);
         _loading = false;
     }
 
@@ -119,6 +160,34 @@ public sealed partial class SettingsViewModel : ObservableObject
     partial void OnInsertFinalNewlineChanged(bool value) => Change(s => s with { InsertFinalNewline = value });
 
     partial void OnRestoreSessionChanged(bool value) => Change(s => s with { RestoreSession = value });
+
+    partial void OnStoreLocationChanged(string value) => Change(s => s with { StoreLocation = value });
+
+    partial void OnDownloadLimitChanged(SettingChoice? value) =>
+        Change(s => s with { DownloadLimit = double.TryParse(value?.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var mb) ? mb : 0 });
+
+    private CancellationTokenSource? _tokenDelay;
+
+    // A token is typed or pasted in one go: written to settings.json a moment after the last keystroke, not once per key.
+    partial void OnHuggingFaceTokenChanged(string value)
+    {
+        if (_loading) return;
+        _tokenDelay?.Cancel();
+        var delay = _tokenDelay = new CancellationTokenSource();
+        _ = Task.Delay(TimeSpan.FromMilliseconds(400), delay.Token).ContinueWith(
+            _ => Dispatcher.UIThread.Post(() => Change(s => s with { HuggingFaceToken = value.Trim() })),
+            CancellationToken.None, TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.Default);
+    }
+
+    [RelayCommand]
+    private async Task ChooseStore()
+    {
+        if (FolderPicker is null) return;
+        if (await FolderPicker() is { Length: > 0 } folder) StoreLocation = folder;
+    }
+
+    [RelayCommand]
+    private void UseDefaultStore() => StoreLocation = "";
 
     private void Change(Func<WickedSettings, WickedSettings> change)
     {

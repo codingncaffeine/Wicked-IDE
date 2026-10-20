@@ -66,6 +66,22 @@ public sealed record WickedSettings
     [JsonPropertyName("window.restoreWindows")]
     public bool RestoreSession { get; init; } = true;
 
+    /// <summary>Where new model installs go; empty means the default folder under the data directory. Models already installed stay where they are.</summary>
+    [JsonPropertyName("models.storeLocation")]
+    public string StoreLocation { get; init; } = "";
+
+    /// <summary>The Hugging Face access token (for gated models and higher rate limits), kept here in plain text as the Hub's own tools keep theirs.</summary>
+    [JsonPropertyName("huggingface.token")]
+    public string HuggingFaceToken { get; init; } = "";
+
+    /// <summary>Total download speed cap in megabytes per second; 0 is unlimited.</summary>
+    [JsonPropertyName("models.downloadLimitMBps")]
+    public double DownloadLimit { get; init; }
+
+    /// <summary>The engine build to use: auto (what this machine calls for), cuda, vulkan, rocm or cpu.</summary>
+    [JsonPropertyName("runtime.backend")]
+    public string RuntimeBackend { get; init; } = "auto";
+
     /// <summary>Keys this build does not know, kept so a save never drops them.</summary>
     [JsonExtensionData]
     public Dictionary<string, JsonElement>? Other { get; init; }

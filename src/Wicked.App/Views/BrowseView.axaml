@@ -1,0 +1,165 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Wicked.App.ViewModels"
+             xmlns:views="using:Wicked.App.Views"
+             xmlns:shell="using:Wicked.App.Shell"
+             x:Class="Wicked.App.Views.BrowseView"
+             x:DataType="vm:BrowseViewModel">
+  <Border Classes="dialog" Width="960" Height="680" Padding="20,16">
+    <DockPanel>
+      <!-- Title, the two tabs, close -->
+      <Grid DockPanel.Dock="Top" ColumnDefinitions="Auto,*,Auto" Margin="0,0,0,12">
+        <TextBlock Text="Browse models" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center">
+          <Button Name="CatalogTabButton" Classes="segment" Classes.active="{Binding ShowCatalog}" Content="Catalog" Command="{Binding SelectCatalogCommand}" />
+          <Button Name="HubTabButton" Classes="segment" Classes.active="{Binding ShowHub}" Content="Hugging Face" Command="{Binding SelectHubCommand}" />
+        </StackPanel>
+        <Button Grid.Column="2" Name="CloseBrowse" Classes="quiet" Command="{Binding CloseCommand}" ToolTip.Tip="Close (Escape)">
+          <shell:Icon Data="{StaticResource Icon.X}" Size="15" />
+        </Button>
+      </Grid>
+
+      <!-- An install problem, here as well as in the footer: this page's dim layer covers the footer. -->
+      <Border DockPanel.Dock="Bottom" Name="BrowseAlert" Classes="alert" IsVisible="{Binding Owner.HasAlert}" Margin="0,10,0,0">
+        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+          <shell:Icon Data="{StaticResource Icon.CircleAlert}" Size="15" Foreground="{DynamicResource Brush.Warning}" VerticalAlignment="Top" Margin="0,2,0,0" />
+          <TextBlock Grid.Column="1" Name="BrowseAlertText" Text="{Binding Owner.Alert}" TextWrapping="Wrap" VerticalAlignment="Center" />
+          <Button Grid.Column="2" Name="BrowseAlertAction" Classes="secondary" Content="Open Settings" Command="{Binding Owner.OpenAlertCommand}" IsVisible="{Binding Owner.AlertHasAction}" />
+        </Grid>
+      </Border>
+
+      <Panel>
+        <!-- ── Catalog ── -->
+        <DockPanel Name="CatalogTab" IsVisible="{Binding ShowCatalog}">
+          <Grid DockPanel.Dock="Top" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14" Margin="0,0,0,12">
+            <TextBox Name="CatalogFilter" Text="{Binding Filter}" PlaceholderText="Filter by name…" Width="260" />
+            <ItemsControl Grid.Column="1" Name="RoleChips" ItemsSource="{Binding Chips}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <StackPanel Orientation="Horizontal" Spacing="6" />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="vm:RoleChip">
+                  <ToggleButton Classes="chip" IsChecked="{Binding Selected}" Content="{Binding Label}" />
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock Grid.Column="2" Text="{Binding CatalogNote}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" VerticalAlignment="Center" />
+          </Grid>
+          <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+            <ItemsControl Name="FamilyList" ItemsSource="{Binding Families}" Margin="0,0,10,0">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <StackPanel Spacing="16" />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="vm:FamilyGroup">
+                  <StackPanel Spacing="8">
+                    <TextBlock Classes="heading" Text="{Binding Heading}" />
+                    <ItemsControl ItemsSource="{Binding Models}">
+                      <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                          <StackPanel Spacing="6" />
+                        </ItemsPanelTemplate>
+                      </ItemsControl.ItemsPanel>
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="vm:CatalogRow">
+                          <Border Classes="modelrow">
+                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="16">
+                              <StackPanel Spacing="3" VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                  <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="14" />
+                                  <TextBlock Text="{Binding Roles}" IsVisible="{Binding HasRoles}" FontSize="10" FontWeight="SemiBold" LetterSpacing="0.6"
+                                             Foreground="{DynamicResource Brush.Accent.Hover}" VerticalAlignment="Center" />
+                                </StackPanel>
+                                <TextBlock Text="{Binding Facts}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" />
+                              </StackPanel>
+                              <StackPanel Grid.Column="1" Spacing="6" VerticalAlignment="Center" Width="190">
+                                <Border Classes="fit" Classes.ok="{Binding Fit.Ok}" Classes.offload="{Binding Fit.Offload}" Classes.no="{Binding Fit.No}"
+                                        HorizontalAlignment="Left" ToolTip.Tip="{Binding Fit.Tip}">
+                                  <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <Ellipse />
+                                    <TextBlock Text="{Binding Fit.Text}" />
+                                  </StackPanel>
+                                </Border>
+                                <ComboBox Classes="quant" ItemsSource="{Binding Tiers}" SelectedItem="{Binding SelectedTier}" HorizontalAlignment="Stretch" />
+                              </StackPanel>
+                              <views:InstallControls Grid.Column="2" />
+                            </Grid>
+                          </Border>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </StackPanel>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+        </DockPanel>
+
+        <!-- ── Hugging Face ── -->
+        <Grid Name="HubTab" IsVisible="{Binding ShowHub}" ColumnDefinitions="330,18,*">
+          <DockPanel>
+            <TextBox DockPanel.Dock="Top" Name="HubSearch" Text="{Binding HubQuery}" PlaceholderText="Search GGUF models on Hugging Face…" Margin="0,0,0,8" />
+            <TextBlock DockPanel.Dock="Top" Name="HubStatus" Text="{Binding HubStatus}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" Margin="2,0,0,8" TextTrimming="CharacterEllipsis" />
+            <ListBox Name="HubResultList" Classes="results" ItemsSource="{Binding HubResults}" SelectedItem="{Binding SelectedResult}">
+              <ListBox.ItemTemplate>
+                <DataTemplate DataType="vm:HubResultRow">
+                  <StackPanel Spacing="2">
+                    <Grid ColumnDefinitions="*,Auto">
+                      <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                      <TextBlock Grid.Column="1" Text="Gated" IsVisible="{Binding Gated}" Foreground="{DynamicResource Brush.Warning}" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    </Grid>
+                    <TextBlock Text="{Binding Facts}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" TextTrimming="CharacterEllipsis" />
+                  </StackPanel>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </DockPanel>
+
+          <ScrollViewer Grid.Column="2" HorizontalScrollBarVisibility="Disabled">
+            <Panel>
+              <TextBlock Classes="muted" Text="Pick a repo to see its quantisations and how they fit this PC." TextWrapping="Wrap" Margin="0,40,0,0" HorizontalAlignment="Center"
+                         IsVisible="{Binding Detail, Converter={x:Static ObjectConverters.IsNull}}" />
+              <StackPanel Name="HubDetail" DataContext="{Binding Detail}" x:DataType="vm:HubDetailView" Spacing="8" IsVisible="{Binding $self.DataContext, Converter={x:Static ObjectConverters.IsNotNull}}">
+                <TextBlock Name="HubDetailTitle" Text="{Binding Title}" FontSize="16" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                <TextBlock Text="{Binding Summary}" Classes="secondary" FontSize="{DynamicResource Font.Size.Small}" TextWrapping="Wrap" />
+                <TextBlock Text="{Binding FitNote}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" TextWrapping="Wrap" />
+                <TextBlock Text="Reading the repo…" Classes="muted" IsVisible="{Binding Loading}" />
+                <TextBlock Name="HubDetailMessage" Text="{Binding Message}" Foreground="{DynamicResource Brush.Warning}" FontSize="{DynamicResource Font.Size.Small}" TextWrapping="Wrap"
+                           IsVisible="{Binding Message, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                <ItemsControl Name="VariantList" ItemsSource="{Binding Variants}" Margin="0,6,0,0">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <StackPanel Spacing="6" />
+                    </ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="vm:HubVariantRow">
+                      <Border Classes="modelrow">
+                        <Grid ColumnDefinitions="100,*,Auto,Auto" ColumnSpacing="14">
+                          <TextBlock Text="{Binding Quant}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                          <TextBlock Grid.Column="1" Text="{Binding Size}" Classes="secondary" VerticalAlignment="Center" />
+                          <Border Grid.Column="2" Classes="fit" Classes.ok="{Binding Fit.Ok}" Classes.offload="{Binding Fit.Offload}" Classes.no="{Binding Fit.No}"
+                                  VerticalAlignment="Center" ToolTip.Tip="{Binding Fit.Tip}">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                              <Ellipse />
+                              <TextBlock Text="{Binding Fit.Text}" />
+                            </StackPanel>
+                          </Border>
+                          <views:InstallControls Grid.Column="3" />
+                        </Grid>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+            </Panel>
+          </ScrollViewer>
+        </Grid>
+      </Panel>
+    </DockPanel>
+  </Border>
+</UserControl>

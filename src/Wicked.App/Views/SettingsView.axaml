@@ -4,7 +4,7 @@
              xmlns:shell="using:Wicked.App.Shell"
              x:Class="Wicked.App.Views.SettingsView"
              x:DataType="vm:SettingsViewModel">
-  <Border Classes="dialog settings" Width="720" MaxHeight="640">
+  <Border Classes="dialog settings" Width="720" MaxHeight="680">
     <DockPanel>
       <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="0,0,0,12">
         <TextBlock Text="Settings" FontSize="18" FontWeight="SemiBold" />
@@ -13,6 +13,14 @@
           <shell:Icon Data="{StaticResource Icon.X}" Size="15" />
         </Button>
       </Grid>
+      <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="2" Margin="-6,0,0,12">
+        <Button Classes="quiet" Content="Editor" Click="OnJump" Tag="editor" />
+        <Button Classes="quiet" Content="Appearance" Click="OnJump" Tag="appearance" />
+        <Button Classes="quiet" Content="Files" Click="OnJump" Tag="files" />
+        <Button Classes="quiet" Content="Session" Click="OnJump" Tag="session" />
+        <Button Name="JumpModels" Classes="quiet" Content="Models" Click="OnJump" Tag="models" />
+        <Button Name="JumpRuntime" Classes="quiet" Content="Runtime" Click="OnJump" Tag="runtime" />
+      </StackPanel>
       <Grid DockPanel.Dock="Bottom" ColumnDefinitions="*,Auto" Margin="0,14,0,0">
         <TextBlock Classes="muted" FontSize="{DynamicResource Font.Size.Small}" VerticalAlignment="Center" TextWrapping="Wrap"
                    Text="Changes apply at once and are kept in settings.json, which you can also edit by hand." />
@@ -22,7 +30,7 @@
       <ScrollViewer HorizontalScrollBarVisibility="Disabled">
         <StackPanel Spacing="22" Margin="0,0,10,0">
           <StackPanel Spacing="10">
-            <TextBlock Classes="heading" Text="EDITOR" />
+            <TextBlock Name="SectionEditor" Classes="heading" Text="EDITOR" />
             <Grid ColumnDefinitions="220,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="10" Classes="settings">
               <TextBlock Text="Font size" />
               <NumericUpDown Grid.Column="1" Name="FontSizeBox" Value="{Binding FontSize}" Minimum="6" Maximum="72" Increment="1" FormatString="0" Width="120" HorizontalAlignment="Left" />
@@ -40,7 +48,7 @@
           </StackPanel>
 
           <StackPanel Spacing="10">
-            <TextBlock Classes="heading" Text="APPEARANCE" />
+            <TextBlock Name="SectionAppearance" Classes="heading" Text="APPEARANCE" />
             <Grid ColumnDefinitions="220,*" RowDefinitions="Auto" Classes="settings">
               <TextBlock Text="Code colours" />
               <ComboBox Grid.Column="1" Name="CodeThemeBox" ItemsSource="{Binding CodeThemes}" SelectedItem="{Binding CodeTheme}" Width="280" />
@@ -48,7 +56,7 @@
           </StackPanel>
 
           <StackPanel Spacing="10">
-            <TextBlock Classes="heading" Text="FILES" />
+            <TextBlock Name="SectionFiles" Classes="heading" Text="FILES" />
             <Grid ColumnDefinitions="220,*" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="10" Classes="settings">
               <TextBlock Text="Auto save" />
               <ComboBox Grid.Column="1" ItemsSource="{Binding AutoSaveModes}" SelectedItem="{Binding AutoSave}" Width="280" />
@@ -62,11 +70,78 @@
           </StackPanel>
 
           <StackPanel Spacing="10">
-            <TextBlock Classes="heading" Text="SESSION" />
+            <TextBlock Name="SectionSession" Classes="heading" Text="SESSION" />
             <Grid ColumnDefinitions="220,*" Classes="settings">
               <TextBlock Text="Reopen the last folder and files" />
               <ToggleSwitch Grid.Column="1" IsChecked="{Binding RestoreSession}" OnContent="" OffContent="" />
             </Grid>
+          </StackPanel>
+
+          <StackPanel Spacing="10">
+            <TextBlock Name="SectionModels" Classes="heading" Text="MODELS" />
+            <Grid ColumnDefinitions="220,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="10" Classes="settings">
+              <TextBlock Text="Install new models in" VerticalAlignment="Top" Margin="0,6,0,0" />
+              <StackPanel Grid.Column="1" Spacing="6">
+                <TextBlock Name="StoreLocationText" Text="{Binding StoreLocationText}" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text}" />
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <Button Name="ChooseStore" Classes="secondary" Content="Choose folder…" Command="{Binding ChooseStoreCommand}" />
+                  <Button Name="UseDefaultStore" Classes="quiet" Content="Use the default" Command="{Binding UseDefaultStoreCommand}" IsVisible="{Binding !UsesDefaultStore}" />
+                </StackPanel>
+                <TextBlock Classes="muted" FontSize="{DynamicResource Font.Size.Small}" TextWrapping="Wrap"
+                           Text="New installs go here. Models you already have stay where they are and stay listed; moving them comes later." />
+              </StackPanel>
+
+              <TextBlock Grid.Row="1" Text="Hugging Face token" VerticalAlignment="Top" Margin="0,6,0,0" />
+              <StackPanel Grid.Row="1" Grid.Column="1" Spacing="6">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                  <TextBox Name="TokenBox" Text="{Binding HuggingFaceToken}" PasswordChar="●" RevealPassword="{Binding ShowToken}" PlaceholderText="hf_…" MaxWidth="360" HorizontalAlignment="Left" Width="360" />
+                  <ToggleButton Grid.Column="1" Classes="findopt" IsChecked="{Binding ShowToken}" ToolTip.Tip="Show the token" AutomationProperties.Name="Show token">
+                    <shell:Icon Data="{StaticResource Icon.KeyRound}" Size="14" />
+                  </ToggleButton>
+                </Grid>
+                <TextBlock Classes="muted" FontSize="{DynamicResource Font.Size.Small}" TextWrapping="Wrap"
+                           Text="Needed for gated models (Llama, Gemma and others whose terms you accept on huggingface.co). Sent to huggingface.co only, and kept in settings.json." />
+              </StackPanel>
+
+              <TextBlock Grid.Row="2" Text="Download speed limit" />
+              <ComboBox Grid.Row="2" Grid.Column="1" Name="DownloadLimitBox" ItemsSource="{Binding DownloadLimits}" SelectedItem="{Binding DownloadLimit}" Width="180" />
+            </Grid>
+          </StackPanel>
+
+          <StackPanel Spacing="10">
+            <TextBlock Name="SectionRuntime" Classes="heading" Text="RUNTIME" />
+            <StackPanel DataContext="{Binding Runtime}" Spacing="12" x:DataType="vm:RuntimeViewModel">
+              <Grid ColumnDefinitions="220,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="8" Classes="settings">
+                <TextBlock Text="Engine" VerticalAlignment="Top" />
+                <StackPanel Grid.Column="1" Spacing="2">
+                  <TextBlock Name="EngineText" Text="{Binding EngineText}" TextWrapping="Wrap" Foreground="{DynamicResource Brush.Text}" />
+                  <TextBlock Name="EngineVersion" Text="{Binding VersionText}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" />
+                </StackPanel>
+                <TextBlock Grid.Row="1" Text="Devices it sees" VerticalAlignment="Top" />
+                <StackPanel Grid.Row="1" Grid.Column="1" Spacing="2">
+                  <ItemsControl Name="DeviceList" ItemsSource="{Binding Devices}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="x:String">
+                        <TextBlock Text="{Binding}" Foreground="{DynamicResource Brush.Text}" />
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                  <TextBlock Text="{Binding DevicesNote}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" TextWrapping="Wrap" />
+                </StackPanel>
+                <TextBlock Grid.Row="2" Text="Backend" />
+                <ComboBox Grid.Row="2" Grid.Column="1" Name="BackendBox" ItemsSource="{Binding Backends}" SelectedItem="{Binding Backend}" Width="280" />
+              </Grid>
+
+              <StackPanel Spacing="8" Margin="220,0,0,0">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <Button Name="CheckEngine" Classes="secondary" Content="Check for engine updates" Command="{Binding CheckCommand}" IsEnabled="{Binding CanRun}" />
+                  <Button Name="UpdateEngine" Classes="primary" Content="{Binding UpdateButtonText}" Command="{Binding UpdateCommand}" IsVisible="{Binding HasUpdate}" IsEnabled="{Binding CanRun}" />
+                  <Button Name="RollbackEngine" Classes="secondary" Content="{Binding RollbackButtonText}" Command="{Binding RollbackCommand}" IsVisible="{Binding CanRollback}" IsEnabled="{Binding CanRun}" />
+                </StackPanel>
+                <ProgressBar Height="3" MinHeight="3" Minimum="0" Maximum="1" Value="{Binding Progress}" IsVisible="{Binding ShowProgress}" />
+                <TextBlock Name="RuntimeStatus" Text="{Binding Status}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" TextWrapping="Wrap" />
+              </StackPanel>
+            </StackPanel>
           </StackPanel>
         </StackPanel>
       </ScrollViewer>
