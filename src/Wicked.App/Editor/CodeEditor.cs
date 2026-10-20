@@ -41,6 +41,7 @@ public sealed class CodeEditor : Control
         Box,
         VerticalThumb,
         HorizontalThumb,
+        Minimap,
     }
 
     public CodeEditor(EditorServices services, Document document, LanguageInfo? language)
@@ -239,6 +240,7 @@ public sealed class CodeEditor : Control
         };
         _view.FollowPalette = settings.CodeColorTheme.Length > 0;
         _view.BracketColors = settings.BracketPairColorization;
+        _view.ShowMinimap = settings.Minimap;
         _view.ShowIndentGuides = settings.IndentGuides;
         _view.RenderWhitespace = Enum.TryParse<Wicked.Editor.Features.WhitespaceMode>(settings.RenderWhitespace, ignoreCase: true, out var mode) ? mode : Wicked.Editor.Features.WhitespaceMode.Selection;
         RequestFeatures();
@@ -358,6 +360,14 @@ public sealed class CodeEditor : Control
             _drag = Drag.HorizontalThumb;
             _dragGrab = x - _view.HorizontalThumb.Left;
         }
+        else if (_view.ShowMinimap && x >= _view.MinimapLeft && x < _view.MinimapLeft + TextView.MinimapWidth)
+        {
+            // On the slider: drag it; elsewhere: jump there, then drag.
+            var slider = _view.MinimapSlider;
+            if (!slider.Contains(x, y)) _view.MinimapClick(y);
+            _drag = Drag.Minimap;
+            _dragGrab = y - _view.MinimapSlider.Top;
+        }
         else if (x >= Bounds.Width - 12)
         {
             // A click on the scrollbar's track jumps a page toward it.
@@ -436,7 +446,7 @@ public sealed class CodeEditor : Control
         var overThumb = _view.VerticalThumb.Contains(x, y) || _view.HorizontalThumb.Contains(x, y);
         if (_drag == Drag.None)
         {
-            Cursor = new Cursor(x < _view.GutterWidth || x >= Bounds.Width - 12 ? StandardCursorType.Arrow : StandardCursorType.Ibeam);
+            Cursor = new Cursor(x < _view.GutterWidth || x >= (_view.ShowMinimap ? _view.MinimapLeft : Bounds.Width - 12) ? StandardCursorType.Arrow : StandardCursorType.Ibeam);
             var overGutter = x < _view.GutterWidth;
             if (overGutter != _view.GutterHover)
             {
@@ -460,6 +470,9 @@ public sealed class CodeEditor : Control
                 break;
             case Drag.HorizontalThumb:
                 _view.DragHorizontalThumb(x - _dragGrab);
+                break;
+            case Drag.Minimap:
+                _view.MinimapDrag(y - _dragGrab);
                 break;
             case Drag.Text:
                 var offset = _view.OffsetAt(x, y);

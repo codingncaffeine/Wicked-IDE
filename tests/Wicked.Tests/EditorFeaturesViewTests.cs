@@ -103,3 +103,32 @@ public sealed class FoldingViewTests
         });
     }
 }
+
+public sealed class MinimapViewTests
+{
+    [Fact]
+    public async Task TheMinimapShowsTheFileAndAClickScrollsThere()
+    {
+        await Ui.Run(() =>
+        {
+            var code = string.Join('\n', Enumerable.Range(0, 2000).Select(i => $"    int value{i} = {i}; // line {i}"));
+            var editor = new CodeEditor(EditorServices.Ready.Result, new Document(code), Languages.ForFile("a.cs"));
+            var window = new Avalonia.Controls.Window { Width = 1000, Height = 600, Content = editor };
+            window.Show();
+            Assert.True(Ui.PumpUntil(() => editor.View.Features?.Version == editor.Document.Version, 10));
+            var frame = editor.View.BuildFrame();
+            Assert.NotNull(frame.Minimap);
+            Assert.NotEmpty(frame.Minimap!.Lines);
+            Assert.Equal(0, editor.View.ScrollY);
+
+            // A click near the minimap's foot scrolls down the file.
+            var point = new Avalonia.Point(editor.View.MinimapLeft + 50, 580);
+            window.MouseDown(point, Avalonia.Input.MouseButton.Left);
+            window.MouseUp(point, Avalonia.Input.MouseButton.Left);
+            Ui.Pump(0.1);
+            Assert.True(editor.View.ScrollY > 0, "the minimap click did not scroll");
+            window.Close();
+            return 0;
+        });
+    }
+}

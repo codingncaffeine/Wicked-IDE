@@ -30,6 +30,9 @@ public sealed record WickedSettings
     [JsonPropertyName("editor.bracketPairColorization.enabled")]
     public bool BracketPairColorization { get; init; } = true;
 
+    [JsonPropertyName("editor.minimap.enabled")]
+    public bool Minimap { get; init; } = true;
+
     [JsonPropertyName("editor.guides.indentation")]
     public bool IndentGuides { get; init; } = true;
 

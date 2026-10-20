@@ -17,6 +17,11 @@ namespace Wicked.Editor.View;
 public sealed class TextView
 {
     private const float ScrollbarSize = 12;
+
+    /// <summary>The minimap's width and the height of one line in it (VS Code's "blocks" scale).</summary>
+    public const float MinimapWidth = 100;
+
+    public const float MinimapLineHeight = 2;
     private const float MinThumb = 24;
 
     private readonly LayoutService _layout;
@@ -107,6 +112,63 @@ public sealed class TextView
 
     public bool BracketColors { get; set; } = true;
 
+    public bool ShowMinimap { get; set; } = true;
+
+    private float MinimapSpace => ShowMinimap ? MinimapWidth : 0;
+
+    /// <summary>The minimap's left edge.</summary>
+    public float MinimapLeft => Width - ScrollbarSize - MinimapWidth;
+
+    /// <summary>
+    /// Which visual line the minimap's first row shows: the minimap scrolls in proportion to the editor, so its slider
+    /// sweeps the whole document while showing a strip of lines around the view, as VS Code's does.
+    /// </summary>
+    public float MinimapFirstLine
+    {
+        get
+        {
+            var rows = Height / MinimapLineHeight;
+            var total = VisualLineCount;
+            if (total <= rows || MaxScrollY <= 0) return 0;
+            return ScrollY / MaxScrollY * (total - rows);
+        }
+    }
+
+    /// <summary>The slider over the minimap: the lines in the view.</summary>
+    public SKRect MinimapSlider
+    {
+        get
+        {
+            var top = (ScrollY / LineHeight - MinimapFirstLine) * MinimapLineHeight;
+            var height = Math.Max(MinimapLineHeight * 4, Height / LineHeight * MinimapLineHeight);
+            return new SKRect(MinimapLeft, top, MinimapLeft + MinimapWidth, top + height);
+        }
+    }
+
+    /// <summary>A click on the minimap: the line under it comes to the middle of the view.</summary>
+    public void MinimapClick(float y)
+    {
+        var visual = MinimapFirstLine + y / MinimapLineHeight;
+        ScrollTo(ScrollX, visual * LineHeight - Height / 2);
+    }
+
+    /// <summary>Dragging the slider: its top follows the pointer.</summary>
+    public void MinimapDrag(float sliderTop)
+    {
+        var rows = Height / MinimapLineHeight;
+        var total = VisualLineCount;
+        if (total <= rows)
+        {
+            ScrollTo(ScrollX, sliderTop / MinimapLineHeight * LineHeight);
+            return;
+        }
+
+        // The slider's place on the minimap strip, as a share of the way through the document.
+        var sliderHeight = MinimapSlider.Height;
+        var share = Math.Clamp(sliderTop / Math.Max(1, Height - sliderHeight), 0, 1);
+        ScrollTo(ScrollX, share * MaxScrollY);
+    }
+
     public bool ShowIndentGuides { get; set; } = true;
 
     public WhitespaceMode RenderWhitespace { get; set; } = WhitespaceMode.Selection;
@@ -152,7 +214,7 @@ public sealed class TextView
 
     public float TextLeft => GutterWidth + 6;
 
-    private float TextAreaWidth => Math.Max(0, Width - TextLeft - ScrollbarSize);
+    private float TextAreaWidth => Math.Max(0, Width - TextLeft - ScrollbarSize - MinimapSpace);
 
     /// <summary>The farthest scroll: the last line may come up to the top, as VS Code allows.</summary>
     public float MaxScrollY => Math.Max(0, (VisualLineCount - 1) * LineHeight);
@@ -293,6 +355,7 @@ public sealed class TextView
             BracketBoxes = bracketBoxes,
             Guides = guides,
             Whitespace = whitespace,
+            Minimap = ShowMinimap ? MinimapFrame() : null,
             CurrentMatch = current,
             CaretsVisible = CaretsVisible && Focused,
             Focused = Focused,
@@ -388,6 +451,18 @@ public sealed class TextView
         }
 
         return (selections, carets);
+    }
+
+    /// <summary>What the minimap draws: the model, the visual lines on its rows, the slider.</summary>
+    private MinimapFrame? MinimapFrame()
+    {
+        if (Features?.Minimap is not { } model || model.LineCount != Document.Text.LineCount) return null;
+        var first = (int)MinimapFirstLine;
+        var rows = Math.Min((int)(Height / MinimapLineHeight) + 1, VisualLineCount - first);
+        var lines = new int[Math.Max(0, rows)];
+        for (var i = 0; i < lines.Length; i++) lines[i] = DocumentOf(first + i);
+        var offset = (MinimapFirstLine - first) * MinimapLineHeight;
+        return new MinimapFrame(model, lines, MinimapLeft, -offset, MinimapSlider);
     }
 
     /// <summary>A line's mark in the gutter: folded, foldable (shown when the pointer is over the gutter), or none.</summary>

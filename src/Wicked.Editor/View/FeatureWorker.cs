@@ -6,7 +6,7 @@ using Wicked.Editor.Text;
 namespace Wicked.Editor.View;
 
 /// <summary>The editor's derived facts for one version of the text: brackets with their partners and depths, indent guides, folding ranges.</summary>
-public sealed record FeatureSnapshot(long Version, int LineCount, BracketIndex Brackets, IndentGuides Guides, FoldingRanges Folding);
+public sealed record FeatureSnapshot(long Version, int LineCount, BracketIndex Brackets, IndentGuides Guides, FoldingRanges Folding, MinimapModel Minimap);
 
 /// <summary>
 /// Works out a document's brackets and indent guides on a worker after it changes (tens of milliseconds for 100k lines,
@@ -61,7 +61,8 @@ public sealed class FeatureWorker
                 var brackets = BracketIndex.Build(work.Text, work.Version, work.Syntax, work.Options.Pairs);
                 var guides = IndentGuides.Compute(work.Text, work.Version, work.Options.TabSize, work.Options.InsertSpaces);
                 var folding = FoldingRanges.Compute(work.Text, work.Version, work.Options.TabSize, Markers);
-                _published(new FeatureSnapshot(work.Version, work.Text.LineCount, brackets, guides, folding));
+                var minimap = MinimapModel.Build(work.Text, work.Version, work.Syntax, work.Options.TabSize);
+                _published(new FeatureSnapshot(work.Version, work.Text.LineCount, brackets, guides, folding, minimap));
             }
             catch (Exception ex)
             {

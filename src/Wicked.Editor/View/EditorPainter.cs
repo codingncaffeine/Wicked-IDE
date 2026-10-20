@@ -127,11 +127,43 @@ public static class EditorPainter
             Fill(canvas, paint, new SKRect(at.X, at.Y + frame.Fonts.Baseline + 2, at.X + width, at.Y + frame.Fonts.Baseline + 3), theme.Foreground);
         }
 
+        if (frame.Minimap is { } minimap) DrawMinimap(canvas, paint, frame, minimap);
+
         var thumb = frame.ThumbActive ? theme.ScrollbarThumbActive : theme.ScrollbarThumb;
         if (!frame.VerticalThumb.IsEmpty) FillRound(canvas, paint, frame.VerticalThumb, thumb, 4);
         if (!frame.HorizontalThumb.IsEmpty) FillRound(canvas, paint, frame.HorizontalThumb, thumb, 4);
         canvas.Restore();
         LayoutService.FrameRendered(frame.Generation);
+    }
+
+    /// <summary>
+    /// VS Code's "blocks" minimap: each line two pixels tall, each run of text a block in its colour (a column a pixel
+    /// wide), and the slider over the lines in view.
+    /// </summary>
+    private static void DrawMinimap(SKCanvas canvas, SKPaint paint, EditorFrame frame, MinimapFrame minimap)
+    {
+        const float row = TextView.MinimapLineHeight;
+        var model = minimap.Model;
+        Fill(canvas, paint, new SKRect(minimap.Left, 0, minimap.Left + TextView.MinimapWidth, frame.Height), frame.Theme.Background);
+        canvas.Save();
+        canvas.ClipRect(new SKRect(minimap.Left, 0, minimap.Left + TextView.MinimapWidth, frame.Height));
+        for (var i = 0; i < minimap.Lines.Length; i++)
+        {
+            var line = minimap.Lines[i];
+            if (line < 0 || line >= model.LineCount) continue;
+            var y = minimap.Top + i * row;
+            for (var r = 0; r < model.RunCount(line); r++)
+            {
+                var run = model.Run(line, r);
+                var color = model.ColorOf(run.ColorId);
+                // Dimmed a little, as minimaps draw, so the slider reads over it.
+                paint.Color = new SKColor(color).WithAlpha(150);
+                canvas.DrawRect(new SKRect(minimap.Left + 6 + run.StartColumn * 0.8f, y, minimap.Left + 6 + (run.StartColumn + run.Length) * 0.8f, y + row - 0.4f), paint);
+            }
+        }
+
+        canvas.Restore();
+        Fill(canvas, paint, minimap.Slider, frame.ThumbActive ? frame.Theme.ScrollbarThumbActive : frame.Theme.ScrollbarThumb);
     }
 
     /// <summary>The fold column's arrow: down for an open range, right for a folded one.</summary>
