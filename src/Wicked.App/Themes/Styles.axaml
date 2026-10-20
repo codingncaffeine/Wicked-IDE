@@ -116,6 +116,13 @@
     <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}" />
   </Style>
 
+  <Style Selector="TextBlock.status">
+    <Setter Property="FontSize" Value="{DynamicResource Font.Size.Small}" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Muted}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Margin" Value="0,0,18,0" />
+  </Style>
+
   <!-- A key cap in hints: "Ctrl+Shift+P". -->
   <Style Selector="Border.kbd">
     <Setter Property="Background" Value="{DynamicResource Brush.Raised}" />
@@ -136,6 +143,144 @@
   </Style>
   <Style Selector="GridSplitter.gap:pointerover">
     <Setter Property="Background" Value="{DynamicResource Brush.Accent.Subtle}" />
+  </Style>
+
+  <!-- Tabs: the strip sits on the panel colour; the active tab takes the editor's colour so it joins the text below. -->
+  <Style Selector="Border.tabstrip">
+    <Setter Property="Background" Value="{DynamicResource Brush.Surface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Subtle}" />
+    <Setter Property="BorderThickness" Value="0,0,0,1" />
+    <Setter Property="Height" Value="36" />
+  </Style>
+  <Style Selector="Border.tab">
+    <Setter Property="Padding" Value="12,0,6,0" />
+    <Setter Property="Height" Value="36" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Subtle}" />
+    <Setter Property="BorderThickness" Value="0,0,1,0" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Text.Muted}" />
+  </Style>
+  <Style Selector="Border.tab:pointerover">
+    <Setter Property="Background" Value="{DynamicResource Brush.Hover}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Text.Secondary}" />
+  </Style>
+  <Style Selector="Border.tab.active">
+    <Setter Property="Background" Value="{DynamicResource Brush.Editor}" />
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource Brush.Text}" />
+  </Style>
+  <Style Selector="Border.tab TextBlock.preview">
+    <Setter Property="FontStyle" Value="Italic" />
+  </Style>
+  <Style Selector="Ellipse.dirty">
+    <Setter Property="Fill" Value="{DynamicResource Brush.Text.Secondary}" />
+    <Setter Property="HorizontalAlignment" Value="Center" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <!-- The close button shows on the active or hovered tab; on a dirty tab it replaces the dot only under the pointer. -->
+  <Style Selector="Button.tabclose">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="3" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="Opacity" Value="0" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}" />
+  </Style>
+  <Style Selector="Border.tab.active Button.tabclose, Border.tab:pointerover Button.tabclose">
+    <Setter Property="Opacity" Value="1" />
+  </Style>
+  <Style Selector="Border.tab Button.tabclose.dirty">
+    <Setter Property="Opacity" Value="0" />
+  </Style>
+  <Style Selector="Border.tab Button.tabclose.dirty:pointerover">
+    <Setter Property="Opacity" Value="1" />
+  </Style>
+  <Style Selector="Button.tabclose:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Brush.Pressed}" />
+  </Style>
+  <Style Selector="GridSplitter.groupgap">
+    <Setter Property="Background" Value="{DynamicResource Brush.Border}" />
+    <Setter Property="MinWidth" Value="1" />
+  </Style>
+
+  <!-- A quiet accent button: the explorer's Open Folder. -->
+  <Style Selector="Button.accent-soft">
+    <Setter Property="Background" Value="{DynamicResource Brush.Accent.Subtle}" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Radius.Control}" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="Padding" Value="10,7" />
+  </Style>
+
+  <!-- The explorer: compact rows, the selection in the accent wash. -->
+  <Style Selector="TreeView.explorer TreeViewItem">
+    <Setter Property="MinHeight" Value="24" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="FontSize" Value="{DynamicResource Font.Size.Body}" />
+  </Style>
+  <Style Selector="TreeView.explorer TreeViewItem:selected /template/ Border#PART_LayoutRoot">
+    <Setter Property="Background" Value="{DynamicResource Brush.Accent.Subtle}" />
+  </Style>
+  <Style Selector="TreeView.explorer TreeViewItem:selected:focus /template/ Border#PART_LayoutRoot">
+    <Setter Property="Background" Value="{DynamicResource Brush.Accent.Subtle}" />
+  </Style>
+  <Style Selector="TreeView.explorer TreeViewItem:pointerover /template/ Border#PART_LayoutRoot">
+    <Setter Property="Background" Value="{DynamicResource Brush.Hover}" />
+  </Style>
+  <Style Selector="TreeView.explorer TreeViewItem:selected /template/ ContentPresenter#PART_HeaderPresenter">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+  </Style>
+
+  <!-- The palette: a floating card under the title bar. -->
+  <Style Selector="Border.quickinput">
+    <Setter Property="Background" Value="{DynamicResource Brush.Raised}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Padding" Value="6" />
+    <Setter Property="BoxShadow" Value="0 12 40 0 #99000000" />
+  </Style>
+  <Style Selector="TextBox.quickinput">
+    <Setter Property="Background" Value="{DynamicResource Brush.Surface}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Focus}" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Margin" Value="0,0,0,6" />
+  </Style>
+  <Style Selector="ListBox.quickinput">
+    <Setter Property="Background" Value="Transparent" />
+  </Style>
+  <Style Selector="ListBox.quickinput ListBoxItem">
+    <Setter Property="Padding" Value="10,5" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="MinHeight" Value="28" />
+  </Style>
+  <Style Selector="ListBox.quickinput ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Brush.Accent.Subtle}" />
+  </Style>
+
+  <!-- The save prompt -->
+  <Style Selector="Border.dialog">
+    <Setter Property="Background" Value="{DynamicResource Brush.Raised}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="12" />
+    <Setter Property="Padding" Value="22,20" />
+    <Setter Property="BoxShadow" Value="0 16 48 0 #A6000000" />
+  </Style>
+  <Style Selector="Button.primary">
+    <Setter Property="Background" Value="{DynamicResource Brush.Accent}" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.OnAccent}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Radius.Control}" />
+    <Setter Property="Padding" Value="14,7" />
+  </Style>
+  <Style Selector="Button.primary:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Brush.Accent.Hover}" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.OnAccent}" />
+  </Style>
+  <Style Selector="Button.secondary">
+    <Setter Property="Background" Value="{DynamicResource Brush.Hover}" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Radius.Control}" />
+    <Setter Property="Padding" Value="14,7" />
   </Style>
 
   <Style Selector="shell|Icon">

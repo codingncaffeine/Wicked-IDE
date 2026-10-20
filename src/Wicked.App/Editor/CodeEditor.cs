@@ -81,7 +81,10 @@ public sealed class CodeEditor : Control
             InvalidateVisual();
         };
         AddHandler(TextInputMethodClientRequestedEvent, (_, e) => e.Client = _ime);
-        DetachedFromVisualTree += (_, _) => Close();
+
+        // Highlighting serves the editors in sight first; a tab in the background waits its turn.
+        AttachedToVisualTree += (_, _) => _syntax.Visible = true;
+        DetachedFromVisualTree += (_, _) => _syntax.Visible = false;
     }
 
     public Document Document { get; }
@@ -125,6 +128,13 @@ public sealed class CodeEditor : Control
             Volatile.Write(ref _redrawPosted, 0);
             InvalidateVisual();
         }, DispatcherPriority.Render);
+    }
+
+    /// <summary>Brings the primary caret into sight and the keyboard to the editor (after go-to-line, a search hit).</summary>
+    public void RevealCaret()
+    {
+        Focus();
+        AfterCommand();
     }
 
     /// <summary>After a command: the caret back in sight and steady, the input method told, a redraw.</summary>

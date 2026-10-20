@@ -27,8 +27,10 @@ public partial class App : Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             if (WatchUiThread) UiStallWatch.Start(Environment.GetEnvironmentVariable("WICKED_UI_TRACE") == "1");
+            Editor.EditorServices.Start();
             var shell = new ShellViewModel(Paths);
             desktop.MainWindow = new MainWindow { DataContext = shell };
+            _ = shell.StartAsync();
             desktop.ShutdownRequested += (_, _) => shell.Dispose();
 
             // SIGTERM (a logout, a kill) closes the window the normal way.

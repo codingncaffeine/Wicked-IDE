@@ -177,3 +177,28 @@ public sealed class ViewportSyntaxTests : IDisposable
         session.Close();
     }
 }
+
+public sealed class SyntaxSharingTests : IDisposable
+{
+    private readonly SyntaxService _service = new();
+
+    public void Dispose() => _service.Dispose();
+
+    [Fact]
+    public void ABigDocumentDoesNotHoldBackASmallOneOpenedAfterIt()
+    {
+        var big = new Wicked.Editor.Model.Document(string.Join('\n', Enumerable.Range(0, 80_000).Select(i => $"    var v{i} = Compute({i}, \"text\");")));
+        var bigSession = _service.Open(big.Text, big.Version, Languages.ForFile("a.cs"), _ => { });
+        using var smallDone = new ManualResetEventSlim();
+        var small = new Wicked.Editor.Model.Document("class A { }");
+        var smallSession = _service.Open(small.Text, small.Version, Languages.ForFile("b.cs"), s =>
+        {
+            if (s.ValidLines == 1) smallDone.Set();
+        });
+
+        // The big one needs about ten seconds; the small one must not wait for it.
+        Assert.True(smallDone.Wait(TimeSpan.FromSeconds(2), TestContext.Current.CancellationToken), "the small document waited behind the big one");
+        bigSession.Close();
+        smallSession.Close();
+    }
+}

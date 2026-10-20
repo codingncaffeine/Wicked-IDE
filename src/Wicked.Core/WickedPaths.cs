@@ -24,6 +24,8 @@ public sealed record WickedPaths(string Config, string Data, string State, strin
 
     public string SettingsFile => Path.Combine(Config, "settings.json");
 
+    public string SessionFile => Path.Combine(State, "session.json");
+
     /// <summary>The folders for this user, read through <paramref name="env"/> so a test can supply its own environment.</summary>
     public static WickedPaths Resolve(Func<string, string?> env)
     {

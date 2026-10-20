@@ -93,6 +93,12 @@ public sealed class SyntaxService : IDisposable
                 {
                     if (session.Step(_registry, _colors, Slice))
                     {
+                        // Its turn is over: it goes behind the others of its priority, so two big files share the thread.
+                        lock (_gate)
+                        {
+                            if (_sessions.Remove(session)) _sessions.Add(session);
+                        }
+
                         worked = true;
                         break;
                     }

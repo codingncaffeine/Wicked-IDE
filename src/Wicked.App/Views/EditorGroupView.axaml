@@ -1,0 +1,68 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:wb="using:Wicked.App.Workbench"
+             xmlns:shell="using:Wicked.App.Shell"
+             x:Class="Wicked.App.Views.EditorGroupView"
+             x:DataType="wb:EditorGroup">
+  <DockPanel>
+    <!-- The tab strip -->
+    <Border DockPanel.Dock="Top" Classes="tabstrip" IsVisible="{Binding Tabs.Count}">
+      <ScrollViewer HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled">
+        <ItemsControl Name="TabStrip" ItemsSource="{Binding Tabs}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel Orientation="Horizontal" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate DataType="wb:EditorTab">
+              <Border Classes="tab" Classes.active="{Binding IsActive}" ToolTip.Tip="{Binding Tooltip}" Tag="{Binding}">
+                <StackPanel Orientation="Horizontal" Spacing="7">
+                  <shell:Icon Data="{StaticResource Icon.FileCode}" Size="14" />
+                  <TextBlock Text="{Binding Title}" Classes.preview="{Binding IsPreview}" VerticalAlignment="Center" />
+                  <Panel Width="18" Height="18">
+                    <Ellipse Classes="dirty" Width="8" Height="8" IsVisible="{Binding IsDirty}" />
+                    <Button Classes="tabclose" Classes.dirty="{Binding IsDirty}" Tag="{Binding}" Click="OnClose" ToolTip.Tip="Close (Ctrl+W)">
+                      <shell:Icon Data="{StaticResource Icon.X}" Size="12" StrokeWidth="2" />
+                    </Button>
+                  </Panel>
+                </StackPanel>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </ScrollViewer>
+    </Border>
+
+    <Panel>
+      <ContentControl Name="Host" />
+      <!-- An empty group shows the welcome. -->
+      <StackPanel Name="Welcome" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" MaxWidth="460">
+        <Border Width="64" Height="64" CornerRadius="16" HorizontalAlignment="Center">
+          <Border.Background>
+            <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+              <GradientStop Offset="0" Color="#A194FA" />
+              <GradientStop Offset="1" Color="#6E5CF0" />
+            </LinearGradientBrush>
+          </Border.Background>
+          <shell:Icon Data="{StaticResource Mark.Wicked}" Size="44" StrokeWidth="2.4" Foreground="{DynamicResource Brush.Text.OnAccent}" />
+        </Border>
+        <TextBlock Text="Wicked" FontSize="28" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,6,0,0" />
+        <TextBlock Classes="secondary" TextAlignment="Center" TextWrapping="Wrap"
+                   Text="Local models that stay up to date, and a real editor around them." />
+        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto" Margin="0,18,0,0" Width="300" RowSpacing="8">
+          <TextBlock Classes="secondary" Text="Show all commands" VerticalAlignment="Center" />
+          <Border Grid.Column="1" Classes="kbd"><TextBlock Text="Ctrl+Shift+P" /></Border>
+          <TextBlock Grid.Row="1" Classes="secondary" Text="Go to file" VerticalAlignment="Center" />
+          <Border Grid.Row="1" Grid.Column="1" Classes="kbd"><TextBlock Text="Ctrl+P" /></Border>
+          <TextBlock Grid.Row="2" Classes="secondary" Text="Open folder" VerticalAlignment="Center" />
+          <Border Grid.Row="2" Grid.Column="1" Classes="kbd"><TextBlock Text="Ctrl+K Ctrl+O" /></Border>
+          <TextBlock Grid.Row="3" Classes="secondary" Text="Show or hide the side bar" VerticalAlignment="Center" />
+          <Border Grid.Row="3" Grid.Column="1" Classes="kbd"><TextBlock Text="Ctrl+B" /></Border>
+          <TextBlock Grid.Row="4" Classes="secondary" Text="Show or hide the assistant" VerticalAlignment="Center" />
+          <Border Grid.Row="4" Grid.Column="1" Classes="kbd"><TextBlock Text="Ctrl+L" /></Border>
+        </Grid>
+      </StackPanel>
+    </Panel>
+  </DockPanel>
+</UserControl>

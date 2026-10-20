@@ -1,0 +1,36 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:wb="using:Wicked.App.Workbench"
+             xmlns:shell="using:Wicked.App.Shell"
+             x:Class="Wicked.App.Views.ExplorerView"
+             x:DataType="wb:Workbench">
+  <Panel>
+    <!-- No folder yet: open one, or a recent one. -->
+    <StackPanel Margin="14,4" Spacing="8" IsVisible="{Binding ExplorerRoot, Converter={x:Static ObjectConverters.IsNull}}">
+      <TextBlock Classes="muted" Text="Open a folder to see its files here." TextWrapping="Wrap" />
+      <Button Name="OpenFolderButton" Classes="accent-soft" HorizontalAlignment="Stretch" Click="OnOpenFolder">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <shell:Icon Data="{StaticResource Icon.FolderOpen}" Size="15" />
+          <TextBlock Text="Open Folder" />
+        </StackPanel>
+      </Button>
+    </StackPanel>
+
+    <TreeView Name="Tree" ItemsSource="{Binding ExplorerRoot.Children}" IsVisible="{Binding ExplorerRoot, Converter={x:Static ObjectConverters.IsNotNull}}"
+              Classes="explorer" SelectionMode="Single">
+      <TreeView.Styles>
+        <Style Selector="TreeViewItem" x:DataType="wb:ExplorerNode">
+          <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+        </Style>
+      </TreeView.Styles>
+      <TreeView.ItemTemplate>
+        <TreeDataTemplate DataType="wb:ExplorerNode" ItemsSource="{Binding Children}">
+          <StackPanel Orientation="Horizontal" Spacing="6" Background="Transparent" ToolTip.Tip="{Binding FullPath}">
+            <shell:Icon Size="15" Data="{Binding IconKey, Converter={x:Static shell:FileIcons.Instance}}" />
+            <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
+          </StackPanel>
+        </TreeDataTemplate>
+      </TreeView.ItemTemplate>
+    </TreeView>
+  </Panel>
+</UserControl>

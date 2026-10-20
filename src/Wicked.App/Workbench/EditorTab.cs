@@ -1,0 +1,71 @@
+using CommunityToolkit.Mvvm.ComponentModel;
+using Wicked.App.Editor;
+using Wicked.Core.Files;
+using Wicked.Editor.Model;
+using Wicked.Editor.Syntax;
+
+namespace Wicked.App.Workbench;
+
+/// <summary>
+/// One open document in a group's tab strip. A preview tab (single-click in the explorer) is replaced by the next preview
+/// until it is edited or double-clicked, as in VS Code. Its editor control is made on first show and kept while the tab lives.
+/// </summary>
+public sealed partial class EditorTab : ObservableObject
+{
+    private static int _untitled;
+
+    public EditorTab(string? path, Document document, LanguageInfo? language, FileEncoding encoding, DateTime lastWriteUtc)
+    {
+        Path = path;
+        Document = document;
+        Language = language;
+        Encoding = encoding;
+        LastWriteUtc = lastWriteUtc;
+        UntitledName = path is null ? $"Untitled-{Interlocked.Increment(ref _untitled)}" : null;
+        document.DirtyChanged += () =>
+        {
+            OnPropertyChanged(nameof(IsDirty));
+            if (document.IsDirty) IsPreview = false;
+        };
+    }
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(Title), nameof(Tooltip))]
+    private string? _path;
+
+    [ObservableProperty]
+    private bool _isPreview;
+
+    [ObservableProperty]
+    private bool _isActive;
+
+    public Document Document { get; }
+
+    public LanguageInfo? Language { get; private set; }
+
+    public FileEncoding Encoding { get; set; }
+
+    public DateTime LastWriteUtc { get; set; }
+
+    private string? UntitledName { get; }
+
+    public string Title => Path is null ? UntitledName! : System.IO.Path.GetFileName(Path);
+
+    public string Tooltip => Path ?? UntitledName!;
+
+    public bool IsDirty => Document.IsDirty;
+
+    /// <summary>The editor control, made by the group view the first time the tab is shown.</summary>
+    public CodeEditor? Editor { get; private set; }
+
+    public CodeEditor EditorFor(EditorServices services) => Editor ??= new CodeEditor(services, Document, Language);
+
+    /// <summary>After Save As: a new name may mean a new language.</summary>
+    public void Renamed(string path)
+    {
+        Path = path;
+        Language = Languages.ForFile(path);
+    }
+
+    public void Close() => Editor?.Close();
+}

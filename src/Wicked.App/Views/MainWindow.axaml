@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:Wicked.App.ViewModels"
+        xmlns:views="using:Wicked.App.Views"
         xmlns:shell="using:Wicked.App.Shell"
         x:Class="Wicked.App.Views.MainWindow"
         x:DataType="vm:ShellViewModel"
@@ -8,11 +9,6 @@
         Width="1440" Height="900" MinWidth="900" MinHeight="560"
         ExtendClientAreaToDecorationsHint="True"
         WindowDecorations="None">
-
-  <Window.KeyBindings>
-    <KeyBinding Gesture="Ctrl+B" Command="{Binding ToggleSidebarCommand}" />
-    <KeyBinding Gesture="Ctrl+L" Command="{Binding ToggleAssistantCommand}" />
-  </Window.KeyBindings>
 
   <Border Name="Frame" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1">
     <Grid RowDefinitions="40,*,28">
@@ -33,12 +29,12 @@
           <TextBlock Text="Wicked" FontWeight="SemiBold" VerticalAlignment="Center" />
         </StackPanel>
 
-        <Button Grid.Column="1" Name="CommandCentre" Classes="command-centre" Width="520"
+        <Button Grid.Column="1" Name="CommandCentre" Classes="command-centre" Width="520" Click="OnCommandCentre"
                 ToolTip.Tip="Search files, commands and models">
           <Grid ColumnDefinitions="Auto,*,Auto">
             <shell:Icon Data="{StaticResource Icon.Search}" Size="14" Margin="0,0,8,0" />
-            <TextBlock Grid.Column="1" Text="Search files, commands and models" VerticalAlignment="Center" />
-            <Border Grid.Column="2" Classes="kbd"><TextBlock Text="Ctrl+Shift+P" /></Border>
+            <TextBlock Grid.Column="1" Text="{Binding CommandCentreText}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+            <Border Grid.Column="2" Classes="kbd"><TextBlock Text="Ctrl+P" /></Border>
           </Grid>
         </Button>
 
@@ -81,19 +77,19 @@
             </Button>
           </StackPanel>
           <StackPanel Spacing="4" HorizontalAlignment="Center">
-            <Button Name="RailExplorer" Classes="rail" Classes.active="{Binding IsExplorer}" ToolTip.Tip="Explorer"
+            <Button Name="RailExplorer" Classes="rail" Classes.active="{Binding IsExplorer}" ToolTip.Tip="Explorer (Ctrl+Shift+E)"
                     Command="{Binding ShowPanelCommand}" CommandParameter="{x:Static vm:SidePanel.Explorer}">
               <shell:Icon Data="{StaticResource Icon.Files}" Size="19" />
             </Button>
-            <Button Name="RailSearch" Classes="rail" Classes.active="{Binding IsSearch}" ToolTip.Tip="Search"
+            <Button Name="RailSearch" Classes="rail" Classes.active="{Binding IsSearch}" ToolTip.Tip="Search (Ctrl+Shift+F)"
                     Command="{Binding ShowPanelCommand}" CommandParameter="{x:Static vm:SidePanel.Search}">
               <shell:Icon Data="{StaticResource Icon.Search}" Size="19" />
             </Button>
-            <Button Name="RailSourceControl" Classes="rail" Classes.active="{Binding IsSourceControl}" ToolTip.Tip="Source control"
+            <Button Name="RailSourceControl" Classes="rail" Classes.active="{Binding IsSourceControl}" ToolTip.Tip="Source control (Ctrl+Shift+G)"
                     Command="{Binding ShowPanelCommand}" CommandParameter="{x:Static vm:SidePanel.SourceControl}">
               <shell:Icon Data="{StaticResource Icon.GitBranch}" Size="19" />
             </Button>
-            <Button Name="RailModels" Classes="rail" Classes.active="{Binding IsModels}" ToolTip.Tip="Models"
+            <Button Name="RailModels" Classes="rail" Classes.active="{Binding IsModels}" ToolTip.Tip="Models (Ctrl+Shift+M)"
                     Command="{Binding ShowPanelCommand}" CommandParameter="{x:Static vm:SidePanel.Models}">
               <shell:Icon Data="{StaticResource Icon.Boxes}" Size="19" />
             </Button>
@@ -103,38 +99,25 @@
         <!-- The side panel -->
         <Border Grid.Column="1" Name="SidePanel" Classes="panel" Margin="0,0,0,6" IsVisible="{Binding SidebarVisible}">
           <DockPanel>
-            <TextBlock DockPanel.Dock="Top" Classes="heading" Text="{Binding PanelTitle}" Margin="14,12,14,8" />
-            <StackPanel Margin="14,8" Spacing="4">
-              <TextBlock Text="{Binding PanelEmptyTitle}" />
-              <TextBlock Classes="muted" Text="{Binding PanelEmptyText}" TextWrapping="Wrap" />
-            </StackPanel>
+            <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="14,12,10,8">
+              <TextBlock Classes="heading" Text="{Binding PanelTitle}" VerticalAlignment="Center" />
+              <TextBlock Grid.Column="1" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" Text="{Binding WorkspaceName}"
+                         IsVisible="{Binding IsExplorer}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="160" />
+            </Grid>
+            <Panel>
+              <views:ExplorerView DataContext="{Binding Workbench}" IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).IsExplorer}" />
+              <StackPanel Margin="14,8" Spacing="4" IsVisible="{Binding !IsExplorer}">
+                <TextBlock Text="{Binding PanelEmptyTitle}" />
+                <TextBlock Classes="muted" Text="{Binding PanelEmptyText}" TextWrapping="Wrap" />
+              </StackPanel>
+            </Panel>
           </DockPanel>
         </Border>
         <GridSplitter Grid.Column="2" Classes="gap" ResizeDirection="Columns" IsVisible="{Binding SidebarVisible}" />
 
-        <!-- The editor area: the welcome page until a file is open. -->
+        <!-- The editor groups -->
         <Border Grid.Column="3" Name="Editor" Classes="panel editor" Margin="0,0,0,6">
-          <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" MaxWidth="460">
-            <Border Width="64" Height="64" CornerRadius="16" HorizontalAlignment="Center">
-              <Border.Background>
-                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
-                  <GradientStop Offset="0" Color="#A194FA" />
-                  <GradientStop Offset="1" Color="#6E5CF0" />
-                </LinearGradientBrush>
-              </Border.Background>
-              <shell:Icon Data="{StaticResource Mark.Wicked}" Size="44" StrokeWidth="2.4"
-                          Foreground="{DynamicResource Brush.Text.OnAccent}" />
-            </Border>
-            <TextBlock Text="Wicked" FontSize="28" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,6,0,0" />
-            <TextBlock Classes="secondary" TextAlignment="Center" TextWrapping="Wrap"
-                       Text="Local models that stay up to date, and a real editor around them." />
-            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" Margin="0,18,0,0" Width="280">
-              <TextBlock Classes="secondary" Text="Show or hide the side bar" VerticalAlignment="Center" />
-              <Border Grid.Column="1" Classes="kbd"><TextBlock Text="Ctrl+B" /></Border>
-              <TextBlock Grid.Row="1" Classes="secondary" Text="Show or hide the assistant" Margin="0,8,0,0" VerticalAlignment="Center" />
-              <Border Grid.Row="1" Grid.Column="1" Classes="kbd" Margin="0,8,0,0"><TextBlock Text="Ctrl+L" /></Border>
-            </Grid>
-          </StackPanel>
+          <views:EditorAreaView DataContext="{Binding Workbench}" />
         </Border>
         <GridSplitter Grid.Column="4" Classes="gap" ResizeDirection="Columns" IsVisible="{Binding AssistantVisible}" />
 
@@ -175,8 +158,8 @@
         </Border>
       </Grid>
 
-      <!-- ── Footer: the waiting notice on the left (a click goes where it is dealt with), the daemon on the right. ── -->
-      <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto" Margin="10,0,8,0">
+      <!-- ── Footer: the waiting notice on the left (a click goes where it is dealt with), the editor and daemon on the right. ── -->
+      <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto,Auto,Auto" Margin="10,0,8,0">
         <Button Name="NoticeButton" Classes="quiet" Padding="6,2" HorizontalAlignment="Left"
                 IsVisible="{Binding Notice, Converter={x:Static ObjectConverters.IsNotNull}}"
                 Command="{Binding OpenNoticeCommand}" ToolTip.Tip="{Binding NoticeTip}">
@@ -193,15 +176,35 @@
           </StackPanel>
         </Button>
 
-        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" Margin="0,0,14,0" VerticalAlignment="Center">
+        <TextBlock Grid.Column="1" Name="CaretStatus" Text="{Binding CaretText}" Classes="status" />
+        <TextBlock Grid.Column="2" Name="DocumentStatus" Text="{Binding DocumentText}" Classes="status" />
+        <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="6" Margin="0,0,14,0" VerticalAlignment="Center">
           <Ellipse Width="7" Height="7" VerticalAlignment="Center"
                    Fill="{Binding DaemonRunning, Converter={x:Static shell:DaemonBrush.Instance}}" />
           <TextBlock Name="DaemonText" Text="{Binding DaemonText}" FontSize="{DynamicResource Font.Size.Small}"
                      Foreground="{DynamicResource Brush.Text.Muted}" VerticalAlignment="Center" />
         </StackPanel>
-        <TextBlock Grid.Column="2" Text="{Binding VersionText}" FontSize="{DynamicResource Font.Size.Small}"
+        <TextBlock Grid.Column="4" Text="{Binding VersionText}" FontSize="{DynamicResource Font.Size.Small}"
                    Foreground="{DynamicResource Brush.Text.Muted}" VerticalAlignment="Center" />
       </Grid>
+
+      <!-- ── Overlays ── -->
+      <views:QuickInputView Name="Palette" Grid.Row="1" Grid.RowSpan="2" DataContext="{Binding QuickInput}"
+                            IsVisible="{Binding IsOpen}" VerticalAlignment="Top" />
+
+      <Border Name="DialogLayer" Grid.RowSpan="3" Background="#99000000" IsVisible="False">
+        <Border Classes="dialog" Width="460" HorizontalAlignment="Center" VerticalAlignment="Center">
+          <StackPanel Spacing="10">
+            <TextBlock Name="DialogMessage" FontSize="15" FontWeight="SemiBold" TextWrapping="Wrap" />
+            <TextBlock Name="DialogDetail" Classes="secondary" TextWrapping="Wrap" />
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,10,0,0">
+              <Button Name="DialogCancel" Classes="secondary" Content="Cancel" Click="OnDialogCancel" />
+              <Button Name="DialogDontSave" Classes="secondary" Content="Don't Save" Click="OnDialogDontSave" />
+              <Button Name="DialogSave" Classes="primary" Content="Save" Click="OnDialogSave" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+      </Border>
     </Grid>
   </Border>
 </Window>

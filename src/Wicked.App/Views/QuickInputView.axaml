@@ -1,0 +1,25 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Wicked.App.ViewModels"
+             x:Class="Wicked.App.Views.QuickInputView"
+             x:DataType="vm:QuickInputViewModel">
+  <Border Classes="quickinput" Width="640" VerticalAlignment="Top" HorizontalAlignment="Center" Margin="0,6,0,0">
+    <DockPanel>
+      <TextBox Name="QueryBox" DockPanel.Dock="Top" Classes="quickinput" Text="{Binding Query}" PlaceholderText="{Binding Placeholder}" />
+      <ListBox Name="List" ItemsSource="{Binding Items}" SelectedIndex="{Binding Selected}" MaxHeight="420" Classes="quickinput">
+        <ListBox.ItemTemplate>
+          <DataTemplate DataType="vm:QuickItem">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+              <TextBlock Text="{Binding Label}" VerticalAlignment="Center" />
+              <TextBlock Grid.Column="1" Text="{Binding Detail}" Classes="muted" Margin="10,0,0,0" FontSize="{DynamicResource Font.Size.Small}"
+                         VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+              <Border Grid.Column="2" Classes="kbd" IsVisible="{Binding Keys.Length}">
+                <TextBlock Text="{Binding Keys}" />
+              </Border>
+            </Grid>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+      </ListBox>
+    </DockPanel>
+  </Border>
+</UserControl>
