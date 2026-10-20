@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using Avalonia.Threading;
 using Wicked.Core;
 using Wicked.Core.Files;
+using Wicked.App.Editor;
 using Wicked.Editor.Features;
 using Wicked.Editor.Model;
 using Wicked.Editor.Syntax;
@@ -61,6 +62,9 @@ public sealed partial class Workbench : ObservableObject, IDisposable
 
     /// <summary>Where the Trash is looked up (XDG_DATA_HOME); tests point it into their own folder.</summary>
     public Func<string, string?> TrashEnvironment { get; set; } = Environment.GetEnvironmentVariable;
+
+    /// <summary>The user's snippets (the shell loads them).</summary>
+    public SnippetLibrary? Snippets { get; set; }
 
     /// <summary>The settings in force; the shell sets them at start and whenever they change.</summary>
     public Wicked.Core.Settings.WickedSettings Settings { get; set; } = new();

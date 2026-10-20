@@ -50,6 +50,8 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         Commands = BuildCommands();
         QuickInput = new QuickInputViewModel(this);
         Models = new ModelsViewModel(paths, Notices);
+        Snippets = new SnippetLibrary(Path.Combine(paths.Config, "snippets"));
+        Workbench.Snippets = Snippets;
         SettingsSheet = new SettingsViewModel(this);
         Keys = new KeyDispatcher(Commands);
         _ = Task.Run(() => WatchDaemonAsync(_stop.Token));
@@ -125,6 +127,8 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             new("workbench.action.selectTheme", "Preferences", "Code Colours", "Ctrl+K Ctrl+T", () => Sync(PickCodeColours)),
             new("editor.foldAll", "View", "Fold All", "Ctrl+K Ctrl+D0", () => Sync(() => Workbench.ActiveTab?.Editor?.FoldAll())),
             new("editor.unfoldAll", "View", "Unfold All", "Ctrl+K Ctrl+J", () => Sync(() => Workbench.ActiveTab?.Editor?.UnfoldAll())),
+            new("editor.action.insertSnippet", "Snippets", "Insert Snippet", null, () => Sync(PickSnippet)),
+            new("workbench.action.openSnippets", "Snippets", "Configure Snippets", null, ConfigureSnippetsAsync),
             new("workbench.action.openGlobalKeybindingsFile", "Preferences", "Open Keyboard Shortcuts (JSON)", null, OpenKeybindingsJsonAsync),
         ];
     }
@@ -280,6 +284,38 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         PaletteRequested?.Invoke("");
     }
 
+    /// <summary>The user's snippets, loaded at start and kept current.</summary>
+    public SnippetLibrary Snippets { get; }
+
+    /// <summary>Insert Snippet: the active language's snippets in the palette; the chosen one goes in at the caret.</summary>
+    private void PickSnippet()
+    {
+        if (Workbench.ActiveTab?.Editor is not { } editor) return;
+        var items = Snippets.For(editor.Language?.Id).Select(snippet => new QuickItem(snippet.Name, snippet.Prefixes.IsDefaultOrEmpty ? snippet.Description : $"{string.Join(", ", snippet.Prefixes)}  {snippet.Description}", "", () =>
+        {
+            editor.InsertSnippet(snippet);
+            editor.Focus();
+            return Task.CompletedTask;
+        })).ToList();
+        QuickInput.OpenList(items.Count == 0 ? "No snippets for this language yet: run Snippets: Configure Snippets" : "Select a snippet", items, 0, null);
+        PaletteRequested?.Invoke("");
+    }
+
+    /// <summary>Configure Snippets: the active language's snippet file, started with an example when it does not exist.</summary>
+    private async Task ConfigureSnippetsAsync()
+    {
+        var language = Workbench.ActiveTab?.Language?.Id ?? "global";
+        var path = Path.Combine(Snippets.Folder, language == "global" ? "global.code-snippets" : $"{language}.json");
+        if (!File.Exists(path))
+        {
+            var starter = "{\n  // Snippets for " + language + ", in VS Code's format. $1, $2 are the places Tab moves to; $0 is where it ends.\n" +
+                "  \"Example\": {\n    \"prefix\": \"ex\",\n    \"body\": [\"example(${1:value});\", \"$0\"],\n    \"description\": \"An example snippet\"\n  }\n}\n";
+            await Task.Run(() => Wicked.Core.Files.TextFile.WriteAsync(path, starter, Wicked.Core.Files.FileEncoding.Utf8, CancellationToken.None));
+        }
+
+        await Workbench.OpenAsync(path);
+    }
+
     /// <summary>"DarkPlus" as "Dark+", "OneDark" as "One Dark".</summary>
     public static string Friendly(string themeName) =>
         System.Text.RegularExpressions.Regex.Replace(themeName.Replace("Plus", "+"), "(?<=[a-z])(?=[A-Z])", " ");
@@ -328,6 +364,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         var (settings, problem) = await SettingsFile.ReadAsync(Paths.SettingsFile, CancellationToken.None);
         await ApplySettingsAsync(settings);
         await ReloadKeybindingsAsync();
+        await Snippets.LoadAsync();
         WatchSettings();
         if (problem is not null) Notices.Post(new Notice("settings", problem, NoticeKind.Warning, $"tab/{Paths.SettingsFile}"));
         _session = await SessionState.ReadAsync(Paths.SessionFile, CancellationToken.None);
@@ -575,6 +612,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     public void Dispose()
     {
         _settingsWatcher?.Dispose();
+        Snippets.Dispose();
         Workbench.Dispose();
         _ = Models.DisposeAsync().AsTask();
         _stop.Cancel();

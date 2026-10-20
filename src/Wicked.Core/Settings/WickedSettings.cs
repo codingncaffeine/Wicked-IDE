@@ -30,6 +30,10 @@ public sealed record WickedSettings
     [JsonPropertyName("editor.bracketPairColorization.enabled")]
     public bool BracketPairColorization { get; init; } = true;
 
+    /// <summary>off, on or onlySnippets, as VS Code names them: Tab after a snippet's prefix expands it.</summary>
+    [JsonPropertyName("editor.tabCompletion")]
+    public string TabCompletion { get; init; } = "off";
+
     [JsonPropertyName("editor.minimap.enabled")]
     public bool Minimap { get; init; } = true;
 

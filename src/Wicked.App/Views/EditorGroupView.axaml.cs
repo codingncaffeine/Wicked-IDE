@@ -63,7 +63,7 @@ public partial class EditorGroupView : UserControl
         var services = await EditorServices.Ready;
         if (_group?.Active != tab) return;
         var fresh = tab.Editor is null;
-        var editor = tab.EditorFor(services, _group.Workbench.Settings);
+        var editor = tab.EditorFor(services, _group.Workbench.Settings, _group.Workbench.Snippets);
         if (fresh)
         {
             var bench = _group.Workbench;

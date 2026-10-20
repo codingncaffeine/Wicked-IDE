@@ -61,10 +61,10 @@ public sealed partial class EditorTab : ObservableObject
     /// <summary>The editor control, made by the group view the first time the tab is shown.</summary>
     public CodeEditor? Editor { get; private set; }
 
-    public CodeEditor EditorFor(EditorServices services, Wicked.Core.Settings.WickedSettings settings)
+    public CodeEditor EditorFor(EditorServices services, Wicked.Core.Settings.WickedSettings settings, SnippetLibrary? snippets = null)
     {
         if (Editor is not null) return Editor;
-        Editor = new CodeEditor(services, Document, Language) { EditorConfig = EditorConfig };
+        Editor = new CodeEditor(services, Document, Language) { EditorConfig = EditorConfig, Snippets = snippets, FilePath = Path };
         Editor.ApplySettings(settings);
         return Editor;
     }
@@ -74,6 +74,7 @@ public sealed partial class EditorTab : ObservableObject
     {
         Path = path;
         Language = Languages.ForFile(path);
+        if (Editor is not null) Editor.FilePath = path;
     }
 
     public void Close() => Editor?.Close();

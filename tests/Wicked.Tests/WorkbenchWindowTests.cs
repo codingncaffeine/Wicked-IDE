@@ -20,7 +20,7 @@ public sealed class WorkbenchWindowTests
         return root;
     }
 
-    private static (MainWindow Window, ShellViewModel Shell) OpenWorkbench(TempProfile profile, string folder)
+    internal static (MainWindow Window, ShellViewModel Shell) OpenWorkbench(TempProfile profile, string folder)
     {
         var (window, shell) = Ui.Start(profile.Paths);
         var opened = shell.OpenFolderAndRememberAsync(folder);
@@ -28,13 +28,13 @@ public sealed class WorkbenchWindowTests
         return (window, shell);
     }
 
-    private static IEnumerable<TreeViewItem> Rows(Window window) =>
+    internal static IEnumerable<TreeViewItem> Rows(Window window) =>
         window.GetVisualDescendants().OfType<TreeViewItem>().Where(i => i.IsEffectivelyVisible);
 
-    private static TreeViewItem Row(Window window, string name) =>
+    internal static TreeViewItem Row(Window window, string name) =>
         Rows(window).First(i => i.DataContext is ExplorerNode n && n.Name == name);
 
-    private static EditorTab OpenByClicks(MainWindow window, ShellViewModel shell, params string[] names)
+    internal static EditorTab OpenByClicks(MainWindow window, ShellViewModel shell, params string[] names)
     {
         foreach (var name in names[..^1])
         {

@@ -65,6 +65,7 @@ public sealed class CodeEditor : Control
             Markers = FoldingMarkers.For(language),
         };
         document.Changed += change => _view.Folds = _view.Folds.Map(change);
+        document.Changed += OnSnippetEdit;
         Focusable = true;
         ClipToBounds = true;
         Cursor = new Cursor(StandardCursorType.Ibeam);
@@ -114,6 +115,114 @@ public sealed class CodeEditor : Control
     public EditOptions Options => _view.Options;
 
     public FindViewModel Find { get; }
+
+    /// <summary>The user's snippets; set by the tab that makes the editor.</summary>
+    public SnippetLibrary? Snippets { get; init; }
+
+    /// <summary>The file this editor shows, for the snippet variables (TM_FILENAME and kin).</summary>
+    public string? FilePath { get; set; }
+
+    /// <summary>Typing a snippet's prefix and pressing Tab expands it (VS Code's editor.tabCompletion); off by default.</summary>
+    public bool TabCompletion { get; set; }
+
+    private SnippetSession? _snippet;
+    private bool _mirroring;
+
+    /// <summary>Whether a snippet's placeholders are being filled in (Tab moves between them).</summary>
+    public bool InSnippet => _snippet?.IsActive == true;
+
+    /// <summary>
+    /// Inserts a snippet at the primary caret (replacing <paramref name="replaceBefore"/> characters before it: a typed
+    /// prefix), then selects its first placeholder; Tab and Shift+Tab move between them, Escape ends it.
+    /// </summary>
+    public void InsertSnippet(SnippetDefinition definition, int replaceBefore = 0)
+    {
+        var doc = Document;
+        var rope = doc.Text;
+        var primary = doc.Primary;
+        var line = rope.LineOf(primary.Start);
+        var lineText = rope.Line(line);
+        var (wordStart, wordEnd) = Wicked.Editor.Model.TextNavigation.WordAt(rope, primary.Active);
+        var context = new SnippetContext
+        {
+            FilePath = FilePath,
+            SelectedText = primary.IsEmpty ? null : rope.Substring(primary.Start, primary.Length),
+            CurrentLine = lineText,
+            CurrentWord = wordEnd > wordStart ? rope.Substring(wordStart, wordEnd - wordStart) : null,
+            LineIndex = line,
+            CursorIndex = primary.Active - rope.LineStart(line),
+            LineComment = Options.LineComment,
+            BlockCommentStart = Options.BlockComment?.Open,
+            BlockCommentEnd = Options.BlockComment?.Close,
+        };
+        var expanded = Wicked.Editor.Features.Snippets.Expand(definition.Body, context, Wicked.Editor.Model.TextNavigation.Indentation(lineText), Options.IndentUnit);
+        var start = primary.Start - replaceBefore;
+        doc.Apply([new TextChange(start, primary.End - start, expanded.Text)], [Wicked.Editor.Model.Selection.Caret(start + expanded.Text.Length)]);
+        if (!expanded.HasStops)
+        {
+            AfterCommand();
+            return;
+        }
+
+        _snippet = new SnippetSession(expanded, start);
+        var (selections, primaryIndex) = _snippet.CurrentSelections();
+        doc.SetSelections(selections, primaryIndex);
+        AfterCommand();
+    }
+
+    /// <summary>Tab inside a snippet: the next placeholder (the last one, $0, ends it). False when no snippet is open.</summary>
+    private bool SnippetStep(bool forward)
+    {
+        if (_snippet is not { IsActive: true } session) return false;
+        if (forward) session.MoveNext();
+        else session.MovePrevious();
+        var (selections, primaryIndex) = session.CurrentSelections();
+        Document.SetSelections(selections, primaryIndex);
+        if (!session.IsActive || session.IsAtFinalStop) _snippet = null;
+        return true;
+    }
+
+    /// <summary>A snippet's mirrors follow what is typed in their placeholder; an edit outside it ends the snippet.</summary>
+    private void OnSnippetEdit(DocumentChange change)
+    {
+        if (_snippet is not { IsActive: true } session || _mirroring) return;
+        var mirrors = session.OnChange(change);
+        if (!session.IsActive)
+        {
+            _snippet = null;
+            return;
+        }
+
+        if (mirrors.IsEmpty) return;
+        _mirroring = true;
+        try
+        {
+            var set = ChangeSet.Normalise(mirrors);
+            var selections = Document.Selections.Select(s => s with { Anchor = ChangeSet.Map(s.Anchor, set), Active = ChangeSet.Map(s.Active, set) }).ToList();
+            Document.Apply(set, selections, EditKind.Typing, Document.PrimaryIndex);
+            session.OnChange(new DocumentChange(change.After, Document.Text, set, Document.Version));
+        }
+        finally
+        {
+            _mirroring = false;
+        }
+    }
+
+    /// <summary>Tab with a snippet's prefix before the caret: expands it, when tab completion is on.</summary>
+    private bool TryTabCompletion()
+    {
+        if (!TabCompletion || Snippets is null || Document.Selections.Length != 1 || !Document.Primary.IsEmpty) return false;
+        var rope = Document.Text;
+        var caret = Document.Primary.Active;
+        var start = caret;
+        while (start > 0 && !char.IsWhiteSpace(rope[start - 1])) start--;
+        if (start == caret) return false;
+        var typed = rope.Substring(start, caret - start);
+        var match = Wicked.Editor.Features.Snippets.Find(Snippets.For(Language?.Id), typed, Language?.Id).FirstOrDefault(m => m.Prefix == typed);
+        if (match.Snippet is null) return false;
+        InsertSnippet(match.Snippet, typed.Length);
+        return true;
+    }
 
     /// <summary>The project's .editorconfig for this file; set before the first settings are applied.</summary>
     public EditorConfigProperties EditorConfig { get; init; } = EditorConfigProperties.Empty;
@@ -244,6 +353,7 @@ public sealed class CodeEditor : Control
         });
         _view.FollowPalette = settings.CodeColorTheme.Length > 0;
         _view.BracketColors = settings.BracketPairColorization;
+        TabCompletion = settings.TabCompletion is "on" or "onlySnippets";
         _view.ShowMinimap = settings.Minimap;
         _view.ShowIndentGuides = settings.IndentGuides;
         _view.RenderWhitespace = Enum.TryParse<Wicked.Editor.Features.WhitespaceMode>(settings.RenderWhitespace, ignoreCase: true, out var mode) ? mode : Wicked.Editor.Features.WhitespaceMode.Selection;
@@ -285,6 +395,21 @@ public sealed class CodeEditor : Control
 
     protected override void OnKeyDown(KeyEventArgs e)
     {
+        // A snippet being filled in takes Tab, Shift+Tab and Escape first; Tab may expand a typed prefix.
+        if (e.Key == Key.Tab && e.KeyModifiers is KeyModifiers.None or KeyModifiers.Shift
+            && (SnippetStep(forward: e.KeyModifiers == KeyModifiers.None) || (e.KeyModifiers == KeyModifiers.None && TryTabCompletion())))
+        {
+            e.Handled = true;
+            AfterCommand();
+            return;
+        }
+
+        if (e.Key == Key.Escape && _snippet is { IsActive: true })
+        {
+            _snippet.Cancel();
+            _snippet = null;
+        }
+
         foreach (var (gesture, command) in EditorKeymap.Effective)
         {
             if (!gesture.Matches(e)) continue;
