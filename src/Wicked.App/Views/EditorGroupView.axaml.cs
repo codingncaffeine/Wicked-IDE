@@ -50,7 +50,11 @@ public partial class EditorGroupView : UserControl
         if (_group?.Active != tab) return;
         var editor = tab.EditorFor(services);
         Host.Content = editor;
-        editor.Focus();
+        // Focus once the editor is in the window: a control not yet attached ignores Focus() without a word.
+        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+        {
+            if (_group?.Active == tab) editor.Focus();
+        }, Avalonia.Threading.DispatcherPriority.Loaded);
     }
 
     private void OnTabPointer(object? sender, PointerReleasedEventArgs e)

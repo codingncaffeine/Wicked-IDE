@@ -52,6 +52,7 @@ internal static class Ui
         var shell = new ShellViewModel(paths, notices, daemonPoll: TimeSpan.FromMilliseconds(200));
         var window = new MainWindow { DataContext = shell, Width = 1440, Height = 900 };
         window.Show();
+        window.Activate();
         Pump(0.3);
         return (window, shell);
     }
