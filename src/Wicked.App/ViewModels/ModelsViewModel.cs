@@ -284,6 +284,7 @@ public sealed partial class ModelsViewModel : ObservableObject, IAsyncDisposable
         try
         {
             await Task.Run(() => job.Run(accepted));
+            item.Status = "";
             _notices.Clear($"install:{job.Id}");
             _notices.Post(new Notice($"installed:{job.Id}", $"{job.Name} is installed and ready", NoticeKind.Success, ShellRoutes.Models));
         }

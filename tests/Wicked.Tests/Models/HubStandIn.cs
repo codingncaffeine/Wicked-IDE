@@ -41,6 +41,9 @@ internal sealed class HubStandIn : IAsyncDisposable
         _repos = repos;
     }
 
+    /// <summary>A repo of this stand-in, to change its commit or files while a test runs.</summary>
+    public HubRepo Repo(string id) => Find(id) ?? throw new KeyNotFoundException(id);
+
     public Uri BaseAddress => _server.BaseAddress;
 
     public LocalServer Server => _server;

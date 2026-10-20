@@ -645,7 +645,7 @@ public sealed class ModelServices : IAsyncDisposable
                 if (latest.Sha.Length > 0 && !string.Equals(latest.Sha, revision, StringComparison.Ordinal))
                 {
                     var when = latest.LastModified is { } m ? $" ({m.LocalDateTime:d MMM yyyy})" : "";
-                    found.Add(new ModelUpdate(model.Id, UpdateKind.NewUpload, $"A newer upload of {repo} is available{when}", latest.Sha));
+                    found.Add(new ModelUpdate(model.Id, UpdateKind.NewUpload, $"A newer upload is available{when}", latest.Sha));
                     continue;
                 }
             }
