@@ -1,6 +1,0 @@
-<!-- Wicked's own drawings, in the same 24-unit outline form as the icons. -->
-<ResourceDictionary xmlns="https://github.com/avaloniaui"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-  <!-- The mark: a W drawn as one stroke. -->
-  <StreamGeometry x:Key="Mark.Wicked">M4.5 7l3.6 10.5L12 9.5l3.9 8L19.5 7</StreamGeometry>
-</ResourceDictionary>

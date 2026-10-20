@@ -94,9 +94,10 @@ public sealed class EngineInstallerTests : IDisposable
         var (installer, release, choice, server, downloads) = await SetUpAsync(cuda: false);
         await using var _ = server;
         await using var __ = downloads;
-        var reports = new List<EngineInstallProgress>();
+        var recorded = new Recorded<EngineInstallProgress>();
 
-        var install = await installer.InstallAsync(release, choice, new Progress<EngineInstallProgress>(reports.Add), ct: Ct);
+        var install = await installer.InstallAsync(release, choice, recorded, ct: Ct);
+        var reports = recorded.Items;
 
         Assert.Equal("b123-cpu", install.Id);
         Assert.Equal(Path.Combine(Engines, "b123-cpu", "llama-server"), install.ServerPath);
