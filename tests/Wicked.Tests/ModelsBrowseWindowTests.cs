@@ -164,6 +164,7 @@ public sealed class ModelsBrowseWindowTests
             Assert.Equal("settings/models", shell.Notice.Route);
             Assert.DoesNotContain(world.Hub.Requests, r => r.Contains("Tiny-Gated-GGUF/resolve", StringComparison.Ordinal));
             Assert.False(string.IsNullOrEmpty(Control<TextBlock>(window, "BrowseAlertText").Text));
+            ModelsUi.Shot(window, "browse-gated-alert");
             Input.Click(window, Control<Button>(window, "BrowseAlertAction"));
             Assert.True(shell.SettingsOpen);
             Assert.False(shell.Models.Browse.IsOpen);
