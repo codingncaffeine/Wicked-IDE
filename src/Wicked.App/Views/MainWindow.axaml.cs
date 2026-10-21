@@ -36,6 +36,14 @@ public partial class MainWindow : Window, IWorkbenchDialogs
         Opened += OnFirstOpened;
         Deactivated += (_, _) => _shell?.Workbench.WindowDeactivated();
         AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Bubble);
+        // The mouse's side buttons go Back and Forward, as in VS Code and a browser.
+        AddHandler(PointerPressedEvent, (_, e) =>
+        {
+            var kind = e.GetCurrentPoint(this).Properties.PointerUpdateKind;
+            if (_shell is null || kind is not (PointerUpdateKind.XButton1Pressed or PointerUpdateKind.XButton2Pressed)) return;
+            _ = kind == PointerUpdateKind.XButton1Pressed ? _shell.Workbench.GoBackAsync() : _shell.Workbench.GoForwardAsync();
+            e.Handled = true;
+        }, RoutingStrategies.Tunnel);
         // Escape answers an open dialog with Cancel, and closes the Settings sheet, before whatever has the keyboard sees it.
         AddHandler(KeyDownEvent, (_, e) =>
         {

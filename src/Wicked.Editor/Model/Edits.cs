@@ -7,7 +7,7 @@ namespace Wicked.Editor.Model;
 /// The editing commands. Every one works on all selections at once, as one undo step, and leaves the selections where
 /// VS Code would. They run on the UI thread and cost what the rope edits cost: microseconds per selection.
 /// </summary>
-public static class Edits
+public static partial class Edits
 {
     /// <summary>One selection's share of an edit: its changes (in the old text) and its selection afterwards, counted as if
     /// only its own changes had been made.</summary>

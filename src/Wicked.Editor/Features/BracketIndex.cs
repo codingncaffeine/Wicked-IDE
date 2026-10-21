@@ -110,6 +110,16 @@ public sealed class BracketIndex
         return null;
     }
 
+    /// <summary>
+    /// Where Jump to Bracket (Ctrl+Shift+\) takes a caret: beside an opener, to just before its closer; beside a closer, to
+    /// just after its opener (so a second jump comes back); inside a pair, to just before its closer. Null when there is none.
+    /// </summary>
+    public int? JumpTarget(int caret)
+    {
+        if (MatchAt(caret) is { } m) return caret == m.Open || caret == m.Open + 1 ? m.Close : m.Open + 1;
+        return Enclosing(caret)?.Close;
+    }
+
     private BracketMatch Pair(int i)
     {
         var p = _partners[i];

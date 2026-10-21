@@ -24,6 +24,58 @@ public sealed class CodeEditorWindowTests
 
     [Trait("Tier", "Window")]
     [Fact]
+    public async Task TheLineBracketSelectionAndCursorKeysDoWhatVSCodesDo()
+    {
+        await Ui.Run(() =>
+        {
+            var (window, editor) = Open("f(alpha, beta) {\n    x\n}\n", "a.js");
+            var doc = editor.Document;
+            void Press(Key key, RawInputModifiers mods) => Input.Chord(window, key, mods);
+            string Show() => Wicked.Tests.Editor.Marked.Show(doc);
+            Assert.True(Ui.PumpUntil(() => editor.IsFocused, 5), "the editor did not take the keyboard");
+
+            // Ctrl+Enter: a new line below, indented like this one, without splitting it.
+            doc.SetSelections([Selection.Caret(doc.Text.Offset(1, 5))]);
+            Press(Key.Enter, RawInputModifiers.Control);
+            Assert.Equal("f(alpha, beta) {\n    x\n    |\n}\n", Show());
+            Input.Chord(window, Key.Z, RawInputModifiers.Control);
+
+            // Ctrl+Shift+\: from just inside "(" to just before ")", and back.
+            doc.SetSelections([Selection.Caret(2)]);
+            Press(Key.OemPipe, RawInputModifiers.Control | RawInputModifiers.Shift);
+            Assert.True(Ui.PumpUntil(() => doc.Primary.Active == 13, 5), Show());
+            Press(Key.OemPipe, RawInputModifiers.Control | RawInputModifiers.Shift);
+            Assert.True(Ui.PumpUntil(() => doc.Primary.Active == 2, 5), Show());
+
+            // Shift+Alt+Right twice: the word, then the brackets' contents; Shift+Alt+Left steps back to the word.
+            doc.SetSelections([Selection.Caret(4)]);
+            Press(Key.Right, RawInputModifiers.Shift | RawInputModifiers.Alt);
+            Assert.True(Ui.PumpUntil(() => Show() == "f([alpha], beta) {\n    x\n}\n", 5), Show());
+            Press(Key.Right, RawInputModifiers.Shift | RawInputModifiers.Alt);
+            Assert.True(Ui.PumpUntil(() => Show() == "f([alpha, beta]) {\n    x\n}\n", 5), Show());
+            Press(Key.Left, RawInputModifiers.Shift | RawInputModifiers.Alt);
+            Assert.Equal("f([alpha], beta) {\n    x\n}\n", Show());
+
+            // Ctrl+U: the caret goes back to where it was before it moved.
+            doc.SetSelections([Selection.Caret(0)]);
+            Press(Key.End, RawInputModifiers.None);
+            Press(Key.Down, RawInputModifiers.None);
+            Press(Key.U, RawInputModifiers.Control);
+            Assert.Equal("f(alpha, beta) {|\n    x\n}\n", Show());
+            Press(Key.U, RawInputModifiers.Control);
+            Assert.Equal("|f(alpha, beta) {\n    x\n}\n", Show());
+
+            // Shift+Alt+I: a caret at the end of each selected line.
+            doc.SetSelections([new Selection(0, doc.Text.Offset(1, 2))]);
+            Press(Key.I, RawInputModifiers.Shift | RawInputModifiers.Alt);
+            Assert.Equal("f(alpha, beta) {|\n  |  x\n}\n", Show());
+            window.Close();
+            return 0;
+        });
+    }
+
+    [Trait("Tier", "Window")]
+    [Fact]
     public async Task TypingThroughTheWindowEditsTheDocument()
     {
         await Ui.Run(() =>

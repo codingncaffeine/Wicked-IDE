@@ -76,6 +76,7 @@ public sealed partial class CodeEditor : Control
         };
         document.Changed += change => _view.Folds = _view.Folds.Map(change);
         document.Changed += OnSnippetEdit;
+        TrackCursorHistory();
         Focusable = true;
         ClipToBounds = true;
         Cursor = new Cursor(StandardCursorType.Ibeam);
@@ -270,6 +271,127 @@ public sealed partial class CodeEditor : Control
     {
         _view.Folds = _view.Folds.ExpandAll();
         InvalidateVisual();
+    }
+
+    /// <summary>
+    /// Ctrl+Shift+\: every caret jumps to its bracket's partner (or the end of the pair it is in). Uses the bracket index the
+    /// feature worker keeps for this version; when that is behind the text, one is built on a worker and used if nothing changed.
+    /// </summary>
+    public void JumpToBracket()
+    {
+        if (_view.Features is { } features && features.Version == Document.Version)
+        {
+            JumpWith(features.Brackets);
+            return;
+        }
+
+        var (text, version, syntax, pairs) = (Document.Text, Document.Version, _view.Syntax, _view.Options.Pairs);
+        _ = Task.Run(() => BracketIndex.Build(text, version, syntax, pairs)).ContinueWith(t =>
+        {
+            if (t.IsCompletedSuccessfully) Dispatcher.UIThread.Post(() =>
+            {
+                if (Document.Version == version) JumpWith(t.Result);
+            });
+        }, TaskScheduler.Default);
+    }
+
+    // ── Expand / Shrink Selection (Shift+Alt+Right / Left) ──
+
+    private readonly Stack<System.Collections.Immutable.ImmutableArray<Selection>> _expansions = new();
+    private System.Collections.Immutable.ImmutableArray<Selection> _expanded;
+
+    /// <summary>Shift+Alt+Right: each selection grows to the next word, string, bracket pair, line or the whole file.</summary>
+    public void ExpandSelection()
+    {
+        if (_view.Features is { } features && features.Version == Document.Version)
+        {
+            ExpandWith(features.Brackets);
+            return;
+        }
+
+        var (text, version, syntax, pairs) = (Document.Text, Document.Version, _view.Syntax, _view.Options.Pairs);
+        _ = Task.Run(() => BracketIndex.Build(text, version, syntax, pairs)).ContinueWith(t =>
+        {
+            if (t.IsCompletedSuccessfully) Dispatcher.UIThread.Post(() =>
+            {
+                if (Document.Version == version) ExpandWith(t.Result);
+            });
+        }, TaskScheduler.Default);
+    }
+
+    private void ExpandWith(BracketIndex brackets)
+    {
+        // A selection changed by anything but these two commands starts the steps afresh.
+        if (_expanded.IsDefault || !_expanded.SequenceEqual(Document.Selections)) _expansions.Clear();
+        var before = Document.Selections;
+        var grown = before.Select(s => SmartSelect.Expand(Document.Text, brackets, s.Start, s.End) is { } r ? new Selection(r.Start, r.End) : s).ToList();
+        if (grown.SequenceEqual(before)) return;
+        _expansions.Push(before);
+        Document.SetSelections(grown, Document.PrimaryIndex);
+        _expanded = Document.Selections;
+    }
+
+    /// <summary>Shift+Alt+Left: back to the selections before the last expansion.</summary>
+    public void ShrinkSelection()
+    {
+        if (_expanded.IsDefault || !_expanded.SequenceEqual(Document.Selections) || _expansions.Count == 0) return;
+        Document.SetSelections(_expansions.Pop());
+        _expanded = Document.Selections;
+    }
+
+    private void JumpWith(BracketIndex brackets)
+    {
+        var moved = Document.Selections.Select(s => brackets.JumpTarget(s.Active) is { } to ? Selection.Caret(to) : s).ToList();
+        Document.SetSelections(moved, Document.PrimaryIndex);
+    }
+
+    // ── Undo Cursor (Ctrl+U): the selections as they were before each caret move, while the text is unchanged ──
+
+    private readonly List<System.Collections.Immutable.ImmutableArray<Selection>> _cursorHistory = [];
+    private System.Collections.Immutable.ImmutableArray<Selection> _lastSelections;
+    private long _lastSelectionsVersion;
+    private bool _restoringCursor;
+
+    private void TrackCursorHistory()
+    {
+        _lastSelections = Document.Selections;
+        _lastSelectionsVersion = Document.Version;
+        Document.SelectionsChanged += () =>
+        {
+            // Only a move over unchanged text is a cursor step (an edit's selections come with a new version).
+            if (!_restoringCursor && Document.Version == _lastSelectionsVersion && !_lastSelections.SequenceEqual(Document.Selections))
+            {
+                _cursorHistory.Add(_lastSelections);
+                if (_cursorHistory.Count > 50) _cursorHistory.RemoveAt(0);
+            }
+
+            _lastSelections = Document.Selections;
+            _lastSelectionsVersion = Document.Version;
+        };
+        // Offsets from before an edit would point at other text, so an edit starts the history afresh.
+        Document.Changed += _ =>
+        {
+            _cursorHistory.Clear();
+            _lastSelections = Document.Selections;
+            _lastSelectionsVersion = Document.Version;
+        };
+    }
+
+    /// <summary>Ctrl+U: the selections go back to where they were before the last caret move (VS Code's cursorUndo).</summary>
+    public void UndoCursor()
+    {
+        if (_cursorHistory.Count == 0) return;
+        var previous = _cursorHistory[^1];
+        _cursorHistory.RemoveAt(_cursorHistory.Count - 1);
+        _restoringCursor = true;
+        try
+        {
+            Document.SetSelections(previous);
+        }
+        finally
+        {
+            _restoringCursor = false;
+        }
     }
 
     /// <summary>

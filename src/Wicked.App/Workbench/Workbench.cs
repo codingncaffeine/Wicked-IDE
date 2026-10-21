@@ -116,15 +116,101 @@ public sealed partial class Workbench : ObservableObject, IDisposable
     /// <summary>A tab's file was written.</summary>
     public event Action<EditorTab>? Saved;
 
-    internal void TabAdded(EditorTab tab) => TabOpened?.Invoke(tab);
+    internal void TabAdded(EditorTab tab)
+    {
+        TrackPlaces(tab);
+        TabOpened?.Invoke(tab);
+    }
 
-    internal void TabRemoved(EditorTab tab) => TabClosed?.Invoke(tab);
+    internal void TabRemoved(EditorTab tab)
+    {
+        // Closing the active file (or a preview replaced by the next) leaves a place: Back opens it again, as in VS Code.
+        if (tab == _lastActive && !_navigating && tab.Path is not null && _carets.ContainsKey(tab))
+        {
+            History.Leaving(PlaceOf(tab));
+            _lastActive = null;
+        }
+
+        _carets.Remove(tab);
+        if (tab.Path is null) History.Forget(tab);
+        TabClosed?.Invoke(tab);
+    }
 
     internal void ActiveTabChanged()
     {
+        var now = ActiveTab;
+        if (!_navigating && _lastActive is { } left && left != now && _carets.ContainsKey(left)) History.Leaving(PlaceOf(left));
+        _lastActive = now;
         OnPropertyChanged(nameof(ActiveTab));
         ActiveEditorChanged?.Invoke();
         if (ActiveTab?.Path is { } path) _ = RevealAsync(path);
+    }
+
+    // ── Back and Forward, and the last edit ──────────────────────────────────────────────────────
+
+    /// <summary>The places Back and Forward go to (Ctrl+Alt+- and Ctrl+Shift+-; Alt+Left and Alt+Right on Windows).</summary>
+    public NavigationHistory History { get; } = new();
+
+    /// <summary>Where the last edit in the active tab was made (Go to Last Edit Location).</summary>
+    public NavigationPlace? LastEdit { get; private set; }
+
+    private readonly Dictionary<EditorTab, (int Offset, int Line, long Version)> _carets = [];
+    private EditorTab? _lastActive;
+    private bool _navigating;
+
+    private static NavigationPlace PlaceOf(EditorTab tab) => new(tab.Path, tab, tab.Document.Primary.Active);
+
+    private void TrackPlaces(EditorTab tab)
+    {
+        var doc = tab.Document;
+        _carets[tab] = (doc.Primary.Active, doc.Text.LineOf(doc.Primary.Active), doc.Version);
+        doc.SelectionsChanged += () =>
+        {
+            if (!_carets.TryGetValue(tab, out var last)) return;
+            var caret = doc.Primary.Active;
+            var line = doc.Text.LineOf(Math.Min(caret, doc.Text.Length));
+            // A jump of many lines over unchanged text (not typing) leaves a place behind.
+            if (!_navigating && doc.Version == last.Version && Math.Abs(line - last.Line) >= NavigationHistory.JumpLines) History.Leaving(new NavigationPlace(tab.Path, tab, last.Offset));
+            _carets[tab] = (caret, line, doc.Version);
+        };
+        doc.Changed += change =>
+        {
+            if (change.Changes.Length > 0 && ActiveTab == tab) LastEdit = new NavigationPlace(tab.Path, tab, change.Changes[^1].Offset + change.Changes[^1].Inserted.Length);
+        };
+    }
+
+    /// <summary>Go Back: to the last place left; the present is kept for Go Forward.</summary>
+    public Task GoBackAsync() => GoToAsync(History.Back(ActiveTab is { } here ? PlaceOf(here) : new NavigationPlace(null, null, 0)));
+
+    public Task GoForwardAsync() => GoToAsync(History.Forward());
+
+    public Task GoToLastEditAsync() => GoToAsync(LastEdit);
+
+    private async Task GoToAsync(NavigationPlace? place)
+    {
+        if (place is null) return;
+        _navigating = true;
+        try
+        {
+            EditorTab? tab = null;
+            if (place.Path is { } path) tab = await OpenAsync(path);
+            else if (place.Tab is { } open && Groups.FirstOrDefault(g => g.Tabs.Contains(open)) is { } group)
+            {
+                Focus(group);
+                group.Activate(open);
+                tab = open;
+            }
+
+            if (tab is null) return;
+            var offset = Math.Clamp(place.Offset, 0, tab.Document.Text.Length);
+            tab.Document.SetSelections([Wicked.Editor.Model.Selection.Caret(offset)]);
+            if (_carets.ContainsKey(tab)) _carets[tab] = (offset, tab.Document.Text.LineOf(offset), tab.Document.Version);
+            tab.Editor?.Reveal(offset);
+        }
+        finally
+        {
+            _navigating = false;
+        }
     }
 
     public void Focus(EditorGroup group)

@@ -100,6 +100,13 @@ public static class EditorKeymap
         Add("Ctrl+Shift+K", "editor.action.deleteLines", "Delete lines", e => Edits.DeleteLines(e.Document, e.Options));
         Add("Ctrl+Oem2", "editor.action.commentLine", "Toggle line comment", e => Edits.ToggleLineComment(e.Document, e.Options));
         Add(Windows ? "Shift+Alt+A" : "Ctrl+Shift+A", "editor.action.blockComment", "Toggle block comment", e => Edits.ToggleBlockComment(e.Document, e.Options));
+        Add("Ctrl+Enter", "editor.action.insertLineAfter", "Insert line below", e => Edits.InsertLine(e.Document, above: false));
+        Add("Ctrl+Shift+Enter", "editor.action.insertLineBefore", "Insert line above", e => Edits.InsertLine(e.Document, above: true));
+        Add("Ctrl+Shift+OemPipe", "editor.action.jumpToBracket", "Jump to bracket", e => e.JumpToBracket());
+        Add("Shift+Alt+I", "editor.action.insertCursorAtEndOfEachLineSelected", "Add carets to line ends", e => Edits.CaretsAtLineEnds(e.Document));
+        Add("Ctrl+U", "cursorUndo", "Undo cursor", e => e.UndoCursor());
+        Add("Shift+Alt+Right", "editor.action.smartSelect.expand", "Expand selection", e => e.ExpandSelection());
+        Add("Shift+Alt+Left", "editor.action.smartSelect.shrink", "Shrink selection", e => e.ShrinkSelection());
         return map;
     }
 }

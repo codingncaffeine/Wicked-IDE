@@ -79,3 +79,23 @@ deleteWordRight	editor	Ctrl+Delete
 cursorHome	editor	Home
 cursorEnd	editor	End
 cursorTop	editor	Ctrl+Home
+workbench.action.navigateBack	workbench	Ctrl+Alt+-
+workbench.action.navigateForward	workbench	Ctrl+Shift+-
+workbench.action.navigateToLastEditLocation	workbench	Ctrl+K Ctrl+Q
+editor.action.duplicateSelection	workbench	
+expandLineSelection	workbench	
+editor.action.transformToUppercase	workbench	
+editor.action.transformToLowercase	workbench	
+editor.action.transformToTitlecase	workbench	
+editor.action.sortLinesAscending	workbench	
+editor.action.sortLinesDescending	workbench	
+editor.action.reverseLines	workbench	
+editor.action.joinLines	workbench	
+editor.action.trimTrailingWhitespace	workbench	Ctrl+K Ctrl+X
+editor.action.insertLineAfter	editor	Ctrl+Enter
+editor.action.insertLineBefore	editor	Ctrl+Shift+Enter
+editor.action.jumpToBracket	editor	Ctrl+Shift+\
+editor.action.insertCursorAtEndOfEachLineSelected	editor	Shift+Alt+I
+cursorUndo	editor	Ctrl+U
+editor.action.smartSelect.expand	editor	Shift+Alt+Right
+editor.action.smartSelect.shrink	editor	Shift+Alt+Left

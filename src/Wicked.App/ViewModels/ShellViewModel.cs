@@ -255,6 +255,9 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             new("workbench.action.showCommands", "View", "Show All Commands", "Ctrl+Shift+P", () => Sync(() => OpenPalette(">"))),
             new("workbench.action.quickOpen", "Go", "Go to File...", "Ctrl+P", () => Sync(() => OpenPalette(""))),
             new("workbench.action.gotoLine", "Go", "Go to Line...", "Ctrl+G", () => Sync(() => OpenPalette(":"))),
+            new("workbench.action.navigateBack", "Go", "Go Back", OperatingSystem.IsWindows() ? "Alt+Left" : "Ctrl+Alt+OemMinus", bench.GoBackAsync),
+            new("workbench.action.navigateForward", "Go", "Go Forward", OperatingSystem.IsWindows() ? "Alt+Right" : "Ctrl+Shift+OemMinus", bench.GoForwardAsync),
+            new("workbench.action.navigateToLastEditLocation", "Go", "Go to Last Edit Location", "Ctrl+K Ctrl+Q", bench.GoToLastEditAsync),
             new("editor.action.fontZoomIn", "View", "Zoom In", "Ctrl+OemPlus", () => UpdateSettingsAsync(st => st with { FontSize = Math.Min(72, st.FontSize + 1) })),
             new("editor.action.fontZoomOut", "View", "Zoom Out", "Ctrl+OemMinus", () => UpdateSettingsAsync(st => st with { FontSize = Math.Max(6, st.FontSize - 1) })),
             new("editor.action.fontZoomReset", "View", "Reset Zoom", "Ctrl+D0", () => UpdateSettingsAsync(st => st with { FontSize = new WickedSettings().FontSize })),
@@ -280,6 +283,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             .. TaskCommands(),
             .. DebugCommands(),
             .. HelpCommands(),
+            .. EditingCommands(),
         ];
     }
 
