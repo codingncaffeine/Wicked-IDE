@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.codingncaffeine.WickedIDE</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0-or-later</project_license>
+  <name>Wicked IDE</name>
+  <summary>Write code with AI models that run on your own machine</summary>
+  <developer id="io.github.codingncaffeine">
+    <name>codingncaffeine</name>
+  </developer>
+  <description>
+    <p>
+      Wicked IDE is a code editor that downloads, runs and keeps up to date the open AI models your computer can
+      handle, then uses them to help you write code. Nothing leaves your machine.
+    </p>
+    <ul>
+      <li>A fast editor of its own: tabs and splits, find and replace, folding, minimap, word wrap, snippets</li>
+      <li>Two or three models recommended for your hardware, and the whole catalog and Hugging Face to browse</li>
+      <li>The right llama.cpp engine for your GPU, installed, verified and updated for you</li>
+    </ul>
+  </description>
+  <launchable type="desktop-id">io.github.codingncaffeine.WickedIDE.desktop</launchable>
+  <url type="homepage">https://github.com/codingncaffeine/Wicked-IDE</url>
+  <url type="bugtracker">https://github.com/codingncaffeine/Wicked-IDE/issues</url>
+  <content_rating type="oars-1.1" />
+  <provides>
+    <binary>wicked</binary>
+    <binary>wickedd</binary>
+    <binary>wicked-cli</binary>
+  </provides>
+  <releases>
+    <release version="0.0.1" date="2026-10-20" />
+  </releases>
+</component>

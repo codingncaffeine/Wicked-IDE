@@ -1,0 +1,13 @@
+[Desktop Entry]
+Name=Wicked IDE
+GenericName=Code Editor
+Comment=Write code with AI models that run on your own machine
+Exec=wicked %F
+Icon=io.github.codingncaffeine.WickedIDE
+Terminal=false
+Type=Application
+Categories=Development;IDE;TextEditor;
+Keywords=code;editor;ide;ai;llm;local;llama;gguf;chat;
+MimeType=text/plain;inode/directory;
+StartupNotify=true
+StartupWMClass=wicked
