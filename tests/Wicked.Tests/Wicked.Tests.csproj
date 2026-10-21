@@ -22,6 +22,7 @@
   <!-- Real programs' terminal output, recorded once, that the emulator replays (see Terminal/RecordedOutputTests.cs). -->
   <ItemGroup>
     <None Include="Terminal\Recordings\*" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Basics\basics.tsv" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 

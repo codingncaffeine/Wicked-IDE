@@ -1,0 +1,81 @@
+# The basics every IDE user expects, as Wicked must keep them: the command (VS Code's id where it has one), where it
+# lives (workbench = the palette's commands; editor = the code editor's own keys), and its keys on Linux as people read
+# them ("" = no default keys). BasicsContractTests fails when a row's command is gone or its default keys changed.
+# Rows are added as each phase of the second pass lands; a row is removed only with the user.
+#id	surface	linux keys
+workbench.action.files.newUntitledFile	workbench	Ctrl+N
+workbench.action.files.openFile	workbench	Ctrl+O
+workbench.action.files.openFolder	workbench	Ctrl+K Ctrl+O
+workbench.action.files.save	workbench	Ctrl+S
+workbench.action.files.saveAs	workbench	Ctrl+Shift+S
+workbench.action.files.saveAll	workbench	Ctrl+K S
+workbench.action.closeActiveEditor	workbench	Ctrl+W
+workbench.action.splitEditor	workbench	Ctrl+\
+workbench.action.nextEditor	workbench	Ctrl+PageDown
+workbench.action.previousEditor	workbench	Ctrl+PageUp
+workbench.action.toggleSidebarVisibility	workbench	Ctrl+B
+workbench.action.togglePanel	workbench	Ctrl+J
+workbench.view.explorer	workbench	Ctrl+Shift+E
+workbench.view.search	workbench	Ctrl+Shift+F
+workbench.action.replaceInFiles	workbench	Ctrl+Shift+H
+workbench.view.scm	workbench	Ctrl+Shift+G
+workbench.action.showCommands	workbench	Ctrl+Shift+P
+workbench.action.quickOpen	workbench	Ctrl+P
+workbench.action.gotoLine	workbench	Ctrl+G
+workbench.action.openSettings	workbench	Ctrl+,
+workbench.action.selectTheme	workbench	Ctrl+K Ctrl+T
+editor.action.toggleWordWrap	workbench	Alt+Z
+editor.action.revealDefinition	workbench	F12
+editor.action.goToReferences	workbench	Shift+F12
+editor.action.rename	workbench	F2
+editor.action.formatDocument	workbench	Shift+Alt+F
+editor.action.quickFix	workbench	Ctrl+.
+editor.action.marker.nextInFiles	workbench	F8
+editor.action.marker.prevInFiles	workbench	Shift+F8
+workbench.action.gotoSymbol	workbench	Ctrl+Shift+O
+workbench.action.showAllSymbols	workbench	Ctrl+T
+workbench.action.terminal.toggleTerminal	workbench	Ctrl+`
+workbench.action.terminal.new	workbench	Ctrl+Shift+`
+workbench.action.debug.start	workbench	F5
+workbench.action.debug.run	workbench	Ctrl+F5
+workbench.action.tasks.runTask	workbench	
+workbench.action.tasks.build	workbench	Ctrl+Shift+B
+wicked.newProject	workbench	Ctrl+Shift+N
+workbench.action.openWalkthrough	workbench	
+workbench.action.keybindingsReference	workbench	Ctrl+K Ctrl+R
+workbench.action.openDocumentationUrl	workbench	
+update.showCurrentReleaseNotes	workbench	
+workbench.action.openIssueReporter	workbench	
+workbench.action.openLicenseUrl	workbench	
+workbench.action.showAboutDialog	workbench	
+update.checkForUpdates	workbench	
+undo	editor	Ctrl+Z
+redo	editor	Ctrl+Shift+Z
+editor.action.selectAll	editor	Ctrl+A
+actions.find	editor	Ctrl+F
+editor.action.startFindReplaceAction	editor	Ctrl+H
+editor.action.nextMatchFindAction	editor	F3
+editor.action.previousMatchFindAction	editor	Shift+F3
+editor.action.clipboardCopyAction	editor	Ctrl+C
+editor.action.clipboardCutAction	editor	Ctrl+X
+editor.action.clipboardPasteAction	editor	Ctrl+V
+editor.action.addSelectionToNextFindMatch	editor	Ctrl+D
+editor.action.selectHighlights	editor	Ctrl+Shift+L
+editor.action.moveLinesUpAction	editor	Alt+Up
+editor.action.moveLinesDownAction	editor	Alt+Down
+editor.action.copyLinesUpAction	editor	Ctrl+Shift+Alt+Up
+editor.action.copyLinesDownAction	editor	Ctrl+Shift+Alt+Down
+editor.action.deleteLines	editor	Ctrl+Shift+K
+editor.action.commentLine	editor	Ctrl+/
+editor.action.blockComment	editor	Ctrl+Shift+A
+editor.action.indentLines	editor	Ctrl+]
+editor.action.outdentLines	editor	Ctrl+[
+editor.action.insertCursorAbove	editor	Ctrl+Shift+Up
+editor.action.insertCursorBelow	editor	Ctrl+Shift+Down
+editor.fold	editor	Ctrl+Shift+[
+editor.unfold	editor	Ctrl+Shift+]
+deleteWordLeft	editor	Ctrl+Backspace
+deleteWordRight	editor	Ctrl+Delete
+cursorHome	editor	Home
+cursorEnd	editor	End
+cursorTop	editor	Ctrl+Home
