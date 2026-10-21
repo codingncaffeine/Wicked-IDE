@@ -8,6 +8,7 @@
     <Project Path="src/Wicked.App/Wicked.App.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Wicked.FakeAdapter/Wicked.FakeAdapter.csproj" />
     <Project Path="tests/Wicked.FakeEngine/Wicked.FakeEngine.csproj" />
     <Project Path="tests/Wicked.Tests/Wicked.Tests.csproj" />
   </Folder>

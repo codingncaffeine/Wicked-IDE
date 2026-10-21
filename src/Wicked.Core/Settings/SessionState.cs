@@ -14,6 +14,9 @@ public sealed record SessionState
     /// <summary>Per folder: the files open in it, the active one last.</summary>
     public Dictionary<string, List<string>> OpenFiles { get; init; } = [];
 
+    /// <summary>Per folder: its breakpoints, exception filters, watch expressions and the launch configuration last chosen.</summary>
+    public Dictionary<string, Wicked.Core.Debug.DebugWorkspaceState> Debug { get; init; } = [];
+
     public double WindowWidth { get; init; } = 1440;
 
     public double WindowHeight { get; init; } = 900;

@@ -173,7 +173,7 @@ public sealed class LanguageServerInstaller(HttpClient http, string serversFolde
         }
     }
 
-    private static async Task RunAsync(string program, IReadOnlyList<string> args, string cwd, IProgress<string>? progress, CancellationToken ct, IReadOnlyDictionary<string, string>? env = null)
+    internal static async Task RunAsync(string program, IReadOnlyList<string> args, string cwd, IProgress<string>? progress, CancellationToken ct, IReadOnlyDictionary<string, string>? env = null)
     {
         var info = new ProcessStartInfo(program) { WorkingDirectory = cwd, RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false };
         foreach (var a in args) info.ArgumentList.Add(a);
