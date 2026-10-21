@@ -321,6 +321,7 @@ public sealed class UpdateSchedulerTests
     [Fact(Timeout = 60_000)]
     public async Task TheAppAndTheEngineGetBannersAndTheAppOnlyOnceDismissed()
     {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "the stand-in engine is a Linux build and a shell script");
         await using var rig = await Rig.StartAsync();
         await rig.Services.EnsureEngineAsync(Ct); // b999
         rig.World.Builds = [999, 1000];

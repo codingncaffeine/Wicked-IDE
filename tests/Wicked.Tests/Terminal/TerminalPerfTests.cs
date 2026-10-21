@@ -12,6 +12,7 @@ namespace Wicked.Tests.Terminal;
 /// view attached in a headless window. The UI thread's work per frame is timed from the view's own instrument; its budget
 /// is 4 ms. WICKED_TERMINAL_PERF_MB changes the size (default 100).
 /// </summary>
+[Collection(TimingCollection.Name)]
 public sealed class TerminalPerfTests
 {
     private static int Megabytes => int.TryParse(Environment.GetEnvironmentVariable("WICKED_TERMINAL_PERF_MB"), CultureInfo.InvariantCulture, out var mb) && mb > 0 ? mb : 100;
@@ -69,7 +70,9 @@ public sealed class TerminalPerfTests
         TestContext.Current.SendDiagnosticMessage(line);
         if (ResultsFile() is { } file) File.AppendAllText(file, line + "\n");
         Assert.Equal(10_000, emulator.ScrollbackCount);
-        Assert.True(mbps > 40, line);
+        // Measured 2026-10-20: 117–184 MB/s on 2 pinned Linux CPUs, 22 MB/s on GitHub's 2-vCPU Windows runner (same managed
+        // parser, in memory). The floor is a regression tripwire per platform, well under what each machine does.
+        Assert.True(mbps > (OperatingSystem.IsWindows() ? 10 : 40), line);
     }
 
     [Fact]

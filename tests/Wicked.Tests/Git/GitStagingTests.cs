@@ -222,12 +222,14 @@ public sealed class GitStagingTests
     {
         var (box, repo) = await GitSandbox.CreateAsync();
         using var _ = box;
-        box.Write("star*.txt", "s\n");
-        box.Write("starry.txt", "t\n");
-        Assert.True((await repo.StageAsync(["star*.txt"], Ct)).Ok);
+        // A name that is also a pathspec pattern matching its neighbour (Windows forbids '*' in names; '[' is allowed).
+        var (name, neighbour) = OperatingSystem.IsWindows() ? ("star[x].txt", "starx.txt") : ("star*.txt", "starry.txt");
+        box.Write(name, "s\n");
+        box.Write(neighbour, "t\n");
+        Assert.True((await repo.StageAsync([name], Ct)).Ok);
         var status = await repo.StatusAsync(Ct);
-        Assert.Equal(["star*.txt"], status.Staged.Select(c => c.Path));
-        Assert.True((await repo.UnstageAsync(["star*.txt"], Ct)).Ok);
+        Assert.Equal([name], status.Staged.Select(c => c.Path));
+        Assert.True((await repo.UnstageAsync([name], Ct)).Ok);
         Assert.Empty((await repo.StatusAsync(Ct)).Staged);
     }
 }

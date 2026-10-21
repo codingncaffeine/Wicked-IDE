@@ -487,7 +487,7 @@ public sealed partial class GitRepository
         foreach (var field in output.Split('\0'))
         {
             if (field.Length == 0) Flush();
-            else if (field.StartsWith("worktree ", StringComparison.Ordinal)) path = field[9..];
+            else if (field.StartsWith("worktree ", StringComparison.Ordinal)) path = Path.GetFullPath(field[9..]); // git writes / on Windows too
             else if (field.StartsWith("HEAD ", StringComparison.Ordinal)) head = field[5..];
             else if (field.StartsWith("branch ", StringComparison.Ordinal)) branch = field[7..].Replace("refs/heads/", "", StringComparison.Ordinal);
             else if (field == "bare") bare = true;

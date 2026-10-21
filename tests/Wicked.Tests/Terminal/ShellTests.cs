@@ -12,12 +12,14 @@ public sealed class ShellProfileTests
     [Fact]
     public void TheShellsFileAndTheUsersShellAreListedOnce()
     {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "/etc/shells is the Unix list (WindowsHasItsOwnShells covers Windows)");
         Assert.Equal(["zsh", "sh", "bash", "fish"], Detect().Select(p => p.Name));
     }
 
     [Fact]
     public void ShellsThatCannotBeRunAreLeftOut()
     {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "/etc/shells is the Unix list (WindowsHasItsOwnShells covers Windows)");
         Assert.DoesNotContain(Detect(), p => p.Name is "nologin" or "git-shell");
         Assert.Equal(["sh"], Detect(exists: p => p == "/bin/sh").Select(p => p.Name));
     }
@@ -25,6 +27,7 @@ public sealed class ShellProfileTests
     [Fact]
     public void EachShellKnowsWhatItIs()
     {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "/etc/shells is the Unix list (WindowsHasItsOwnShells covers Windows)");
         var kinds = Detect().ToDictionary(p => p.Name, p => p.Kind);
         Assert.Equal(ShellKind.Zsh, kinds["zsh"]);
         Assert.Equal(ShellKind.Bash, kinds["bash"]);
@@ -35,12 +38,26 @@ public sealed class ShellProfileTests
     [Fact]
     public void TheSettingWinsThenTheUsersShell()
     {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "/etc/shells is the Unix list (WindowsHasItsOwnShells covers Windows)");
         var profiles = Detect();
         Assert.Equal("fish", ShellProfiles.Choose(profiles, "fish", _ => "/usr/bin/zsh")!.Name);
         Assert.Equal("bash", ShellProfiles.Choose(profiles, "/bin/bash", _ => "/usr/bin/zsh")!.Name);
         Assert.Equal("zsh", ShellProfiles.Choose(profiles, "", v => v == "SHELL" ? "/usr/bin/zsh" : null)!.Name);
         Assert.Equal("zsh", ShellProfiles.Choose(profiles, "no-such-shell", v => v == "SHELL" ? "/usr/bin/zsh" : null)!.Name);
         Assert.Equal("sh", ShellProfiles.Choose(Detect(shell: null).Where(p => p.Name != "zsh").ToList(), "", _ => null)!.Name);
+    }
+
+    [Fact]
+    public void WindowsHasItsOwnShells()
+    {
+        Assert.SkipUnless(OperatingSystem.IsWindows(), "the Windows list");
+        var root = @"C:\Windows";
+        var env = new Dictionary<string, string?> { ["PATH"] = @"C:\Program Files\PowerShell\7", ["SystemRoot"] = root, ["ComSpec"] = root + @"\System32\cmd.exe", ["ProgramFiles"] = @"C:\Program Files" };
+        var profiles = ShellProfiles.Detect(v => env.GetValueOrDefault(v), p => !p.EndsWith("wsl.exe", StringComparison.OrdinalIgnoreCase), _ => EtcShells);
+        Assert.Equal(["PowerShell", "Windows PowerShell", "Command Prompt", "Git Bash"], profiles.Select(p => p.Name));
+        Assert.Equal([ShellKind.PowerShell, ShellKind.PowerShell, ShellKind.Cmd, ShellKind.Bash], profiles.Select(p => p.Kind));
+        Assert.Equal("PowerShell", ShellProfiles.Choose(profiles, "", _ => null)!.Name);
+        Assert.Equal("Git Bash", ShellProfiles.Choose(profiles, "Git Bash", _ => null)!.Name);
     }
 
     [Fact]

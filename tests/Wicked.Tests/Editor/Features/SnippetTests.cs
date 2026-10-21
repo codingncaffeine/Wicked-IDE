@@ -203,10 +203,13 @@ public sealed class SnippetTests
     [Fact]
     public void VariablesResolveFromTheContext()
     {
+        // Paths come out the platform's way, as VS Code gives them.
+        var root = OperatingSystem.IsWindows() ? @"C:\work\proj" : "/work/proj";
+        var file = Path.Combine(root, "src", "Hello.cs");
         var ctx = new SnippetContext
         {
-            FilePath = "/work/proj/src/Hello.cs",
-            WorkspaceFolder = "/work/proj",
+            FilePath = file,
+            WorkspaceFolder = root,
             SelectedText = "sel",
             LineIndex = 4,
             Clipboard = "clip",
@@ -215,9 +218,9 @@ public sealed class SnippetTests
             BlockCommentEnd = "*/",
             CursorIndex = 1,
         };
-        Assert.Equal("Hello.cs Hello /work/proj/src src/Hello.cs /work/proj/src/Hello.cs proj", X("$TM_FILENAME $TM_FILENAME_BASE $TM_DIRECTORY $RELATIVE_FILEPATH $TM_FILEPATH $WORKSPACE_NAME", ctx).Text);
+        Assert.Equal($"Hello.cs Hello {Path.Combine(root, "src")} {Path.Combine("src", "Hello.cs")} {file} proj", X("$TM_FILENAME $TM_FILENAME_BASE $TM_DIRECTORY $RELATIVE_FILEPATH $TM_FILEPATH $WORKSPACE_NAME", ctx).Text);
         Assert.Equal("sel clip 4 5 1 2 // /* */", X("$TM_SELECTED_TEXT $CLIPBOARD $TM_LINE_INDEX $TM_LINE_NUMBER $CURSOR_INDEX $CURSOR_NUMBER $LINE_COMMENT $BLOCK_COMMENT_START $BLOCK_COMMENT_END", ctx).Text);
-        Assert.Equal("/work/proj", X("$WORKSPACE_FOLDER", ctx).Text);
+        Assert.Equal(root, X("$WORKSPACE_FOLDER", ctx).Text);
     }
 
     [Fact]

@@ -26,7 +26,9 @@ public static class ShellIntegration
         var assembly = typeof(ShellIntegration).Assembly;
         foreach (var file in Files)
         {
+            // The resource name carries MSBuild's RecursiveDir, which a Windows build writes with a backslash.
             using var stream = assembly.GetManifestResourceStream("shell-integration/" + file)
+                ?? assembly.GetManifestResourceStream("shell-integration/" + file.Replace('/', '\\'))
                 ?? throw new InvalidOperationException($"the shell integration script {file} is missing from the build");
             using var reader = new StreamReader(stream);
             var text = reader.ReadToEnd();

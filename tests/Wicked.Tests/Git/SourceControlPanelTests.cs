@@ -144,7 +144,9 @@ public sealed class SourceControlPanelTests
             _ = scm.TakeSideAsync([file], ours: false);
             Assert.True(Ui.PumpUntil(() => scm.Status.Conflicts.Count() == 0 && scm.Status.Staged.Any(), 10), "the side was not taken");
             Input.Click(window, Find<Button>(window, "ContinueButton"));
-            Assert.True(Ui.PumpUntil(() => !scm.HasOperation && scm.IsClean, 10), "the merge did not finish");
+            Assert.True(Ui.PumpUntil(() => !scm.HasOperation && scm.IsClean, 10),
+                $"the merge did not finish: operation {scm.HasOperation}, staged [{string.Join(", ", scm.Status.Staged.Select(c => c.Path))}], " +
+                $"unstaged [{string.Join(", ", scm.Status.Unstaged.Select(c => c.Path))}], untracked [{string.Join(", ", scm.Status.Untracked.Select(c => c.Path))}], notices [{string.Join(" | ", shell.Notices.All.Select(n => n.Text))}]");
             window.Close();
             return 0;
         });

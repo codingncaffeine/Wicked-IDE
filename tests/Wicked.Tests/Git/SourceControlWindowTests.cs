@@ -154,6 +154,7 @@ public sealed class SourceControlWindowTests
     [Fact]
     public async Task APushThatNeedsACredentialAsksInADialogAndSendsTheAnswerToGit()
     {
+        Assert.SkipUnless(Wicked.Core.Git.AskpassRelay.IsSupported, "Windows git asks through the Git Credential Manager it ships with");
         using var profile = new TempProfile();
         var (box, repo) = await GitSandbox.CreateAsync();
         using var cleanup = box;

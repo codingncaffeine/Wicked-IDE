@@ -9,7 +9,8 @@ public sealed class EditorConfigTests
         new(dir =>
         {
             reads?.Add(dir);
-            return files.GetValueOrDefault(dir);
+            // The folders are written Unix-style; Windows hands them back with backslashes (Path.GetDirectoryName).
+            return files.GetValueOrDefault(dir.Replace('\\', '/'));
         });
 
     private static EditorConfigProperties Resolve(string config, string file) => Fake(new() { ["/proj"] = config }).Resolve(file);
