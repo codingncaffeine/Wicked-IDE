@@ -462,5 +462,47 @@ public partial class MainWindow : Window, IWorkbenchDialogs
         WindowingBackend.WindowOpened(this);
         StartupTimeline.Mark("shown");
         RequestAnimationFrame(_ => StartupTimeline.FirstFrame());
+        FitToScreen();
+        // On Wayland the scale arrives just after the window opens (1, then 1.5): the window is fitted again then.
+        ScalingChanged += (_, _) => FitToScreen();
+    }
+
+    /// <summary>
+    /// A window larger than the screen's working area (1440 × 900 on a 1080p laptop at 150%, 1280 × 720) is made to fit it,
+    /// as VS Code's first window is, never smaller than the window's minimum. A maximised or full-screen window is left alone.
+    /// </summary>
+    internal void FitToScreen()
+    {
+        if (WindowState != WindowState.Normal) return;
+        if ((Screens.ScreenFromWindow(this) ?? Screens.Primary) is not { } screen)
+        {
+            Log.Info("Window: no screen reported, so the window cannot be fitted to one");
+            return;
+        }
+
+        // The screen's area is in its own units at its own scaling: pixels on X11 and Windows, already logical on Wayland.
+        if (Fit(new Size(Width, Height), new Size(MinWidth, MinHeight), screen.WorkingArea, screen.Scaling) is not { } fit) return;
+        Log.Info($"Window: {Width} × {Height} does not fit the screen ({screen.WorkingArea} at scale {screen.Scaling}): {fit.Size.Width:0} × {fit.Size.Height:0}");
+        // A Wayland window is not resized once it is on screen (the compositor owns its size): the compositor is asked to
+        // maximise it, which always fits.
+        if (WindowingBackend.Name == "native Wayland")
+        {
+            WindowState = WindowState.Maximized;
+            return;
+        }
+
+        Width = fit.Size.Width;
+        Height = fit.Size.Height;
+        Position = fit.Position;
+    }
+
+    /// <summary>The size (in the window's units) and place (in the screen's pixels) that fit a window into a working area; null when it fits already.</summary>
+    internal static (Size Size, PixelPoint Position)? Fit(Size window, Size minimum, PixelRect area, double scale)
+    {
+        var room = new Size(area.Width / scale, area.Height / scale);
+        if (window.Width <= room.Width && window.Height <= room.Height) return null;
+        var size = new Size(Math.Max(minimum.Width, Math.Min(window.Width, room.Width * 0.95)), Math.Max(minimum.Height, Math.Min(window.Height, room.Height * 0.95)));
+        var position = new PixelPoint(area.X + (int)((area.Width - size.Width * scale) / 2), area.Y + (int)((area.Height - size.Height * scale) / 2));
+        return (size, position);
     }
 }

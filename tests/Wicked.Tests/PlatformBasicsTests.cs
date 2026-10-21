@@ -180,3 +180,20 @@ public sealed class JourneyPolishTests
         });
     }
 }
+
+/// <summary>The first window fits the screen it opens on, whatever its scale.</summary>
+public sealed class WindowFitTests
+{
+    [Fact]
+    public void AWindowTooBigForTheScreenIsMadeToFitAndCentredAndOneThatFitsIsLeftAlone()
+    {
+        // A 1080p laptop at 150%: 1280 × 720 to lay out in, less a 48-pixel panel.
+        var fit = MainWindow.Fit(new Avalonia.Size(1440, 900), new Avalonia.Size(900, 560), new Avalonia.PixelRect(0, 0, 1920, 1032), 1.5)!.Value;
+        Assert.Equal(1216, fit.Size.Width);
+        Assert.Equal(1032 / 1.5 * 0.95, fit.Size.Height, 3);
+        Assert.Equal((1920 - (int)(1216 * 1.5)) / 2, fit.Position.X);
+        Assert.Null(MainWindow.Fit(new Avalonia.Size(1440, 900), new Avalonia.Size(900, 560), new Avalonia.PixelRect(0, 0, 2560, 1400), 1.0));
+        // Never smaller than the window's minimum.
+        Assert.Equal(900, MainWindow.Fit(new Avalonia.Size(1440, 900), new Avalonia.Size(900, 560), new Avalonia.PixelRect(0, 0, 1024, 600), 1.25)!.Value.Size.Width);
+    }
+}

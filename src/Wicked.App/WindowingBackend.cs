@@ -68,7 +68,9 @@ internal static class WindowingBackend
         var name = impl.StartsWith("Avalonia.Wayland", StringComparison.Ordinal) ? "native Wayland"
             : impl.StartsWith("Avalonia.X11", StringComparison.Ordinal) ? InWaylandSession ? "X11 through XWayland" : "X11"
             : impl;
-        Log.Info($"Windowing: {name}");
+        // The scale the desktop gives the window (1.5 on a 150% screen): wrong scaling shows here first in a bug report.
+        Log.Info($"Windowing: {name}, scale {window.RenderScaling.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
+        window.ScalingChanged += (_, _) => Log.Info($"Windowing: scale now {window.RenderScaling.ToString(System.Globalization.CultureInfo.InvariantCulture)}");
         Name = name;
         if (!_attempting) return;
         _attempting = false;
