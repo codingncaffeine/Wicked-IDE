@@ -178,13 +178,15 @@ public sealed class RouterTests : IDisposable
     public async Task StopSendsSigtermAndReportsAnIntentionalExit()
     {
         Assert.SkipUnless(!OperatingSystem.IsWindows(), "uses /bin/sh");
-        var script = Shell.Script(_profile.Root, "llama-server", "trap 'kill $!; exit 42' TERM; sleep 30 & wait");
+        // The script marks when its trap is in place: a SIGTERM before that ends it with 143, not its own 42 (a fixed wait
+        // lost that race on a loaded two-CPU runner).
+        var ready = Path.Combine(_profile.Root, "trap-set");
+        var script = Shell.Script(_profile.Root, "llama-server", $"trap 'kill $!; exit 42' TERM; touch '{ready}'; sleep 30 & wait");
         await using var router = new RouterProcess(Options(script), _http);
         var exits = new List<RouterExit>();
         router.Exited += (_, e) => exits.Add(e);
         await router.StartAsync(Ct);
-        await WaitUntil(() => router.IsRunning);
-        await Task.Delay(200, Ct);
+        await WaitUntil(() => router.IsRunning && File.Exists(ready));
 
         await router.StopAsync(ct: Ct);
 
