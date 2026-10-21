@@ -4,6 +4,9 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Media;
+using Avalonia.Media.TextFormatting;
+using Avalonia.Utilities;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Wicked.Editor.Syntax;
 
@@ -12,7 +15,9 @@ namespace Wicked.App.Chat;
 /// <summary>
 /// The lines of one code block, drawn in the colours the highlighter gave them. Monospaced, so the height is a line count
 /// times a line height with no layout, and only the lines in sight inside the message list's scroll viewer are shaped:
-/// a 2000-line block costs what the 40 on screen cost. Text can be selected with the mouse and copied with Ctrl+C.
+/// a 2000-line block costs what the 40 on screen cost. Shaping happens on a worker (it cost ~2.5 ms a line on the UI
+/// thread while a reply streamed); a line keeps its previous shape until the new one is ready. Text can be selected with
+/// the mouse and copied with Ctrl+C.
 /// </summary>
 public sealed class CodeText : Control
 {
@@ -24,7 +29,12 @@ public sealed class CodeText : Control
     private static readonly Dictionary<uint, IBrush> Brushes = [];
     private static double _advance;
 
-    private readonly Dictionary<int, (HighlightedLine Line, FormattedText Text)> _shaped = [];
+    private readonly Dictionary<int, (HighlightedLine Line, TextLayout Text)> _shaped = [];
+    private readonly Dictionary<int, HighlightedLine> _pending = [];
+
+    /// <summary>Tests hold the shaping worker here, to see what is drawn while it works.</summary>
+    internal static Task? ShapingGate { get; set; }
+    private int _generation;
     private IReadOnlyList<HighlightedLine> _lines = [];
     private HighlightedLine[] _display = [];
     private int[]?[] _maps = [];
@@ -63,6 +73,20 @@ public sealed class CodeText : Control
     static CodeText()
     {
         AffectsRender<CodeText>(ForegroundProperty, SelectionBrushProperty);
+    }
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        // The shaped lines carry the plain colour: a new theme shapes them again.
+        if (change.Property == ForegroundProperty) Forget();
+    }
+
+    private void Forget()
+    {
+        _generation++;
+        _shaped.Clear();
+        _pending.Clear();
     }
 
     public void SetLines(IReadOnlyList<HighlightedLine> lines)
@@ -191,7 +215,7 @@ public sealed class CodeText : Control
         base.OnDetachedFromVisualTree(e);
         if (_scroll is not null) _scroll.ScrollChanged -= OnScrolled;
         _scroll = null;
-        _shaped.Clear();
+        Forget();
     }
 
     private void OnScrolled(object? sender, ScrollChangedEventArgs e) => InvalidateVisual();
@@ -225,6 +249,7 @@ public sealed class CodeText : Control
         var range = Range();
         var selection = SelectionBrush;
         var plain = Foreground ?? Avalonia.Media.Brushes.White;
+        List<(int Index, HighlightedLine Line)>? missing = null;
         for (var i = first; i <= last; i++)
         {
             var y = Padding.Top + i * LineHeight;
@@ -237,31 +262,86 @@ public sealed class CodeText : Control
 
             var line = _display[i];
             if (line.Text.Length == 0) continue;
-            if (!_shaped.TryGetValue(i, out var cached) || !ReferenceEquals(cached.Line, line))
+            // By value: the highlighter hands back new line objects for a block that grew, mostly with the same text and colours.
+            if (!_shaped.TryGetValue(i, out var cached) || !SameLine(cached.Line, line))
             {
-                cached = (line, Shape(line, plain));
-                _shaped[i] = cached;
+                if (!_pending.TryGetValue(i, out var asked) || !SameLine(asked, line))
+                {
+                    _pending[i] = line;
+                    (missing ??= []).Add((i, line));
+                }
+
+                // Until its new shape is ready the line is drawn as it was; a new line shows a moment later.
+                if (cached.Text is null) continue;
             }
 
-            context.DrawText(cached.Text, new Point(Padding.Left, y + (LineHeight - cached.Text.Height) / 2));
+            cached.Text.Draw(context, new Point(Padding.Left, y + (LineHeight - cached.Text.Height) / 2));
         }
+
+        if (missing is not null) ShapeLater(missing, plain);
 
         // Shaped lines far from the window are dropped, so a long block does not keep its whole text shaped.
-        if (_shaped.Count > 400) _shaped.Clear();
+        if (_shaped.Count > 400)
+        {
+            foreach (var index in _shaped.Keys.Where(k => k < first - 100 || k > last + 100).ToList()) _shaped.Remove(index);
+        }
     }
 
-    private static FormattedText Shape(HighlightedLine line, IBrush plain)
+    /// <summary>Shapes lines on a worker and draws again once they are ready (a theme change or detaching drops the result).</summary>
+    private void ShapeLater(List<(int Index, HighlightedLine Line)> work, IBrush plain)
     {
-        var text = new FormattedText(line.Text, CultureInfo.InvariantCulture, FlowDirection.LeftToRight, Regular, FontSize, plain);
+        var generation = _generation;
+        var gate = ShapingGate;
+        _ = Task.Run(async () =>
+        {
+            if (gate is not null) await gate.ConfigureAwait(false);
+            var shaped = new List<(int Index, HighlightedLine Line, TextLayout Text)>(work.Count);
+            try
+            {
+                foreach (var (index, line) in work)
+                {
+                    shaped.Add((index, line, Shape(line, plain)));
+                }
+            }
+            catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
+            {
+                Wicked.Core.Log.Warn($"A code line could not be shaped: {ex.Message}");
+            }
+
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (generation != _generation) return;
+                foreach (var (index, line, text) in shaped)
+                {
+                    if (_pending.TryGetValue(index, out var asked) && ReferenceEquals(asked, line)) _pending.Remove(index);
+                    if (index < _display.Length && SameLine(_display[index], line)) _shaped[index] = (line, text);
+                }
+
+                InvalidateVisual();
+            }, DispatcherPriority.Render);
+        });
+    }
+
+    private static bool SameLine(HighlightedLine a, HighlightedLine b) =>
+        ReferenceEquals(a, b) || (a.Text == b.Text && a.Spans.AsSpan().SequenceEqual(b.Spans));
+
+    /// <summary>
+    /// A line laid out once, with its colours as style overrides. A TextLayout, not a FormattedText: FormattedText lays its
+    /// lines out again on every draw, which put the shaping back on the UI thread.
+    /// </summary>
+    private static TextLayout Shape(HighlightedLine line, IBrush plain)
+    {
+        var overrides = new List<ValueSpan<TextRunProperties>>(line.Spans.Length);
         foreach (var span in line.Spans)
         {
-            if (span.Start + span.Length > line.Text.Length) continue;
-            text.SetForegroundBrush(BrushFor(span.Color), span.Start, span.Length);
-            if ((span.Style & TokenStyle.Bold) != 0) text.SetFontWeight(FontWeight.Bold, span.Start, span.Length);
-            if ((span.Style & TokenStyle.Italic) != 0) text.SetFontStyle(FontStyle.Italic, span.Start, span.Length);
+            if (span.Length <= 0 || span.Start + span.Length > line.Text.Length) continue;
+            var typeface = new Typeface(Regular.FontFamily,
+                (span.Style & TokenStyle.Italic) != 0 ? FontStyle.Italic : FontStyle.Normal,
+                (span.Style & TokenStyle.Bold) != 0 ? FontWeight.Bold : FontWeight.Normal);
+            overrides.Add(new ValueSpan<TextRunProperties>(span.Start, span.Length, new GenericTextRunProperties(typeface, FontSize, foregroundBrush: BrushFor(span.Color))));
         }
 
-        return text;
+        return new TextLayout(line.Text, Regular, FontSize, plain, textStyleOverrides: overrides);
     }
 
     private static IBrush BrushFor(uint argb)

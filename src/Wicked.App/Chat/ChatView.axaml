@@ -192,7 +192,9 @@
         <TextBlock Classes="muted" TextAlignment="Center" TextWrapping="Wrap" Text="Everything runs on this PC. Enter sends, Shift+Enter starts a new line." />
       </StackPanel>
 
-      <!-- The conversation. Only the messages in view are built, however long it is. -->
+      <!-- The conversation. A plain stack, not a virtualizing one: a streaming reply taller than the view made the
+           virtualizing panel recycle and rebuild a message on nearly every frame (20–90 ms on the UI thread, measured in a
+           real window). Each message already redraws only the blocks that changed. -->
       <ItemsControl Name="MessageList" ItemsSource="{Binding Messages}" IsVisible="{Binding !IsEmpty}">
         <ItemsControl.Template>
           <ControlTemplate>
@@ -203,7 +205,7 @@
         </ItemsControl.Template>
         <ItemsControl.ItemsPanel>
           <ItemsPanelTemplate>
-            <VirtualizingStackPanel />
+            <StackPanel />
           </ItemsPanelTemplate>
         </ItemsControl.ItemsPanel>
         <ItemsControl.ItemTemplate>
