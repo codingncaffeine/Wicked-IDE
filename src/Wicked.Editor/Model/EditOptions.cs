@@ -28,7 +28,22 @@ public sealed record EditOptions
     /// <summary>The block comment marks, used when a language has no line comment.</summary>
     public (string Open, string Close)? BlockComment { get; init; } = ("/*", "*/");
 
+    /// <summary>Typing ">" to end an opening tag puts its closing tag after the caret (HTML and XML-like languages).</summary>
+    public TagClosing CloseTags { get; init; }
+
     public string IndentUnit => InsertSpaces ? new string(' ', TabSize) : "\t";
 
     public static readonly EditOptions Default = new();
+}
+
+/// <summary>Which opening tags close themselves as "&gt;" is typed.</summary>
+public enum TagClosing
+{
+    None,
+
+    /// <summary>Every tag (XML, SVG).</summary>
+    Xml,
+
+    /// <summary>Every tag but HTML's void elements (br, img, input...).</summary>
+    Html,
 }

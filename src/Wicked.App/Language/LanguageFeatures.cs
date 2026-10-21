@@ -145,6 +145,19 @@ public sealed partial class LanguageFeatures : ObservableObject, IAsyncDisposabl
         _ = UiFor(editor)?.RefreshInlayHintsAsync();
     }
 
+    /// <summary>
+    /// The texts word-based suggestions draw from, by editor.wordBasedSuggestions: this document, the open documents of its
+    /// language (matchingDocuments, the default), or every open document.
+    /// </summary>
+    internal IReadOnlyList<Wicked.Editor.Text.Rope> WordSources(Document document, string mode)
+    {
+        if (mode == "currentDocument") return [document.Text];
+        var language = _bench.AllTabs.FirstOrDefault(t => ReferenceEquals(t.Document, document))?.Language?.Id;
+        var others = _bench.AllTabs.Where(t => !ReferenceEquals(t.Document, document) && t.Path is not null && (mode == "allDocuments" || t.Language?.Id == language))
+            .Select(t => t.Document).Distinct().Select(d => d.Text);
+        return [document.Text, .. others];
+    }
+
     /// <summary>The editors that show a document (one per tab, a split shows it twice).</summary>
     internal IEnumerable<CodeEditor> EditorsOf(Document document) =>
         _bench.AllTabs.Where(t => ReferenceEquals(t.Document, document) && t.Editor is not null).Select(t => t.Editor!);

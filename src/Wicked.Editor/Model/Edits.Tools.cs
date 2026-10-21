@@ -214,3 +214,50 @@ public static partial class Edits
         return true;
     }
 }
+
+/// <summary>Closing tags as an opening tag is finished: typing "&gt;" after &lt;div class="x" puts &lt;/div&gt; after the caret.</summary>
+public static partial class Edits
+{
+    private static readonly System.Text.RegularExpressions.Regex OpeningTag =
+        new(@"<([A-Za-z][\w:.-]*)(?:\s(?:[^<>""']|""[^""]*""|'[^']*')*)?>$", System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
+    /// <summary>HTML's void elements, which never have a closing tag.</summary>
+    private static readonly HashSet<string> VoidElements = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr",
+    };
+
+    /// <summary>
+    /// After "&gt;" was typed: each caret just past a complete opening tag on its line (not self-closing, not a void element
+    /// in HTML) gets that tag's closing tag after it, the caret staying between. False when nothing was closed.
+    /// </summary>
+    public static bool CloseTag(Document doc, TagClosing closing)
+    {
+        if (closing == TagClosing.None) return false;
+        var rope = doc.Text;
+        var changes = new List<TextChange>();
+        var after = new List<Selection>();
+        var shift = 0;
+        foreach (var s in doc.Selections)
+        {
+            var caret = s.Active;
+            var line = rope.LineOf(caret);
+            var before = rope.Substring(rope.LineStart(line), caret - rope.LineStart(line));
+            var match = s.IsEmpty ? OpeningTag.Match(before) : System.Text.RegularExpressions.Match.Empty;
+            var name = match.Success ? match.Groups[1].Value : null;
+            var closingTag = $"</{name}>";
+            var rest = rope.Substring(caret, Math.Min(closingTag.Length, rope.Length - caret));
+            if (name is null || before.EndsWith("/>", StringComparison.Ordinal) || (closing == TagClosing.Html && VoidElements.Contains(name)) || rest == closingTag) // not a path
+            {
+                after.Add(Selection.Caret(caret + shift));
+                continue;
+            }
+
+            changes.Add(new TextChange(caret, 0, closingTag));
+            after.Add(Selection.Caret(caret + shift));
+            shift += closingTag.Length;
+        }
+
+        return changes.Count > 0 && doc.Apply(changes, after, EditKind.Other, doc.PrimaryIndex);
+    }
+}

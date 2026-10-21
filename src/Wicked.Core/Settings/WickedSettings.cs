@@ -141,6 +141,10 @@ public sealed record WickedSettings
     [JsonPropertyName("editor.quickSuggestions")]
     public bool QuickSuggestions { get; init; } = true;
 
+    /// <summary>off, currentDocument, matchingDocuments or allDocuments: where words come from when no language server suggests anything.</summary>
+    [JsonPropertyName("editor.wordBasedSuggestions")]
+    public string WordBasedSuggestions { get; init; } = "matchingDocuments";
+
     [JsonPropertyName("editor.suggestOnTriggerCharacters")]
     public bool SuggestOnTriggerCharacters { get; init; } = true;
 

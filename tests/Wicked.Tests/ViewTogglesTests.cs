@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.Headless;
 using Avalonia.VisualTree;
 using Wicked.App.ViewModels;
 using Wicked.Editor.Model;
@@ -107,6 +108,48 @@ public sealed class ViewTogglesTests
             Assert.Equal(5, Line()); // wraps to the first
             Run(shell, "workbench.action.editor.previousChange");
             Assert.Equal(30, Line()); // and back round to the last
+            window.Close();
+            return 0;
+        });
+    }
+}
+
+/// <summary>Word suggestions where no language server runs, and tags closing in HTML, typed through the window.</summary>
+public sealed class WordsAndTagsWindowTests
+{
+    [Trait("Tier", "Window")]
+    [Fact]
+    public async Task APlainFileSuggestsItsWordsAndHtmlTagsCloseThemselves()
+    {
+        using var profile = new TempProfile();
+        var root = Path.Combine(profile.Root, "project");
+        Directory.CreateDirectory(root);
+        File.WriteAllText(Path.Combine(root, "notes.txt"), "alphabet apple banana\n");
+        File.WriteAllText(Path.Combine(root, "page.html"), "<body>\n</body>\n");
+        await Ui.Run(() =>
+        {
+            var (window, shell) = OpenWorkbench(profile, root);
+            var start = shell.StartAsync();
+            Assert.True(Ui.PumpUntil(() => start.IsCompleted, 10));
+
+            // "al" at the end of notes.txt: alphabet is offered (no server for plain text), Enter puts it in.
+            var notes = OpenByClicks(window, shell, "notes.txt");
+            notes.Document.SetSelections([Selection.Caret(notes.Document.Text.Length)]);
+            window.KeyTextInput("al");
+            var ui = shell.Language.UiFor(notes.Editor)!;
+            Assert.True(Ui.PumpUntil(() => ui.SuggestionsOpen && ui.Suggestions.Any(s => s.Label == "alphabet"), 10), "no word suggestions");
+            Assert.DoesNotContain(ui.Suggestions, s => s.Label == "al");
+            window.KeyPress(Avalonia.Input.Key.Enter, Avalonia.Input.RawInputModifiers.None, Avalonia.Input.PhysicalKey.Enter, null);
+            Ui.Pump(0.2);
+            Assert.EndsWith("\nalphabet", notes.Document.Text.ToString(), StringComparison.Ordinal);
+
+            // In HTML, typing the end of an opening tag closes it, the caret between.
+            var page = OpenByClicks(window, shell, "page.html");
+            page.Document.SetSelections([Selection.Caret(page.Document.Text.LineStart(1))]);
+            window.KeyTextInput("<main");
+            window.KeyTextInput(">");
+            Ui.Pump(0.1);
+            Assert.Equal("<body>\n<main>|</main></body>\n", Wicked.Tests.Editor.Marked.Show(page.Document));
             window.Close();
             return 0;
         });

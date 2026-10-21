@@ -108,9 +108,23 @@ public sealed partial class EditorLanguageUi
 
     private void OnTyped(string text)
     {
-        if (Doc?.Client is not { } client || text.Length == 0) return;
+        if (text.Length == 0) return;
         var last = text[^1];
         var settings = _features.Settings;
+        if (Doc?.Client is not { } client)
+        {
+            // No server: the open documents' words, while a word is typed.
+            if (settings.WordBasedSuggestions == "off") return;
+            if (_suggest.IsOpen)
+            {
+                if (IsWordChar(last)) _ = FilterAsync();
+                else CloseSuggestions();
+            }
+            else if (IsWordChar(last) && settings.QuickSuggestions && !char.IsDigit(PrefixAtCaret().FirstOrDefault('a'))) _ = RequestSuggestionsAsync(null, invoked: false);
+
+            return;
+        }
+
         var isTrigger = client.CompletionTriggers.Contains(last.ToString());
         if (_suggest.IsOpen)
         {
@@ -137,30 +151,47 @@ public sealed partial class EditorLanguageUi
 
     private async Task RequestSuggestionsAsync(string? trigger, bool invoked)
     {
-        if (Doc is not { } doc) return;
         _suggestCts?.Cancel();
         var cts = _suggestCts = new CancellationTokenSource();
         var caret = _editor.Document.Primary.Active;
         var prefix = PrefixAtCaret();
         _wordStart = caret - prefix.Length;
-        CompletionList? list;
-        try
+        _requestText = _editor.Document.Text;
+        _requestVersion = _editor.Document.Version;
+        CompletionList? list = null;
+        if (Doc is { } doc)
         {
-            var answer = await doc.RequestAsync(async (c, text, version) =>
+            try
             {
-                if (!c.Supports("completionProvider")) return (List: (CompletionList?)null, Text: text, Version: version);
-                return (List: await c.CompletionAsync(doc.Uri, LspText.PositionOf(text, caret), trigger, cts.Token).ConfigureAwait(false), Text: text, Version: version);
-            }, cts.Token);
-            list = answer.List;
-            _requestText = answer.Text;
-            _requestVersion = answer.Version;
-        }
-        catch (Exception ex) when (ex is OperationCanceledException or IOException)
-        {
-            return;
+                var answer = await doc.RequestAsync(async (c, text, version) =>
+                {
+                    if (!c.Supports("completionProvider")) return (List: (CompletionList?)null, Text: text, Version: version);
+                    return (List: await c.CompletionAsync(doc.Uri, LspText.PositionOf(text, caret), trigger, cts.Token).ConfigureAwait(false), Text: text, Version: version);
+                }, cts.Token);
+                list = answer.List;
+                if (answer.Text is not null)
+                {
+                    _requestText = answer.Text;
+                    _requestVersion = answer.Version;
+                }
+            }
+            catch (Exception ex) when (ex is OperationCanceledException or IOException)
+            {
+                return;
+            }
         }
 
         if (cts.IsCancellationRequested) return;
+
+        // No server, or nothing from it: the words of the open documents, as VS Code's word-based suggestions.
+        if ((list is null || list.Items.Count == 0) && trigger is null && _features.Settings.WordBasedSuggestions != "off")
+        {
+            var sources = _features.WordSources(_editor.Document, _features.Settings.WordBasedSuggestions);
+            var typed = (Start: _wordStart, End: caret);
+            var current = _editor.Document.Text;
+            list = await Task.Run(() => WordSuggestions.From(sources, current, typed), cts.Token);
+            if (cts.IsCancellationRequested) return;
+        }
         if (list is null || list.Items.Count == 0)
         {
             CloseSuggestions();

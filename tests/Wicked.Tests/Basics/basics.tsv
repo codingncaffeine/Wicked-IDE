@@ -105,3 +105,4 @@ wicked.toggleLineNumbers	workbench
 breadcrumbs.toggle	workbench	
 workbench.action.editor.nextChange	workbench	Alt+F5
 workbench.action.editor.previousChange	workbench	Shift+Alt+F5
+editor.action.triggerSuggest	workbench	

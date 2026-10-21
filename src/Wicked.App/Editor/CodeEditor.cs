@@ -587,6 +587,7 @@ public sealed partial class CodeEditor : Control
         }
 
         Edits.Type(Document, e.Text, Options);
+        if (e.Text == ">" && Options.CloseTags != TagClosing.None) Edits.CloseTag(Document, Options.CloseTags);
         e.Handled = true;
         AfterCommand();
         Typed?.Invoke(e.Text);

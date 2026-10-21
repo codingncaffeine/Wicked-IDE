@@ -58,7 +58,7 @@ public static class Languages
                 : extension.Length > 0 ? options.GetLanguageByExtension(extension) : null;
             if (language is null) return null;
             var scope = options.GetScopeByLanguageId(language.Id);
-            return scope is null ? null : new LanguageInfo(language.Id, scope, OptionsFrom(language.Configuration));
+            return scope is null ? null : new LanguageInfo(language.Id, scope, OptionsFrom(language.Configuration) with { CloseTags = TagClosingFor(language.Id) });
         }
     }
 
@@ -106,7 +106,7 @@ public static class Languages
                 ?? options.GetLanguageByExtension("." + key.TrimStart('.'));
             if (language is null) return null;
             var scope = options.GetScopeByLanguageId(language.Id);
-            return scope is null ? null : new LanguageInfo(language.Id, scope, OptionsFrom(language.Configuration));
+            return scope is null ? null : new LanguageInfo(language.Id, scope, OptionsFrom(language.Configuration) with { CloseTags = TagClosingFor(language.Id) });
         }
     }
 
@@ -120,6 +120,14 @@ public static class Languages
 
     /// <summary>What a TextMate registry reads grammars through: the bundled ones, then those extensions added.</summary>
     internal static TextMateSharp.Registry.IRegistryOptions Options { get; } = new ExtensibleOptions();
+
+    /// <summary>The languages whose tags close themselves, as VS Code's HTML and TypeScript support close them (html.autoClosingTags).</summary>
+    private static TagClosing TagClosingFor(string id) => id switch
+    {
+        "html" or "vue" or "svelte" or "handlebars" or "razor" => TagClosing.Html,
+        "xml" or "xsl" or "svg" => TagClosing.Xml, // not JSX: a generic (useState<string>) looks like a tag without a language server
+        _ => TagClosing.None,
+    };
 
     private static EditOptions OptionsFrom(LanguageConfiguration? config)
     {

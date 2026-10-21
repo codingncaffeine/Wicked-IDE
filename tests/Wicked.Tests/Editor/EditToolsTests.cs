@@ -139,3 +139,37 @@ public sealed class RulerSettingsTests
     public void RulersReadNumbersAndObjects(string json, int[] expected) =>
         Assert.Equal(expected, System.Text.Json.JsonSerializer.Deserialize<Wicked.Core.Settings.WickedSettings>(json, Wicked.Core.Settings.WickedSettings.Json)!.Rulers);
 }
+
+/// <summary>Tags that close themselves as "&gt;" is typed, and the words offered where no language server suggests.</summary>
+public sealed class TagAndWordTests
+{
+    private static string Typed(string marked, TagClosing closing)
+    {
+        var doc = Doc(marked);
+        Edits.Type(doc, ">", EditOptions.Default);
+        Edits.CloseTag(doc, closing);
+        return Show(doc);
+    }
+
+    [Theory]
+    [InlineData("<div class=\"a > b\"|", TagClosing.Html, "<div class=\"a > b\">|</div>")]
+    [InlineData("  <ul|", TagClosing.Html, "  <ul>|</ul>")]
+    [InlineData("<br|", TagClosing.Html, "<br>|")]                // a void element in HTML
+    [InlineData("<br|", TagClosing.Xml, "<br>|</br>")]            // but not in XML
+    [InlineData("<img src=\"x\" /|", TagClosing.Html, "<img src=\"x\" />|")] // self-closing
+    [InlineData("<p|</p>", TagClosing.Html, "<p>|</p>")]           // already closed after the caret
+    [InlineData("a < b|", TagClosing.Html, "a < b>|")]             // not a tag
+    [InlineData("<div|", TagClosing.None, "<div>|")]
+    public void TypingTheEndOfAnOpeningTagClosesIt(string before, TagClosing closing, string expected) =>
+        Assert.Equal(expected, Typed(before, closing));
+
+    [Fact]
+    public void WordsComeFromTheTextsButNotTheWordBeingTyped()
+    {
+        var current = new Wicked.Editor.Model.Document("alpha beta al 42 x_y\n").Text;
+        var other = new Wicked.Editor.Model.Document("gamma alpha $dollar").Text;
+        var list = Wicked.App.Language.WordSuggestions.From([current, other], current, (11, 13));
+        Assert.Equal(["alpha", "beta", "x_y", "gamma", "$dollar"], list.Items.Select(i => i.Label));
+        Assert.All(list.Items, i => Assert.Equal(Wicked.App.Language.WordSuggestions.TextKind, i.Kind));
+    }
+}
