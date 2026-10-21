@@ -112,7 +112,9 @@ public sealed partial class ShellViewModel
         new("_Run", () =>
         [
             C("workbench.action.debug.start", "Start Debugging"), C("workbench.action.debug.run", "Run Without Debugging"),
-            C("workbench.action.debug.stop", "Stop Debugging"), C("workbench.action.debug.restart", "Restart Debugging"), Line,
+            C("workbench.action.debug.stop", "Stop"), C("workbench.action.debug.restart", "Restart Debugging"), Line,
+            C("wicked.run.currentFile", "Run Current File"), C("wicked.debug.currentFile", "Debug Current File"),
+            C("wicked.run.selectConfiguration", "Select Run Configuration..."), Line,
             C("workbench.action.debug.createLaunchJson", "Open Configurations"), C("workbench.action.debug.selectandstart", "Select and Start Debugging..."),
             C("workbench.action.debug.attach", "Attach to Process..."), Line,
             C("workbench.action.debug.stepOver", "Step Over"), C("workbench.action.debug.stepInto", "Step Into"),
@@ -128,7 +130,8 @@ public sealed partial class ShellViewModel
         [
             C("workbench.action.terminal.new", "New Terminal"), C("workbench.action.terminal.split", "Split Terminal"), Line,
             C("workbench.action.tasks.runTask", "Run Task..."), C("workbench.action.tasks.build", "Run Build Task..."),
-            C("workbench.action.tasks.test", "Run Test Task..."), C("workbench.action.terminal.runSelectedText", "Run Selected Text"), Line,
+            C("workbench.action.tasks.test", "Run Test Task..."), C("workbench.action.tasks.rebuild", "Rebuild"), C("wicked.tasks.clean", "Clean"),
+            C("workbench.action.terminal.runSelectedText", "Run Selected Text"), Line,
             C("workbench.action.tasks.showTasks", "Show Running Tasks..."), C("workbench.action.tasks.restartTask", "Restart Running Task..."),
             C("workbench.action.tasks.terminate", "Terminate Task..."), Line,
             C("workbench.action.tasks.configureTaskRunner", "Configure Tasks..."),

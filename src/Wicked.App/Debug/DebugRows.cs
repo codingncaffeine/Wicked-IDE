@@ -100,8 +100,41 @@ public sealed partial class BreakpointRow : ObservableObject
     private bool _isEnabled;
 }
 
-/// <summary>A choice in the configuration picker: a launch.json configuration or a compound.</summary>
-public sealed record ConfigurationChoice(string Name, string Type, bool IsCompound)
+/// <summary>What a choice in the run picker starts.</summary>
+public enum RunTargetKind
 {
-    public string Label => IsCompound ? $"{Name} (compound)" : Type.Length > 0 ? $"{Name}" : Name;
+    /// <summary>A launch.json configuration.</summary>
+    Launch,
+
+    /// <summary>A launch.json compound: several configurations together.</summary>
+    Compound,
+
+    /// <summary>The active file, run or debugged with no configuration written (VS Code's Python and Node, JetBrains' context run).</summary>
+    CurrentFile,
+
+    /// <summary>A detected program to run (dotnet run, cargo run, npm start): runs as a task, without the debugger.</summary>
+    Task,
+}
+
+/// <summary>A choice in the configuration picker: a launch.json configuration or compound, the current file, or a program to run.</summary>
+public sealed record ConfigurationChoice(string Name, string Type, bool IsCompound, RunTargetKind Kind = RunTargetKind.Launch)
+{
+    /// <summary>The name "Current File" goes by in the picker and in the saved state.</summary>
+    public const string CurrentFileName = "Current File";
+
+    public static ConfigurationChoice CurrentFile { get; } = new(CurrentFileName, "", false, RunTargetKind.CurrentFile);
+
+    public string Label => IsCompound ? $"{Name} (compound)" : Name;
+
+    /// <summary>Started by launch.json (and so by the debugger).</summary>
+    public bool IsLaunch => Kind is RunTargetKind.Launch or RunTargetKind.Compound;
+
+    /// <summary>The quiet word beside the name in a list.</summary>
+    public string Detail => Kind switch
+    {
+        RunTargetKind.Compound => "compound",
+        RunTargetKind.CurrentFile => "run or debug the active file",
+        RunTargetKind.Task => "task",
+        _ => Type,
+    };
 }

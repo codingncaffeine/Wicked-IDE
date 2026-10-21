@@ -45,7 +45,23 @@ public sealed partial class DebugController
             return;
         }
 
-        name ??= SelectedConfiguration?.Name ?? file.Names.First();
+        name ??= SelectedConfiguration is { IsLaunch: true } chosen ? chosen.Name : file.Names.First();
+        await LaunchAsync(root, file, name, noDebug);
+    }
+
+    /// <summary>
+    /// "Debug Current File": the active file under the debugger with no launch.json, as VS Code's Python and Node do; false
+    /// when Wicked has no configuration for the file's language (the caller then offers to write a launch.json).
+    /// </summary>
+    public async Task<bool> DebugCurrentFileAsync(string language)
+    {
+        if (_shell.Workbench.Root is not { } root || LaunchStarter.CurrentFile(language) is not { } text) return false;
+        await LaunchAsync(root, LaunchFile.Parse(text), ConfigurationChoice.CurrentFileName, noDebug: false);
+        return true;
+    }
+
+    private async Task LaunchAsync(string root, LaunchFile file, string name, bool noDebug)
+    {
         var context = BuildContext(root, file);
         if (Manager.Sessions.Count == 0) Console.Clear();
         try
@@ -162,17 +178,27 @@ public sealed partial class DebugController
             file = LaunchFile.Empty;
         }
 
+        if (ExtraTargets is { } extra) _extraTargets = await extra();
         ApplyLaunchFile(file, preferred ?? SelectedConfiguration?.Name);
     }
+
+    /// <summary>The run picker's choices beyond launch.json: the current file and the folder's programs. Set by the run control.</summary>
+    public Func<Task<IReadOnlyList<ConfigurationChoice>>>? ExtraTargets { get; set; }
+
+    /// <summary>What the panel's Start does with the choice (the run control's Debug, so a non-launch choice works too).</summary>
+    public Func<Task>? StartChosen { get; set; }
+
+    private IReadOnlyList<ConfigurationChoice> _extraTargets = [];
 
     private void ApplyLaunchFile(LaunchFile file, string? preferred)
     {
         _launchFile = file;
         Configurations.Clear();
         foreach (var c in file.Configurations) Configurations.Add(new ConfigurationChoice(c.Name, c.Type, false));
-        foreach (var c in file.Compounds) Configurations.Add(new ConfigurationChoice(c.Name, "", true));
-        SelectedConfiguration = Configurations.FirstOrDefault(c => c.Name == preferred) ?? Configurations.FirstOrDefault();
+        foreach (var c in file.Compounds) Configurations.Add(new ConfigurationChoice(c.Name, "", true, RunTargetKind.Compound));
         HasConfigurations = Configurations.Count > 0;
+        foreach (var c in _extraTargets.Where(e => Configurations.All(c => c.Name != e.Name))) Configurations.Add(c);
+        SelectedConfiguration = Configurations.FirstOrDefault(c => c.Name == preferred) ?? Configurations.FirstOrDefault();
     }
 
     /// <summary>Opens launch.json in the editor, writing the starter first when the folder has none.</summary>

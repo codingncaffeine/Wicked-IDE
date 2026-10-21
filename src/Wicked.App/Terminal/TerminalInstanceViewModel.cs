@@ -44,6 +44,13 @@ public sealed partial class TerminalInstanceViewModel : ObservableObject, IDispo
     [ObservableProperty]
     private CommandRecord? _lastCommand;
 
+    /// <summary>A command is running (the shell's integration said it started and has not said it ended).</summary>
+    [ObservableProperty]
+    private bool _isCommandRunning;
+
+    /// <summary>A command the shell reported finished: its record carries the exit code when the shell said.</summary>
+    public event Action<CommandRecord>? CommandFinished;
+
     /// <summary>Progress a program reported (ConEmu OSC 9;4): state 0-4 and percent.</summary>
     [ObservableProperty]
     private int _progressState;
@@ -79,8 +86,18 @@ public sealed partial class TerminalInstanceViewModel : ObservableObject, IDispo
     {
         session.TitleChanged += title => Dispatcher.UIThread.Post(() => SetTitle(title));
         session.WorkingDirectoryChanged += dir => Dispatcher.UIThread.Post(() => WorkingDirectory = dir);
-        session.CommandFinished += record => Dispatcher.UIThread.Post(() => LastCommand = record);
-        session.PromptStarted += record => Dispatcher.UIThread.Post(() => LastCommand = record);
+        session.CommandStarted += _ => Dispatcher.UIThread.Post(() => IsCommandRunning = true);
+        session.CommandFinished += record => Dispatcher.UIThread.Post(() =>
+        {
+            LastCommand = record;
+            IsCommandRunning = false;
+            CommandFinished?.Invoke(record);
+        });
+        session.PromptStarted += record => Dispatcher.UIThread.Post(() =>
+        {
+            LastCommand = record;
+            IsCommandRunning = false;
+        });
         session.ProgressChanged += (state, value) => Dispatcher.UIThread.Post(() =>
         {
             ProgressState = state;

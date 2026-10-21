@@ -52,7 +52,7 @@ public partial class DebugView : UserControl
 
     private void OnStart(object? sender, RoutedEventArgs e)
     {
-        if (Controller is { } c) _ = c.StartAsync();
+        if (Controller is { } c) _ = c.StartChosen?.Invoke() ?? c.StartAsync();
     }
 
     private void OnOpenLaunch(object? sender, RoutedEventArgs e)

@@ -272,7 +272,7 @@ public sealed partial class DebugController
     public async Task SelectAndStartAsync()
     {
         if (_shell.Workbench.Root is not null) await ReloadLaunchFileAsync();
-        var items = Configurations.Select(c => new QuickItem(c.Name, c.IsCompound ? "compound" : c.Type, "", () =>
+        var items = Configurations.Where(c => c.IsLaunch).Select(c => new QuickItem(c.Name, c.Detail, "", () =>
         {
             SelectedConfiguration = c;
             return StartAsync(c.Name);

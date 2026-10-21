@@ -40,6 +40,21 @@ public static partial class LaunchStarter
         }, ct).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// A launch.json holding one configuration named "Current File" that debugs the active file (<c>${file}</c>) with no
+    /// project set up, for the languages whose debugger can start a lone file; null for the others.
+    /// </summary>
+    public static string? CurrentFile(string language)
+    {
+        var configuration = language switch
+        {
+            "python" => """{ "name": "Current File", "type": "debugpy", "request": "launch", "program": "${file}", "console": "integratedTerminal", "justMyCode": true }""",
+            "javascript" or "typescript" => """{ "name": "Current File", "type": "pwa-node", "request": "launch", "program": "${file}", "skipFiles": ["<node_internals>/**"] }""",
+            _ => null,
+        };
+        return configuration is null ? null : $$"""{ "version": "0.2.0", "configurations": [ {{configuration}} ] }""";
+    }
+
     /// <summary>The text of a launch.json for <paramref name="language"/>. Disk work (it looks for the project file): call from a worker.</summary>
     public static async Task<Starter> CreateAsync(string workspace, string language, CancellationToken ct = default)
     {

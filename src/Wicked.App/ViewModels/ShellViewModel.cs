@@ -88,6 +88,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         Debugger.RunTask = async (label, ct) => await Tasks.RunTaskByLabelAsync(label, ct)
             ? null
             : $"The preLaunchTask \"{label}\" is not in tasks.json or did not finish successfully (its output is in the Output panel).";
+        Run = new Wicked.App.Debug.RunControl(this, Debugger, _post);
         WireExtensions();
         Commands = _builtInCommands = BuildCommands();
         QuickInput = new QuickInputViewModel(this);

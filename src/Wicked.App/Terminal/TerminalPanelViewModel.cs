@@ -325,6 +325,35 @@ public sealed partial class TerminalPanelViewModel : ObservableObject, IDisposab
         await RunInActiveTerminal(command).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Runs a command line in the terminal called <paramref name="name"/>, started in <paramref name="directory"/> the first
+    /// time and reused after, as VS Code's "Run Python File" reuses its terminal. A command still running there is
+    /// interrupted first. The line is made for the terminal's shell (its quoting). UI thread.
+    /// </summary>
+    public async Task<TerminalInstanceViewModel?> RunInNamedTerminal(string name, Func<ShellKind, string> command, string? directory)
+    {
+        var terminal = AllTerminals().FirstOrDefault(t => t.CustomName == name && !t.HasExited);
+        if (terminal is null)
+        {
+            terminal = NewTerminal(workingDirectory: directory);
+            if (terminal is null) return null;
+            terminal.CustomName = name;
+        }
+        else Activate(terminal);
+
+        var session = await WaitForSessionAsync(terminal);
+        if (session is null) return terminal;
+        if (terminal.IsCommandRunning)
+        {
+            session.Input("\u0003");
+            await Task.Delay(150);
+        }
+
+        session.Input(command(terminal.Profile.Kind));
+        session.Input("\r");
+        return terminal;
+    }
+
     private static async Task<TerminalSession?> WaitForSessionAsync(TerminalInstanceViewModel terminal)
     {
         for (var i = 0; i < 400 && terminal.Session is null && terminal.StartError is null; i++) await Task.Delay(25).ConfigureAwait(false);

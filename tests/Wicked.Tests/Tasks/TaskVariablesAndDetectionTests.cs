@@ -127,10 +127,44 @@ public sealed class TaskDetectorTests
         box.Write("App.csproj", "<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup><OutputType>Exe</OutputType></PropertyGroup></Project>");
         box.Write(Path.Combine("lib", "Lib.csproj"), "<Project Sdk=\"Microsoft.NET.Sdk\" />");
         var tasks = TaskDetector.Detect(box.Root);
-        Assert.Equal(["dotnet: build App.slnx", "dotnet: test App.slnx", "dotnet: run App.csproj"], tasks.Select(t => t.Label));
+        Assert.Equal(["dotnet: build App.slnx", "dotnet: test App.slnx", "dotnet: rebuild App.slnx", "dotnet: clean App.slnx", "dotnet: run App.csproj"], tasks.Select(t => t.Label));
         Assert.StartsWith("dotnet build App.slnx ", tasks[0].Command!.Value, StringComparison.Ordinal);
         Assert.Equal("$msCompile", Assert.Single(tasks[0].Matchers).Name);
         Assert.Equal(TaskGroup.Test, tasks[1].Group);
+    }
+
+    [Theory]
+    [InlineData("App.sln", "Project(\"{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}\") = \"App\", \"src\\App\\App.csproj\", \"{1}\"\nEndProject\nProject(\"{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}\") = \"Lib\", \"src\\Lib\\Lib.csproj\", \"{2}\"\nEndProject\n")]
+    [InlineData("App.slnx", "<Solution>\n  <Project Path=\"src/App/App.csproj\" />\n  <Project Path=\"src/Lib/Lib.csproj\" />\n</Solution>\n")]
+    public void ASolutionsProgramsInFoldersBelowItAreOfferedToRun(string solution, string text)
+    {
+        using var box = new Sandbox();
+        box.Write(solution, text);
+        box.Write(Path.Combine("src", "App", "App.csproj"), "<Project Sdk=\"Microsoft.NET.Sdk\"><PropertyGroup><OutputType>Exe</OutputType></PropertyGroup></Project>");
+        box.Write(Path.Combine("src", "Lib", "Lib.csproj"), "<Project Sdk=\"Microsoft.NET.Sdk\" />");
+        var run = Assert.Single(TaskDetector.Detect(box.Root), t => t.Role == TaskRole.Run);
+        Assert.Equal("dotnet: run App.csproj", run.Label);
+        Assert.StartsWith($"dotnet run --project {Path.Combine("src", "App", "App.csproj")} ", run.Command!.Value, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DetectedTasksSayWhichRunTheProgramRebuildOrClean()
+    {
+        using var box = new Sandbox();
+        box.Write("Cargo.toml", "[package]\nname = \"d\"\n");
+        box.Write("Makefile", "all:\n\tcc main.c\nrun: all\n\t./a.out\nclean:\n\trm -f a.out\n");
+        box.Write("package.json", """{ "scripts": { "start": "node .", "clean": "rimraf dist", "lint": "eslint ." } }""");
+        var roles = TaskDetector.Detect(box.Root).ToDictionary(t => t.Label, t => t.Role);
+        Assert.Equal(TaskRole.Run, roles["cargo: run"]);
+        Assert.Equal(TaskRole.Clean, roles["cargo: clean"]);
+        Assert.Equal(TaskRole.Rebuild, roles["cargo: rebuild"]);
+        Assert.Equal(TaskRole.None, roles["cargo: build"]);
+        Assert.Equal(TaskRole.Run, roles["make: run"]);
+        Assert.Equal(TaskRole.Clean, roles["make: clean"]);
+        Assert.Equal(TaskRole.None, roles["make: all"]);
+        Assert.Equal(TaskRole.Run, roles["npm: start"]);
+        Assert.Equal(TaskRole.Clean, roles["npm: clean"]);
+        Assert.Equal(TaskRole.None, roles["npm: lint"]);
     }
 
     [Fact]

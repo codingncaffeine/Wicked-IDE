@@ -19,7 +19,11 @@ public partial class MainWindow
 
     private void InitMenuBar()
     {
-        TitleBar.SizeChanged += (_, _) => ApplyMenuBar();
+        TitleBar.SizeChanged += (_, _) =>
+        {
+            ApplyMenuBar();
+            ApplyRunControls();
+        };
         MenuBar.PropertyChanged += (_, e) =>
         {
             if (e.Property != MenuBase.IsOpenProperty) return;
@@ -51,6 +55,16 @@ public partial class MainWindow
             _ => true,
         };
         Wordmark.IsVisible = !MenuBar.IsVisible;
+    }
+
+    /// <summary>The run controls give way when the bar is narrow: the configuration's name first, then the whole control.</summary>
+    private void ApplyRunControls()
+    {
+        var width = TitleBar.ColumnDefinitions[2].ActualWidth;
+        if (width <= 0) return; // not laid out yet
+        var room = width - TitleEnd.Margin.Left - TitleButtons.Bounds.Width - TitleButtons.Margin.Right;
+        RunTarget.IsVisible = room >= 190;
+        RunControls.IsVisible = room >= 110;
     }
 
     private void ShowMenus(bool full)

@@ -598,7 +598,8 @@ public sealed class DebugWindowTests
                 """);
             var reloaded = debug.ReloadLaunchFileAsync("Both");
             Assert.True(Ui.PumpUntil(() => reloaded.IsCompleted && debug.SelectedConfiguration?.Name == "Both", 10));
-            Assert.Equal(["A", "B", "Both"], debug.Configurations.Select(c => c.Name));
+            // The launch.json choices, then the current file (the run control's own choice).
+            Assert.Equal(["A", "B", "Both", "Current File"], debug.Configurations.Select(c => c.Name));
 
             Input.Chord(window, Key.F5, RawInputModifiers.None);
             Assert.True(Ui.PumpUntil(() => debug.Manager.Sessions.Count == 2 && debug.CallStack.Count(r => r.Kind == StackRowKind.Session) == 2, 15), "both sessions did not show");
@@ -654,7 +655,7 @@ public sealed class DebugWindowTests
             var locator = new DebugAdapterLocator(Path.Combine(profile.Root, "no-adapters"), _ => null);
             shell.Debugger.Locator = locator;
             shell.Debugger.Adapters = new DebugAdapterProvider(locator);
-            Assert.True(Ui.PumpUntil(() => shell.Debugger.Configurations.Count == 1, 10));
+            Assert.True(Ui.PumpUntil(() => shell.Debugger.Configurations.Any(c => c.Name == "Net"), 10));
 
             Input.Chord(window, Key.F5, RawInputModifiers.None);
 

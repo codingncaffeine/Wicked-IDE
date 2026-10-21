@@ -80,12 +80,42 @@ public sealed partial class TasksHost : ObservableObject, ITaskEnvironment, IDis
         if (!_tick.IsEnabled) _tick.Start();
     }
 
-    /// <summary>The status bar item: the oldest running task's output.</summary>
+    /// <summary>The status bar item: the oldest running task's output, or with nothing running the last one's.</summary>
     [RelayCommand]
     private void ShowRunningOutput()
     {
         if (Service.Running.OrderBy(r => r.Started).FirstOrDefault() is { } run) _shell.Navigate($"output/{_output.ChannelName(run.Definition.Label)}");
+        else if (_lastLabel is not null) _shell.Navigate($"output/{_output.ChannelName(_lastLabel)}");
     }
+
+    private string? _lastLabel;
+
+    /// <summary>How the last task that ran to its end went ("✓ build · 4 s", "✗ build · 3 errors"), as JetBrains keeps the build result in its status bar.</summary>
+    [ObservableProperty]
+    private string _lastResultText = "";
+
+    [ObservableProperty]
+    private bool _lastResultFailed;
+
+    /// <summary>The status bar shows the last result only while nothing runs.</summary>
+    public bool ShowsLastResult => RunningText.Length == 0 && LastResultText.Length > 0;
+
+    partial void OnRunningTextChanged(string value) => OnPropertyChanged(nameof(ShowsLastResult));
+
+    partial void OnLastResultTextChanged(string value) => OnPropertyChanged(nameof(ShowsLastResult));
+
+    /// <summary>The words for a finished run; null for one that says nothing worth keeping (stopped by the user).</summary>
+    public static string? ResultText(string label, TaskRunResult result, TimeSpan took)
+    {
+        if (result.Terminated) return null;
+        var errors = result.Problems.Count(p => p.Severity == ProblemSeverity.Error);
+        if (result.Succeeded) return $"✓ {label} · {Seconds(took)}";
+        if (errors > 0) return $"✗ {label} · {errors} error{(errors == 1 ? "" : "s")}";
+        return result.Error is not null ? $"✗ {label} · could not run" : $"✗ {label} · exit code {result.ExitCode}";
+    }
+
+    private static string Seconds(TimeSpan t) =>
+        t.TotalSeconds < 10 ? string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{t.TotalSeconds:0.0} s") : $"{(int)t.TotalSeconds} s";
 
     // ── The window's side of a run ───────────────────────────────────────────────────────────────
 
@@ -171,6 +201,15 @@ public sealed partial class TasksHost : ObservableObject, ITaskEnvironment, IDis
         if (result.Error is not null) _shell.Notices.Post(new Notice(key, $"Task '{label}' could not run: {result.Error}", NoticeKind.Error, route));
         else if (result.ExitCode is not (null or 0)) _shell.Notices.Post(new Notice(key, $"Task '{label}' failed with exit code {result.ExitCode}", NoticeKind.Error, route));
         else if (!run.IsBackground) _shell.Notices.Post(new Notice(key, $"Task '{label}' finished", NoticeKind.Success, route));
+        if (ResultText(label, result, DateTimeOffset.UtcNow - run.Started) is { } text)
+        {
+            _post(() =>
+            {
+                _lastLabel = label;
+                LastResultFailed = !result.Succeeded;
+                LastResultText = text;
+            });
+        }
     }
 
     // ── Commands ─────────────────────────────────────────────────────────────────────────────────
@@ -185,7 +224,47 @@ public sealed partial class TasksHost : ObservableObject, ITaskEnvironment, IDis
         new("workbench.action.tasks.showTasks", "Tasks", "Show Running Tasks...", null, ShowRunningAsync),
         new("workbench.action.tasks.configureTaskRunner", "Tasks", "Configure Task...", null, ConfigureAsync),
         new("wicked.tasks.openFile", "Tasks", "Open tasks.json", null, OpenFileAsync),
+        new("workbench.action.tasks.rebuild", "Tasks", "Rebuild", null, () => RunRoleAsync(TaskRole.Rebuild)),
+        new("wicked.tasks.clean", "Tasks", "Clean", null, () => RunRoleAsync(TaskRole.Clean)),
     ];
+
+    /// <summary>The tasks with a role (the programs the run picker offers), or none with no folder open.</summary>
+    public async Task<IReadOnlyList<TaskDefinition>> TasksWithRoleAsync(TaskRole role)
+    {
+        if (_shell.Workbench.Root is not { } root) return [];
+        Service.WorkspaceFolder = root;
+        var catalog = await Service.LoadAsync();
+        return [.. catalog.All.Where(t => t.Role == role)];
+    }
+
+    /// <summary>Starts the task called <paramref name="label"/> from tasks.json or the detectors; false when there is none.</summary>
+    public async Task<bool> StartByLabelAsync(string label)
+    {
+        if (await LoadAsync() is not { } catalog || catalog.Find(label) is not { } task) return false;
+        await StartAsync(task, catalog);
+        return true;
+    }
+
+    /// <summary>Rebuild / Clean: the folder's one task for it runs at once, several are listed, none says how to add one.</summary>
+    private async Task RunRoleAsync(TaskRole role)
+    {
+        if (await LoadAsync() is not { } catalog) return;
+        var name = role == TaskRole.Rebuild ? "rebuild" : "clean";
+        var tasks = catalog.All.Where(t => t.Role == role).ToList();
+        if (tasks.Count == 1)
+        {
+            await StartAsync(tasks[0], catalog);
+            return;
+        }
+
+        if (tasks.Count == 0)
+        {
+            _shell.Notices.Post(new Notice($"tasks-{name}", $"Nothing here knows how to {name}: a .NET, Cargo, Make or npm project does, or add a task to tasks.json", NoticeKind.Info));
+            return;
+        }
+
+        _shell.ShowChoices($"Select the {name} task to run", [.. tasks.Select(t => ItemFor(t, catalog))], 0, null);
+    }
 
     /// <summary>tasks.json and the detected tasks, with the file's problems posted as a notice; null with no folder open.</summary>
     private async Task<TaskCatalog?> LoadAsync()

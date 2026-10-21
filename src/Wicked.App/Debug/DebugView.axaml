@@ -97,7 +97,7 @@
           <DataTemplate DataType="dbg:ConfigurationChoice">
             <StackPanel Orientation="Horizontal" Spacing="8">
               <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" />
-              <TextBlock Text="{Binding Type}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" VerticalAlignment="Center" />
+              <TextBlock Text="{Binding Detail}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" VerticalAlignment="Center" />
             </StackPanel>
           </DataTemplate>
         </ComboBox.ItemTemplate>

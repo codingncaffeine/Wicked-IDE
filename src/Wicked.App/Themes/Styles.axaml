@@ -726,6 +726,16 @@
   <Style Selector="Button.status:pointerover /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource Brush.Hover}" />
   </Style>
+  <!-- The title bar's run controls: a little tighter than the other quiet buttons, and dimmed when they cannot act. -->
+  <Style Selector="Grid#RunControls Button.quiet">
+    <Setter Property="Padding" Value="5" />
+  </Style>
+  <Style Selector="Grid#RunControls Button:disabled">
+    <Setter Property="Opacity" Value="0.35" />
+  </Style>
+  <Style Selector="Button.status.failed">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Danger}" />
+  </Style>
   <!-- The status bar's tips open above the bar, as VS Code's do. Popups are drawn inside the window: a tip placed at the
        pointer by the bottom edge was pushed up over the pointer and took the click meant for the item under it. -->
   <Style Selector="Grid#StatusBar Button">

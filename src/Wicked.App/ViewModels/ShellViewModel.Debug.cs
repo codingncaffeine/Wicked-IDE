@@ -9,6 +9,9 @@ public sealed partial class ShellViewModel
     /// <summary>Run and Debug: breakpoints, sessions, Variables, Watch, Call Stack and the Debug Console.</summary>
     public Wicked.App.Debug.DebugController Debugger { get; }
 
+    /// <summary>The title bar's Run / Debug / Stop / Build control; F5, Ctrl+F5 and Shift+F5 go through it.</summary>
+    public Wicked.App.Debug.RunControl Run { get; }
+
     private IEnumerable<WorkbenchCommand> DebugCommands()
     {
         Task Run(Action action)
@@ -22,8 +25,11 @@ public sealed partial class ShellViewModel
         [
             new("workbench.view.debug", "View", "Show Run and Debug", "Ctrl+Shift+D", () => Run(() => Navigate(ShellRoutes.Debug))),
             new("workbench.debug.action.toggleRepl", "View", "Debug Console", "Ctrl+Shift+Y", () => Run(() => BottomPanel.Toggle(PanelIds.DebugConsole))),
-            new("workbench.action.debug.start", "Debug", "Start Debugging", "F5", debug.StartOrContinueAsync),
-            new("workbench.action.debug.run", "Debug", "Start Without Debugging", "Ctrl+F5", () => debug.StartAsync(noDebug: true)),
+            new("workbench.action.debug.start", "Debug", "Start Debugging", "F5", this.Run.DebugAsync),
+            new("workbench.action.debug.run", "Debug", "Start Without Debugging", "Ctrl+F5", this.Run.RunAsync),
+            new("wicked.run.currentFile", "Run", "Run Current File", null, this.Run.RunCurrentFileAsync),
+            new("wicked.debug.currentFile", "Debug", "Debug Current File", null, this.Run.DebugCurrentFileAsync),
+            new("wicked.run.selectConfiguration", "Run", "Select Run Configuration…", null, this.Run.PickAsync),
             new("workbench.action.debug.selectandstart", "Debug", "Select and Start Debugging", null, debug.SelectAndStartAsync),
             new("workbench.action.debug.continue", "Debug", "Continue", null, () => debug.ContinueAsync()),
             // While debugging only (VS Code's "when"): otherwise F6 moves between parts and F11 is full screen.
@@ -32,7 +38,7 @@ public sealed partial class ShellViewModel
             new("workbench.action.debug.stepInto", "Debug", "Step Into", "F11", debug.StepIntoAsync) { When = () => debug.HasSession },
             new("workbench.action.debug.stepOut", "Debug", "Step Out", "Shift+F11", debug.StepOutAsync) { When = () => debug.HasSession },
             new("workbench.action.debug.restart", "Debug", "Restart", "Ctrl+Shift+F5", debug.RestartAsync),
-            new("workbench.action.debug.stop", "Debug", "Stop", "Shift+F5", debug.StopAsync),
+            new("workbench.action.debug.stop", "Debug", "Stop", "Shift+F5", this.Run.StopAsync),
             new("workbench.action.debug.attach", "Debug", "Attach to Process…", null, debug.AttachToProcessAsync),
             new("workbench.action.debug.createLaunchJson", "Debug", "Open launch.json", null, debug.OpenLaunchJsonAsync),
             new("editor.debug.action.toggleBreakpoint", "Debug", "Toggle Breakpoint", "F9", () => Run(debug.ToggleBreakpointAtCaret)),

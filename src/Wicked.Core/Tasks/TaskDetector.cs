@@ -63,12 +63,13 @@ public static partial class TaskDetector
         }
     }
 
-    private static TaskDefinition Make(string label, string source, string detail, string command, string? cwd, TaskGroup group, ImmutableArray<ProblemMatcher> matchers, bool background = false) => new()
+    private static TaskDefinition Make(string label, string source, string detail, string command, string? cwd, TaskGroup group, ImmutableArray<ProblemMatcher> matchers, bool background = false, TaskRole role = TaskRole.None) => new()
     {
         Label = label,
         Command = new TaskArgument(command),
         Cwd = cwd,
         Group = group,
+        Role = role,
         Source = source,
         Detail = detail,
         Detected = true,
@@ -102,7 +103,14 @@ public static partial class TaskDetector
                     _ => TaskGroup.None,
                 };
                 var matchers = body.Contains("tsc", StringComparison.Ordinal) ? Matcher("$tsc") : body.Contains("eslint", StringComparison.Ordinal) ? Matcher("$eslint-stylish") : [];
-                into.Add(Make($"npm: {script.Name}{suffix}", "npm", body, $"{manager} run {script.Name}", cwd, group, matchers));
+                var role = script.Name switch
+                {
+                    "start" or "dev" or "serve" => TaskRole.Run,
+                    "clean" => TaskRole.Clean,
+                    "rebuild" => TaskRole.Rebuild,
+                    _ => TaskRole.None,
+                };
+                into.Add(Make($"npm: {script.Name}{suffix}", "npm", body, $"{manager} run {script.Name}", cwd, group, matchers, role: role));
             }
         }
         catch (Exception ex) when (ex is JsonException or IOException or UnauthorizedAccessException)
@@ -139,7 +147,8 @@ public static partial class TaskDetector
             {
                 if (target.StartsWith('.') || target.Contains('$', StringComparison.Ordinal) || target.Contains('%', StringComparison.Ordinal) || !seen.Add(target)) continue;
                 var group = target is "all" or "build" ? TaskGroup.Build : target is "test" or "check" ? TaskGroup.Test : TaskGroup.None;
-                into.Add(Make($"make: {target}{suffix}", "make", Path.GetFileName(file), target == "all" ? "make" : $"make {target}", cwd, group, Matcher("$gcc")));
+                var role = target switch { "run" => TaskRole.Run, "clean" => TaskRole.Clean, "rebuild" => TaskRole.Rebuild, _ => TaskRole.None };
+                into.Add(Make($"make: {target}{suffix}", "make", Path.GetFileName(file), target == "all" ? "make" : $"make {target}", cwd, group, Matcher("$gcc"), role: role));
             }
         }
     }
@@ -149,10 +158,17 @@ public static partial class TaskDetector
     private static void Cargo(string folder, string suffix, string? cwd, ImmutableArray<TaskDefinition>.Builder into)
     {
         if (!File.Exists(Path.Combine(folder, "Cargo.toml"))) return;
-        foreach (var (verb, group) in new[] { ("build", TaskGroup.Build), ("test", TaskGroup.Test), ("run", TaskGroup.None), ("check", TaskGroup.None) })
+        foreach (var (verb, group, role) in new[]
         {
-            into.Add(Make($"cargo: {verb}{suffix}", "cargo", "Cargo.toml", $"cargo {verb}", cwd, group, Matcher("$rustc")));
+            ("build", TaskGroup.Build, TaskRole.None), ("test", TaskGroup.Test, TaskRole.None), ("run", TaskGroup.None, TaskRole.Run),
+            ("check", TaskGroup.None, TaskRole.None), ("clean", TaskGroup.None, TaskRole.Clean),
+        })
+        {
+            into.Add(Make($"cargo: {verb}{suffix}", "cargo", "Cargo.toml", $"cargo {verb}", cwd, group, Matcher("$rustc"), role: role));
         }
+
+        // Cargo has no rebuild verb: clean, then build.
+        into.Add(Make($"cargo: rebuild{suffix}", "cargo", "Cargo.toml", "cargo clean && cargo build", cwd, TaskGroup.None, Matcher("$rustc"), role: TaskRole.Rebuild));
     }
 
     // ── dotnet ───────────────────────────────────────────────────────────────────────────────────
@@ -170,14 +186,44 @@ public static partial class TaskDetector
             var quoted = name.Contains(' ', StringComparison.Ordinal) ? $"'{name}'" : name;
             into.Add(Make($"dotnet: build {name}{suffix}", "dotnet", name, $"dotnet build {quoted} {Flags}", cwd, TaskGroup.Build, Matcher("$msCompile")));
             into.Add(Make($"dotnet: test {name}{suffix}", "dotnet", name, $"dotnet test {quoted} {Flags}", cwd, TaskGroup.Test, Matcher("$msCompile")));
+            into.Add(Make($"dotnet: rebuild {name}{suffix}", "dotnet", name, $"dotnet build {quoted} --no-incremental {Flags}", cwd, TaskGroup.None, Matcher("$msCompile"), role: TaskRole.Rebuild));
+            into.Add(Make($"dotnet: clean {name}{suffix}", "dotnet", name, $"dotnet clean {quoted} {Flags}", cwd, TaskGroup.None, Matcher("$msCompile"), role: TaskRole.Clean));
         }
 
-        foreach (var project in projects.Where(IsRunnable))
+        // The programs: this folder's own, and those a solution here lists in folders below it (Visual Studio's startup projects).
+        var runnable = projects.Select(p => Path.GetFileName(p))
+            .Concat(solutions.SelectMany(s => SolutionProjects(s)).Where(p => File.Exists(Path.Combine(folder, p))))
+            .Distinct(StringComparer.Ordinal)
+            .Where(p => IsRunnable(Path.Combine(folder, p)));
+        foreach (var relative in runnable)
         {
-            var name = Path.GetFileName(project);
-            var quoted = name.Contains(' ', StringComparison.Ordinal) ? $"'{name}'" : name;
-            into.Add(Make($"dotnet: run {name}{suffix}", "dotnet", name, $"dotnet run --project {quoted} {Flags}", cwd, TaskGroup.None, Matcher("$msCompile")));
+            var name = Path.GetFileName(relative);
+            var quoted = relative.Contains(' ', StringComparison.Ordinal) ? $"'{relative}'" : relative;
+            into.Add(Make($"dotnet: run {name}{suffix}", "dotnet", relative, $"dotnet run --project {quoted} {Flags}", cwd, TaskGroup.None, Matcher("$msCompile"), role: TaskRole.Run));
         }
+    }
+
+    [GeneratedRegex(@"^Project\(""[^""]*""\)\s*=\s*""[^""]*""\s*,\s*""([^""]+\.(?:cs|fs|vb)proj)""", RegexOptions.Multiline)]
+    private static partial Regex SlnProject();
+
+    [GeneratedRegex(@"<Project\s+Path=""([^""]+\.(?:cs|fs|vb)proj)""")]
+    private static partial Regex SlnxProject();
+
+    /// <summary>The project files a .sln or .slnx lists, relative to its folder with this system's separators.</summary>
+    private static IEnumerable<string> SolutionProjects(string solution)
+    {
+        string text;
+        try
+        {
+            text = File.ReadAllText(solution);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return [];
+        }
+
+        var pattern = solution.EndsWith(".slnx", StringComparison.OrdinalIgnoreCase) ? SlnxProject() : SlnProject();
+        return pattern.Matches(text).Select(m => m.Groups[1].Value.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar)).ToList();
     }
 
     /// <summary>Whether a project builds a program (an Exe, a web app or a worker) rather than a library.</summary>

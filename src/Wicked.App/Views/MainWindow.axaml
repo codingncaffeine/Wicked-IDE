@@ -43,7 +43,8 @@
           </Grid>
         </Button>
 
-        <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="2" Margin="0,0,6,0">
+        <DockPanel Grid.Column="2" Name="TitleEnd" Margin="12,0,0,0">
+        <StackPanel DockPanel.Dock="Right" Name="TitleButtons" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="2" Margin="0,0,6,0">
           <Button Classes="quiet" Command="{Binding ToggleSidebarCommand}" ToolTip.Tip="Side bar (Ctrl+B)">
             <shell:Icon Data="{StaticResource Icon.PanelLeft}" />
           </Button>
@@ -64,6 +65,38 @@
             <shell:Icon Data="{StaticResource Icon.X}" Size="15" StrokeWidth="1.5" />
           </Button>
         </StackPanel>
+
+        <!-- Run and Debug, as JetBrains' run widget and Visual Studio's Start: what starts (the Run and Debug panel's choice),
+             then Run, Debug, Stop and Build. Stop is always there (dimmed while nothing runs) so nothing moves under the pointer
+             when a run starts; the name is cut short when the bar is narrow. -->
+        <Grid Name="RunControls" ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto" HorizontalAlignment="Right" VerticalAlignment="Center">
+          <Button Name="RunTarget" Classes="quiet" Padding="8,3" Click="OnStatusCommand" Tag="wicked.run.selectConfiguration" MaxWidth="220"
+                  ToolTip.Tip="Select what Run and Debug start" AutomationProperties.Name="Run configuration">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Name="RunTargetText" Text="{Binding Run.TargetText}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                         FontSize="{DynamicResource Font.Size.Small}" Foreground="{DynamicResource Brush.Text.Secondary}" />
+              <shell:Icon Grid.Column="1" Data="{StaticResource Icon.ChevronDown}" Size="12" Margin="5,0,0,0" />
+            </Grid>
+          </Button>
+          <Button Grid.Column="1" Name="RunButton" Classes="quiet" Click="OnStatusCommand" Tag="workbench.action.debug.run"
+                  ToolTip.Tip="{Binding Run.RunTip}" AutomationProperties.Name="Run">
+            <shell:Icon Data="{StaticResource Icon.Play}" Foreground="{DynamicResource Brush.Success}" />
+          </Button>
+          <Button Grid.Column="2" Name="DebugButton" Classes="quiet" Click="OnStatusCommand" Tag="workbench.action.debug.start"
+                  IsEnabled="{Binding Run.CanDebug}" ToolTip.Tip="{Binding Run.DebugTip}" ToolTip.ShowOnDisabled="True" AutomationProperties.Name="Debug">
+            <shell:Icon Data="{StaticResource Icon.Bug}" Foreground="{DynamicResource Brush.Success}" />
+          </Button>
+          <Button Grid.Column="3" Name="StopButton" Classes="quiet" Click="OnStatusCommand" Tag="workbench.action.debug.stop"
+                  IsEnabled="{Binding Run.CanStop}" ToolTip.Tip="Stop (Shift+F5)" AutomationProperties.Name="Stop">
+            <shell:Icon Data="{StaticResource Icon.Square}" Foreground="{DynamicResource Brush.Danger}" />
+          </Button>
+          <Button Grid.Column="4" Name="BuildButton" Classes="quiet" Click="OnStatusCommand" Tag="workbench.action.tasks.build"
+                  ToolTip.Tip="Build (Ctrl+Shift+B)" AutomationProperties.Name="Build">
+            <shell:Icon Data="{StaticResource Icon.Hammer}" />
+          </Button>
+          <Rectangle Grid.Column="5" Width="1" Height="16" Margin="6,0" Fill="{DynamicResource Brush.Border}" VerticalAlignment="Center" />
+        </Grid>
+        </DockPanel>
       </Grid>
 
       <!-- ── Body: the rail on the ground, then the floating panels. ── -->
@@ -247,6 +280,11 @@
               <shell:Icon Data="{StaticResource Icon.Play}" Size="12" Foreground="{DynamicResource Brush.Accent}" />
               <TextBlock Name="TaskStatusText" Text="{Binding Tasks.RunningText}" VerticalAlignment="Center" />
             </StackPanel>
+          </Button>
+          <!-- With nothing running, how the last task ended, as JetBrains keeps the build result in its status bar. -->
+          <Button Name="TaskResultStatus" Classes="status" Command="{Binding Tasks.ShowRunningOutputCommand}" IsVisible="{Binding Tasks.ShowsLastResult}"
+                  Classes.failed="{Binding Tasks.LastResultFailed}" ToolTip.Tip="The last task's output" AutomationProperties.Name="Last task result">
+            <TextBlock Name="TaskResultText" Text="{Binding Tasks.LastResultText}" VerticalAlignment="Center" />
           </Button>
           <Button Name="ProblemsStatus" Classes="status" Command="{Binding ShowProblemsCommand}" ToolTip.Tip="{Binding ProblemsTip}" AutomationProperties.Name="Problems">
             <StackPanel Orientation="Horizontal" Spacing="5">

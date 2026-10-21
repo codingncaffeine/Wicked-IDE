@@ -172,3 +172,9 @@ workbench.action.toggleMenuBar	workbench
 editor.action.changeAll	editor	Ctrl+F2
 editor.action.refactor	workbench	Ctrl+Shift+R
 editor.action.sourceAction	workbench	
+workbench.action.debug.stop	workbench	Shift+F5
+wicked.run.currentFile	workbench	
+wicked.debug.currentFile	workbench	
+wicked.run.selectConfiguration	workbench	
+workbench.action.tasks.rebuild	workbench	
+wicked.tasks.clean	workbench	

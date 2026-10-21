@@ -28,6 +28,15 @@ public enum TaskGroup
     Test,
 }
 
+/// <summary>What a detected task is for, beyond its group: the run picker lists Run tasks, Rebuild and Clean have their own commands.</summary>
+public enum TaskRole
+{
+    None,
+    Run,
+    Rebuild,
+    Clean,
+}
+
 /// <summary>Whether the tasks a task depends on start together or one after the other.</summary>
 public enum DependsOrder
 {
@@ -86,6 +95,8 @@ public sealed record TaskDefinition
     public ShellOptions? Shell { get; init; }
 
     public TaskGroup Group { get; init; }
+
+    public TaskRole Role { get; init; }
 
     public bool IsDefault { get; init; }
 

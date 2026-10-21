@@ -92,6 +92,9 @@ public sealed partial class DebugController : ObservableObject, IDisposable
     [ObservableProperty]
     private ConfigurationChoice? _selectedConfiguration;
 
+    /// <summary>The choice is kept with the folder (the title bar and the Run and Debug panel share it).</summary>
+    partial void OnSelectedConfigurationChanged(ConfigurationChoice? value) => ScheduleSave();
+
     /// <summary>A session exists (starting, running or stopped): the toolbar shows.</summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowsCreateLaunch))]
