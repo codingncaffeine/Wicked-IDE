@@ -107,7 +107,9 @@ public sealed class DebugModelTests
 
     // ── The console ──────────────────────────────────────────────────────────────────────────────
 
-    private static DebugConsoleViewModel Console(Func<string, Task>? evaluate = null) => new(a => a(), evaluate);
+    // The console posts its delayed flush to the UI thread; run here, that flush would race the test's own writes and
+    // Flush() on a pool thread (a loaded machine and Windows CI saw it). The tests flush when they mean to, so it is dropped.
+    private static DebugConsoleViewModel Console(Func<string, Task>? evaluate = null) => new(_ => { }, evaluate);
 
     [Fact]
     public void TextWithoutANewlineIsCompletedByTheNextPieceOfTheSameKindAndOtherKindsStartNewLines()
