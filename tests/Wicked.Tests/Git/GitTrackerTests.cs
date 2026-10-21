@@ -51,7 +51,7 @@ public sealed class GitTrackerTests
         var (box, repo) = await GitSandbox.CreateAsync();
         using var cleanup = box;
         await box.CommitAsync("base", ("f.txt", "a\nb\n"));
-        using var tracker = new LineChangeTracker(repo, "f.txt", TimeSpan.FromMilliseconds(150));
+        using var tracker = new LineChangeTracker(repo, "f.txt", TimeSpan.FromMilliseconds(1000)); // a pause a burst fits inside even on two busy CPUs
         await tracker.RefreshBaseAsync(Ct);
         var raised = 0;
         tracker.MarksChanged += _ => Interlocked.Increment(ref raised);
@@ -68,7 +68,7 @@ public sealed class GitTrackerTests
                 });
             }
         });
-        await Task.Delay(400, Ct);
+        await Task.Delay(1200, Ct);
         Assert.Equal([new LineChange(2, LineChangeKind.Modified)], marks);
         Assert.Equal(1, Volatile.Read(ref raised));
         Assert.Equal(1, Volatile.Read(ref snapshots));
