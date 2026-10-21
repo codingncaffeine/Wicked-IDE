@@ -111,8 +111,8 @@ public sealed class NewProjectTests
                 Assert.True(File.Exists(Path.Combine(location, "Garden", "pyproject.toml")));
 
                 // Next time the dialog offers the same place.
-                Input.Chord(window, Key.N, RawInputModifiers.Control | RawInputModifiers.Shift);
-                Assert.True(Ui.PumpUntil(() => shell.NewProject.IsOpen, 5));
+                var again = shell.RunCommandAsync("wicked.newProject");
+                Assert.True(Ui.PumpUntil(() => again.IsCompleted && shell.NewProject.IsOpen, 5));
                 Assert.Equal(location, shell.NewProject.Location);
                 Input.Chord(window, Key.Escape, RawInputModifiers.None);
                 Assert.True(Ui.PumpUntil(() => !shell.NewProject.IsOpen, 5), "Escape did not close the dialog");

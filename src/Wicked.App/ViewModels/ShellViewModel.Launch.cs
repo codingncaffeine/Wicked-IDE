@@ -80,7 +80,8 @@ public sealed partial class ShellViewModel
     {
         try
         {
-            if (Environment.ProcessPath is not { } program) return false;
+            // Only a Wicked starts another window: under a test host or another runner there is no window to start.
+            if (Environment.ProcessPath is not { } program || !Path.GetFileNameWithoutExtension(program).StartsWith("wicked", StringComparison.OrdinalIgnoreCase)) return false;
             var info = new System.Diagnostics.ProcessStartInfo(program) { UseShellExecute = false };
             foreach (var arg in args) info.ArgumentList.Add(arg);
             System.Diagnostics.Process.Start(info)?.Dispose();
