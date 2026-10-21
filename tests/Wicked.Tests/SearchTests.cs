@@ -122,6 +122,7 @@ public sealed class ProjectSearchTests : IDisposable
 /// <summary>The Search panel in the window: typed, found, opened, replaced.</summary>
 public sealed class SearchWindowTests
 {
+    [Trait("Tier", "Smoke")]
     [Fact]
     public async Task CtrlShiftFSearchesTheFolderAndAClickOpensTheMatchSelected()
     {
@@ -159,6 +160,7 @@ public sealed class SearchWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task ReplaceAllAsksOnceThenChangesOpenFilesInTheirEditorsAndTheRestOnDisk()
     {

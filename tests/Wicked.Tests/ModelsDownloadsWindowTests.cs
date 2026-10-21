@@ -7,6 +7,7 @@ namespace Wicked.Tests;
 /// <summary>Pause, resume and cancel from the card in the Models panel, with the footer following along.</summary>
 public sealed class ModelsDownloadsWindowTests
 {
+    [Trait("Tier", "Smoke")]
     [Fact]
     public async Task ADownloadCanBePausedResumedAndCancelledFromItsCard()
     {

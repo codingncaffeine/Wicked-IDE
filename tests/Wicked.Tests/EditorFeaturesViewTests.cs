@@ -15,6 +15,7 @@ public sealed class EditorFeaturesViewTests
         Assert.Equal([(0, 1, 0xFF111111u), (1, 2, 0xFFFFD700u), (2, 3, 0xFF111111u), (3, 4, 0xFFFFD700u)], segments.Select(s => (s.Start, s.End, s.Color)));
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task BracketsGuidesAndWhitespaceShowInTheEditor()
     {
@@ -54,6 +55,7 @@ public sealed class EditorFeaturesViewTests
 
 public sealed class FoldingViewTests
 {
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task FoldingHidesTheBlockAndTheCaretStepsOverIt()
     {
@@ -106,6 +108,7 @@ public sealed class FoldingViewTests
 
 public sealed class MinimapViewTests
 {
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task TheMinimapShowsTheFileAndAClickScrollsThere()
     {

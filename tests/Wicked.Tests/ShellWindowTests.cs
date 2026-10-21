@@ -19,6 +19,7 @@ public sealed class ShellWindowTests
             ? panel.GetVisualDescendants().OfType<TextBlock>().First(t => t.Classes.Contains("heading")).Text
             : null;
 
+    [Trait("Tier", "Smoke")]
     [Fact]
     public async Task TheRailOpensPanelsAndItsLitButtonClosesTheSideBar()
     {
@@ -45,6 +46,7 @@ public sealed class ShellWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task CtrlBAndCtrlLHideAndBringBackThePanelsAtTheirWidth()
     {
@@ -73,6 +75,7 @@ public sealed class ShellWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task AFooterNoticeTakesTheUserToWhereItIsDealtWith()
     {
@@ -110,6 +113,7 @@ public sealed class ShellWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task TheFooterShowsWhetherTheDaemonAnswers()
     {
@@ -135,6 +139,7 @@ public sealed class ShellWindowTests
         }
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task TheShellRendersAFrame()
     {

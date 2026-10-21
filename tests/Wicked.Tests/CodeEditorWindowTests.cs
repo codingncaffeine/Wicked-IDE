@@ -22,6 +22,7 @@ public sealed class CodeEditorWindowTests
         return (window, editor);
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task TypingThroughTheWindowEditsTheDocument()
     {
@@ -41,6 +42,7 @@ public sealed class CodeEditorWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task TheEditorDrawsHighlightedTextThroughTheCompositor()
     {
@@ -59,6 +61,7 @@ public sealed class CodeEditorWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task ScrollingAHugeFileCostsTheUiThreadLittle()
     {

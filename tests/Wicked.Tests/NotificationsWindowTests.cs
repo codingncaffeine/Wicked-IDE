@@ -25,6 +25,7 @@ public sealed class NotificationsWindowTests
     private static IEnumerable<string> Headings(Window window) =>
         window.GetVisualDescendants().OfType<TextBlock>().Where(t => t.Classes.Contains("heading") && t.IsEffectivelyVisible && t.GetVisualAncestors().Contains(window.FindControl<Border>("NotificationsLayer")!)).Select(t => t.Text!);
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task ThePlusNInTheFooterOpensEveryWaitingNoticeWorstFirstWithItsButtons()
     {
@@ -77,6 +78,7 @@ public sealed class NotificationsWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task CheckNowFindsAnUploadAndTheListOffersToUpdateOrSilenceIt()
     {
@@ -121,6 +123,7 @@ public sealed class NotificationsWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task UpdateInTheWhatsNewViewReplacesTheFilesAfterTheNewOnesAnswer()
     {
@@ -160,6 +163,7 @@ public sealed class NotificationsWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task AModelsMenuSetsItsUpdatePolicyAndTheSettingsSetTheDefault()
     {

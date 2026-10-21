@@ -52,6 +52,7 @@ public sealed class WorkbenchWindowTests
         return shell.Workbench.ActiveTab!;
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task AClickPreviewsAFileAndADoubleClickKeepsIt()
     {
@@ -76,6 +77,7 @@ public sealed class WorkbenchWindowTests
         });
     }
 
+    [Trait("Tier", "Smoke")]
     [Fact]
     public async Task TypingMarksTheTabAndCtrlSSavesItToDisk()
     {
@@ -99,6 +101,7 @@ public sealed class WorkbenchWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task ClosingAnEditedTabAsksAndDontSaveLeavesTheFileAlone()
     {
@@ -122,6 +125,7 @@ public sealed class WorkbenchWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task QuickOpenFindsAFileByAFewOfItsLetters()
     {
@@ -145,6 +149,7 @@ public sealed class WorkbenchWindowTests
         });
     }
 
+    [Trait("Tier", "Smoke")]
     [Fact]
     public async Task ThePaletteRunsACommandAndGoesToALine()
     {
@@ -174,6 +179,7 @@ public sealed class WorkbenchWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task AnUneditedTabFollowsAChangeOnDisk()
     {
@@ -191,6 +197,7 @@ public sealed class WorkbenchWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task TheWorkbenchRendersAFrame()
     {
@@ -215,6 +222,7 @@ public sealed class WorkbenchWindowTests
 /// <summary>Find and replace through the window.</summary>
 public sealed class FindWindowTests
 {
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task CtrlFFindsCtrlHReplacesAndEscapeCloses()
     {
@@ -271,6 +279,7 @@ public sealed class FindWindowTests
 /// <summary>The explorer's file actions through the window.</summary>
 public sealed class ExplorerActionsTests
 {
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task NewFileRenameAndDeleteFromTheExplorer()
     {
@@ -320,6 +329,7 @@ public sealed class ExplorerActionsTests
 /// <summary>The explorer follows the active file, the breadcrumbs say where it is, the welcome page lists recent folders.</summary>
 public sealed class WayfindingTests
 {
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task OpeningAFileRevealsItAndTheBreadcrumbsNameItsPlace()
     {
@@ -345,6 +355,7 @@ public sealed class WayfindingTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task TheWelcomePageReopensARecentFolder()
     {
@@ -378,6 +389,7 @@ public sealed class WayfindingTests
 /// <summary>A project's .editorconfig governs its files: indentation, line endings and tidying on save.</summary>
 public sealed class EditorConfigWindowTests
 {
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task TheProjectsEditorConfigShapesIndentationAndSaves()
     {

@@ -23,6 +23,7 @@ public sealed class ChatConversationsWindowTests
         Ui.Pump(0.2);
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task AFinishedReplySavesTheChatAndTheNextStartReopensIt()
     {
@@ -55,6 +56,7 @@ public sealed class ChatConversationsWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task AChatClearedBeforeClosingIsStillClearWhenWickedStartsAgain()
     {
@@ -95,6 +97,7 @@ public sealed class ChatConversationsWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task ChatsAreListedNewestFirstOpenedRenamedAndDeletedWithAnAsk()
     {
@@ -158,6 +161,7 @@ public sealed class ChatConversationsWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task TheChatsSystemPromptIsShownAndTypedInItsChipAndClearStartsAFreshContext()
     {
@@ -200,6 +204,7 @@ public sealed class ChatConversationsWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task SystemPromptsAreKeptInSettingsAndEachChatKeepsTheOneItUsed()
     {

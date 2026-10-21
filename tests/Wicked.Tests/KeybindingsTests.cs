@@ -50,6 +50,7 @@ public sealed class KeybindingsTests
         Assert.Equal("Ctrl+K Ctrl+B", keys.KeysFor("b"));
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task KeybindingsJsonEditedByHandRebindsAnEditorCommand()
     {

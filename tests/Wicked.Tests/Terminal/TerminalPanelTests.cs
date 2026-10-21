@@ -40,6 +40,7 @@ public sealed class TerminalPanelTests
         return string.Join('\n', frame.Lines.Select(row => string.Concat(row.Cells.Where(c => (c.Flags & CellFlags.WideTail) == 0).Select(c => frame.TextOf(c))).TrimEnd())).TrimEnd();
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task ANewTerminalStartsAShellAndGetsAPane()
     {
@@ -61,6 +62,7 @@ public sealed class TerminalPanelTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task TextRunInTheActiveTerminalIsExecutedThere()
     {
@@ -78,6 +80,7 @@ public sealed class TerminalPanelTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task SeveralLinesAreRunAsOneBlock()
     {
@@ -95,6 +98,7 @@ public sealed class TerminalPanelTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task ASplitSitsBesideTheActiveTerminalInTheSameTab()
     {
@@ -119,6 +123,7 @@ public sealed class TerminalPanelTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task ClosingATerminalKillsItsShellAndClosesTheTabWhenItWasTheLast()
     {
@@ -146,6 +151,7 @@ public sealed class TerminalPanelTests
         Assert.False(Directory.Exists(proc));
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task AShellThatEndsNormallyTakesItsTabWithItAndOneThatFailsStays()
     {
@@ -169,6 +175,7 @@ public sealed class TerminalPanelTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task ATerminalCanBeRenamedAndFollowsItsTitle()
     {
@@ -190,6 +197,7 @@ public sealed class TerminalPanelTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task TheWorkingDirectoryTheShellReportsIsTracked()
     {
@@ -206,6 +214,7 @@ public sealed class TerminalPanelTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task SettingsReachOpenAndNewTerminals()
     {
@@ -228,6 +237,7 @@ public sealed class TerminalPanelTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task ChangingTheFontSizeChangesTheCellSize()
     {
@@ -245,6 +255,7 @@ public sealed class TerminalPanelTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task TheDefaultProfileFollowsTheSettingAndTheShellsList()
     {
@@ -260,6 +271,7 @@ public sealed class TerminalPanelTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task AShellThatCannotBeStartedSaysSo()
     {
@@ -275,6 +287,7 @@ public sealed class TerminalPanelTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task FollowingALinkOpensTheFileOnlyWhenItExists()
     {
@@ -319,6 +332,7 @@ public sealed class TerminalPanelTests
         if (exists) Assert.Equal(Path.GetFullPath(Path.Combine(dir.Root, "src", "app.cs")), resolved);
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task ThePanelViewShowsTabsAndThePanes()
     {

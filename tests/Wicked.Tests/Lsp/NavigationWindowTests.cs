@@ -35,6 +35,7 @@ public sealed class NavigationWindowTests
         return (window, shell, tab);
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task ShiftF12ListsTheReferencesInThePanelAndShiftAltHTheCallers()
     {
@@ -58,6 +59,7 @@ public sealed class NavigationWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task TheOutlineListsTheFilesSymbolsAndAClickGoesThere()
     {
@@ -79,6 +81,7 @@ public sealed class NavigationWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task AltF12PeeksTheDefinitionWithoutLeavingTheFile()
     {
@@ -103,6 +106,7 @@ public sealed class NavigationWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task BookmarksMarkLinesFollowEditsAndCtrlAltLGoesToTheNext()
     {

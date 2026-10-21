@@ -36,6 +36,7 @@ public sealed class TasksWindowTests
     private static IEnumerable<ListBoxItem> Items(MainWindow window, string list) =>
         window.GetVisualDescendants().OfType<ListBox>().Where(l => l.Name == list).SelectMany(l => l.GetVisualDescendants().OfType<ListBoxItem>());
 
+    [Trait("Tier", "Smoke")]
     [Fact]
     public async Task CtrlShiftBRunsTheDefaultBuildTaskItsErrorAppearsInProblemsAndAClickOpensTheFileAtTheLine()
     {
@@ -76,6 +77,7 @@ public sealed class TasksWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task ARunningBuildShowsInTheStatusBarItsOutputInThePanelAndHowItEnded()
     {
@@ -115,6 +117,7 @@ public sealed class TasksWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task RunTaskListsTheConfiguredAndTheDetectedTasksAndRunsTheChosenOne()
     {
@@ -144,6 +147,7 @@ public sealed class TasksWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task ATaskInputIsAskedInThePaletteAndItsAnswerIsUsed()
     {
@@ -173,6 +177,7 @@ public sealed class TasksWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task EscapingAQuestionCancelsTheTaskInsteadOfLeavingItWaiting()
     {
@@ -198,6 +203,7 @@ public sealed class TasksWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task TerminateTaskStopsARunningTaskAndTheFooterDoesNotCallItAFailure()
     {
@@ -225,6 +231,7 @@ public sealed class TasksWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task ConfigureTaskWritesADetectedTaskIntoTasksJsonAndOpensIt()
     {
@@ -261,6 +268,7 @@ public sealed class TasksWindowTests
 
     // ── The Testing panel ────────────────────────────────────────────────────────────────────────
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task TheTestingPanelListsRunsAndShowsAFailureWhoseStackLineOpensTheFile()
     {

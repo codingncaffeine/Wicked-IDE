@@ -17,6 +17,7 @@ public sealed class WordWrapWindowTests
         Ui.Pump(0.05);
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task AltZWrapsTheLineAndTheKeysMoveByRows()
     {

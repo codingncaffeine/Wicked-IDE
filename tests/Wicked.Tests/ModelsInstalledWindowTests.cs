@@ -27,6 +27,7 @@ public sealed class ModelsInstalledWindowTests
     private static string StoreFiles(WickedPaths paths) =>
         Directory.Exists(Path.Combine(paths.Data, "models")) ? string.Join(",", Directory.GetFiles(Path.Combine(paths.Data, "models"), "*", SearchOption.AllDirectories)) : "";
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task AModelUnderACommunityLicenceAsksBeforeItDownloads()
     {
@@ -76,6 +77,7 @@ public sealed class ModelsInstalledWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task AnInstalledModelHasAMenuADeleteThatAsksAndAnUpdateFlag()
     {

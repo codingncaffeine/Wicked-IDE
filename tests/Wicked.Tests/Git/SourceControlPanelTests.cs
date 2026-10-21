@@ -30,6 +30,7 @@ public sealed class SourceControlPanelTests
 
     private static void Enter(Window window) => window.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null);
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task TheBranchPickerSwitchesAndCreatesBranches()
     {
@@ -71,6 +72,7 @@ public sealed class SourceControlPanelTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task TheGraphShowsTheHistoryAndAClickShowsACommitsFiles()
     {
@@ -117,6 +119,7 @@ public sealed class SourceControlPanelTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task AMergeConflictShowsInMergeChangesWithABannerAndContinueFinishesIt()
     {
@@ -162,6 +165,7 @@ public sealed class SourceControlPanelTests
         Assert.Equal(2, (await box.GitAsync("rev-list", "--parents", "-n1", "HEAD")).Trim().Split(' ').Length - 1);
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task StashFromTheCommandListThenPopItBack()
     {
@@ -203,6 +207,7 @@ public sealed class SourceControlPanelTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task TheOutputLogHoldsEveryCommandAndMarksTheFailures()
     {
@@ -232,6 +237,7 @@ public sealed class SourceControlPanelTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task SeveralRepositoriesInOneFolderAreListedAndEachKeepsItsOwnChanges()
     {
@@ -268,6 +274,7 @@ public sealed class SourceControlPanelTests
 
 public sealed class GitOutputViewTests
 {
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task TheOutputViewListsTheLinesOfTheLog()
     {
@@ -299,6 +306,7 @@ public sealed class GitOutputViewTests
 
 public sealed class ScmSelectionTests
 {
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task SelectingEveryRowWithCtrlAAndPressingPlusStagesThemAllAndTheTreeToggleNestsFolders()
     {

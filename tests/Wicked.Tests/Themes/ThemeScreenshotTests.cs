@@ -10,6 +10,7 @@ namespace Wicked.Tests.Themes;
 /// </summary>
 public sealed class ThemeScreenshotTests
 {
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task EveryThemeIsPhotographed()
     {

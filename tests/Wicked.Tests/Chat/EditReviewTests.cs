@@ -44,6 +44,7 @@ public sealed class EditReviewTests
     [InlineData("Here you go:\n```\na();\nb();\n```\nDone.", "a();\nb();")]
     public void FencesAroundTheAnswerAreTakenOff(string reply, string code) => Assert.Equal(code, InlineEdit.StripFences(reply));
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task CtrlIRewritesTheSelectionThroughAReviewThatAcceptsIntoTheEditor()
     {

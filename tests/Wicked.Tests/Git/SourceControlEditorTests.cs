@@ -27,6 +27,7 @@ public sealed class SourceControlEditorTests
     private static void Caret(Wicked.App.Workbench.EditorTab tab, int line) =>
         tab.Document.SetSelections([Selection.Caret(tab.Document.Text.LineStart(line))]);
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task TheBlameLineFollowsTheCaretAndNamesYouForYourOwnCommits()
     {
@@ -61,6 +62,7 @@ public sealed class SourceControlEditorTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task TheFileHistorySectionListsTheActiveFilesCommitsAndAClickOpensTheChange()
     {
@@ -93,6 +95,7 @@ public sealed class SourceControlEditorTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task ATrackerForAnOpenFileMarksTheGutterAndFollowsTheIndex()
     {
@@ -124,6 +127,7 @@ public sealed class SourceControlEditorTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task StageSelectedRangesFromTheCommandListStagesOnlyTheSelectedLines()
     {
@@ -159,6 +163,7 @@ public sealed class SourceControlEditorTests
         Assert.DoesNotContain("line 5 edited", index);
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task StageAndRevertAChangeAtTheCaretAndTheRefusalWhenTheFileHasUnsavedEdits()
     {
@@ -195,6 +200,7 @@ public sealed class SourceControlEditorTests
         Assert.DoesNotContain("line 25 edited", (await box.GitAsync("show", ":f.txt")).Split('\n'));
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task CommitAndPushFromTheDropdownPushesAndUndoLastCommitPutsTheMessageBack()
     {

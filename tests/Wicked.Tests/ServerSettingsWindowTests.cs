@@ -45,6 +45,7 @@ public sealed class ServerSettingsWindowTests
         }
     }
 
+    [Trait("Tier", "Smoke")]
     [Fact(Timeout = 120_000)]
     public async Task TheServerPageStartsTheDaemonAndFollowsTheSettingsTheKeysAndTheRecipes()
     {
@@ -175,6 +176,7 @@ public sealed class ServerSettingsWindowTests
         }
     }
 
+    [Trait("Tier", "Window")]
     [Fact(Timeout = 120_000)]
     public async Task TheRequestLogViewFollowsTheServerAndFiltersAndClears()
     {
@@ -223,6 +225,7 @@ public sealed class ServerSettingsWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact(Timeout = 120_000)]
     public async Task TheRequestLogViewSaysWhenThereIsNoDaemon()
     {

@@ -7,6 +7,7 @@ namespace Wicked.Tests;
 /// <summary>The Models panel on a fresh profile, offline: this machine described, two or three picks with an Install each.</summary>
 public sealed class ModelsPanelTests
 {
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task TheModelsPanelRecommendsTwoOrThreeModelsForThisMachine()
     {

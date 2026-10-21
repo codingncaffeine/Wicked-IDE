@@ -92,6 +92,7 @@ public sealed class StreamStallTests
             watch.Stalls, watch.Worst.TotalMilliseconds, (GC.GetTotalPauseDuration() - pause0).TotalMilliseconds, shell.Chat.Messages[^1].Blocks.Count);
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task ThirtySecondsOfStreamingMarkdownKeepsTheChatsUiThreadWorkUnderFourMilliseconds()
     {

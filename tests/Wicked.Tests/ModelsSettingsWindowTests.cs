@@ -37,6 +37,7 @@ public sealed class ModelsSettingsWindowTests
     private static bool SettingsFileHas(TempProfile profile, string text) =>
         File.Exists(profile.Paths.SettingsFile) && File.ReadAllText(profile.Paths.SettingsFile).Contains(text, StringComparison.Ordinal);
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task TheModelsSettingsChooseTheFolderTheTokenAndTheSpeedLimit()
     {
@@ -103,6 +104,7 @@ public sealed class ModelsSettingsWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task TheEngineUpdateNoticeLeadsToAnUpdateButtonThatInstallsIt()
     {
@@ -137,6 +139,7 @@ public sealed class ModelsSettingsWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task TheRuntimeSettingsShowTheEngineUpdateItAndRollBack()
     {

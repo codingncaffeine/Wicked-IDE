@@ -13,6 +13,7 @@ public sealed class ThemeTests
 {
     private static readonly string[] Names = ["Wicked Dark", "Wicked Light", "Ember", "Neon", "Paper", "High Contrast"];
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task EveryBuiltInThemeIsReadable()
     {
@@ -78,6 +79,7 @@ public sealed class ThemeTests
         Assert.Equal(0x80112233u, WickedTheme.ParseColor("#11223380"));
     }
 
+    [Trait("Tier", "Smoke")]
     [Fact]
     public async Task CtrlKCtrlTSwitchesTheWholeWindowAndEscapeTakesItBack()
     {

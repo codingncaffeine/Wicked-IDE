@@ -60,6 +60,7 @@ public sealed class ExtensionsWindowTests
         Input.Click(window, Find<Button>(window, button));
     }
 
+    [Trait("Tier", "Smoke")]
     [Fact]
     public async Task InstallFromAFolderThroughThePanelThenDisableAndEnableAndUninstall()
     {
@@ -120,6 +121,7 @@ public sealed class ExtensionsWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task TheExtensionsPanelRendersAFrame()
     {
@@ -142,6 +144,7 @@ public sealed class ExtensionsWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task DecliningTheQuestionInstallsNothing()
     {
@@ -163,6 +166,7 @@ public sealed class ExtensionsWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task AnExtensionsKeysRunItsCommandAndTheUsersKeybindingsStillWin()
     {
@@ -193,6 +197,7 @@ public sealed class ExtensionsWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task AnExtensionsDecorationAppearsInTheEditorOfAnOpenedFile()
     {
@@ -224,6 +229,7 @@ public sealed class ExtensionsWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task TheApiEditsTextReadsSnapshotsAndRefusesAStaleVersion()
     {
@@ -268,6 +274,7 @@ public sealed class ExtensionsWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task EventsReachTheExtensionOffTheInterfaceThread()
     {
@@ -316,6 +323,7 @@ public sealed class ExtensionsWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task APanelsAndABottomTabAreAddedAndTakenBack()
     {
@@ -350,6 +358,7 @@ public sealed class ExtensionsWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task SettingsAreReadWrittenToSettingsJsonAndAnnounced()
     {
@@ -387,6 +396,7 @@ public sealed class ExtensionsWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task DeclaredContributionsReachTheEditorsRegistries()
     {
@@ -442,6 +452,7 @@ public sealed class ExtensionsWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task InitScriptCommandsRunFromThePaletteAndReloadFromIt()
     {
@@ -468,6 +479,7 @@ public sealed class ExtensionsWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task OpenInitScriptWritesTheStarterAndOpensItAsCSharp()
     {

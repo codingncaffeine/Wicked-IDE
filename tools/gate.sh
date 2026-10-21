@@ -6,16 +6,25 @@
 #   - warnings as errors.
 # Every run must pass. A failed run prints its failed tests; the logs are in scratch/gate/. This machine is Linux:
 # what only Windows sees (paths, timing) is caught by tools/push.sh, which runs CI on both before main moves.
-#   tools/gate.sh [N]
+# Every push runs every test but the Window tier (tools/test-tiers.sh); --full adds it, as a release needs.
+#   tools/gate.sh [--full] [N]
 set -uo pipefail
 cd "$(dirname "$0")/.."
+tier=(--filter "Tier!=Window")
+if [ "${1:-}" = --full ]; then tier=(); shift; fi
 N="${1:-2}"
 export PULSE_SERVER=unix:/nonexistent/wicked PIPEWIRE_REMOTE=/nonexistent/wicked WICKED_OFFLINE=1
 command -v taskset > /dev/null || { echo "gate: needs taskset"; exit 2; }
+# One gate at a time on this machine, from any worktree: two on the same two CPUs each take twice as long.
+exec 9> "${XDG_RUNTIME_DIR:-/tmp}/wicked-gate.lock"
+flock -n 9 || { echo "gate: another gate is running"; exit 2; }
 mkdir -p scratch/gate
 
 echo "── paths that would break the Windows job"
 tools/windows-paths.sh || { echo "GATE FAILED: Windows paths"; exit 1; }
+
+echo "── window tests placed in a tier"
+tools/test-tiers.sh || { echo "GATE FAILED: test tiers"; exit 1; }
 
 echo "── build, warnings as errors"
 if ! dotnet build Wicked.slnx -c Release -warnaserror --nologo -v q > scratch/gate/build.log 2>&1; then
@@ -27,7 +36,7 @@ fi
 rc=0
 for i in $(seq 1 "$N"); do
     log="scratch/gate/run-$i.log"
-    taskset -c 0,1 dotnet test tests/Wicked.Tests -c Release --no-build > "$log" 2>&1
+    taskset -c 0,1 dotnet test tests/Wicked.Tests -c Release --no-build "${tier[@]}" > "$log" 2>&1
     line=$(grep -E "^(Passed|Failed)!" "$log" | tail -1 | cut -c1-100)
     echo "run $i of $N: ${line:-no result, see $log}"
     if ! grep -qE "^Passed!" "$log"; then
@@ -36,5 +45,5 @@ for i in $(seq 1 "$N"); do
     fi
 done
 
-if (( rc == 0 )); then echo "GATE PASSED: $N runs on 2 CPUs, CI-style"; else echo "GATE FAILED"; fi
+if (( rc == 0 )); then echo "GATE PASSED: $N runs on 2 CPUs, CI-style${tier[*]:+ (push tier)}"; else echo "GATE FAILED"; fi
 exit $rc

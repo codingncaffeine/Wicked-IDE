@@ -50,6 +50,7 @@ public sealed class LanguageWindowTests
         return editor.Decorations[LanguageFeatures.DiagnosticsLayer].Ranges.Any(r => r.Style == RangeStyle.Error && r.End > r.Start && text.Substring(r.Start, r.End - r.Start) == word);
     }
 
+    [Trait("Tier", "Smoke")]
     [Fact]
     public async Task AProblemIsSquiggledListedAndCountedAndFollowsTheTextAsItIsEdited()
     {
@@ -93,6 +94,7 @@ public sealed class LanguageWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task TypingOpensSuggestionsAndEnterPutsTheChosenOneIn()
     {
@@ -123,6 +125,7 @@ public sealed class LanguageWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task F12JumpsToTheDefinitionAndF2RenamesEveryUse()
     {
@@ -159,6 +162,7 @@ public sealed class LanguageWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task TheHoverShowsTheSymbolAndTheProblemUnderThePointer()
     {
@@ -191,6 +195,7 @@ public sealed class LanguageWindowTests
         static IEnumerable<string> Texts(Control c) => c.GetVisualDescendants().OfType<TextBlock>().Select(t => t.Text ?? string.Concat(t.Inlines?.OfType<Avalonia.Controls.Documents.Run>().Select(r => r.Text) ?? []));
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task NamesTakeTheServersSemanticColoursOverTheGrammars()
     {
@@ -215,6 +220,7 @@ public sealed class LanguageWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task ParameterNamesAreDrawnBeforeTheArgumentsAsHints()
     {
@@ -231,6 +237,7 @@ public sealed class LanguageWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task SettingsListTheServersFoundAndTheirSwitchesWriteSettings()
     {
@@ -258,6 +265,7 @@ public sealed class LanguageWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task ShiftAltFFormatsTheFileWithTheServer()
     {

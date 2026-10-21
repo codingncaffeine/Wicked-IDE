@@ -75,6 +75,7 @@ public sealed class TerminalPerfTests
         Assert.True(mbps > (OperatingSystem.IsWindows() ? 10 : 20), line);
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task CatOfAHundredMegabytesNeverStallsTheUiThread()
     {

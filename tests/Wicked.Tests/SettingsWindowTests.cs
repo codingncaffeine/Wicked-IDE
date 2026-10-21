@@ -29,6 +29,7 @@ public sealed class SettingsWindowTests
         return editor;
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task ZoomKeysChangeTheFontAndAreKept()
     {
@@ -52,6 +53,7 @@ public sealed class SettingsWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task SettingsJsonEditedByHandAppliesAndABrokenOneSaysWhere()
     {
@@ -75,6 +77,7 @@ public sealed class SettingsWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task TheColourPickerPreviewsAndEscapeTakesItBack()
     {
@@ -100,6 +103,7 @@ public sealed class SettingsWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task AutoSaveAfterADelayWritesTheFile()
     {
@@ -120,6 +124,7 @@ public sealed class SettingsWindowTests
         });
     }
 
+    [Trait("Tier", "Smoke")]
     [Fact]
     public async Task TheSettingsSheetOpensWithCtrlCommaAndItsControlsApply()
     {

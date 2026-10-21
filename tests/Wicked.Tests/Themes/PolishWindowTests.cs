@@ -10,6 +10,7 @@ namespace Wicked.Tests.Themes;
 /// <summary>Customisation and access: style packs, F6 between the window's parts, every button named for a screen reader.</summary>
 public sealed class PolishWindowTests
 {
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task AStylePackRestylesTheWindowAndABrokenOneIsReportedNotApplied()
     {
@@ -50,6 +51,7 @@ public sealed class PolishWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task F6MovesTheKeyboardBetweenTheWindowsPartsAndShiftF6Back()
     {
@@ -102,6 +104,7 @@ public sealed class PolishWindowTests
         return ColourAt(latest!, line, column);
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task PickingAWindowThemeRecoloursTheCodeAlreadyOpen()
     {
@@ -141,6 +144,7 @@ public sealed class PolishWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task TheComposerRowFitsTheAssistantWithEveryChipShowing()
     {
@@ -178,6 +182,7 @@ public sealed class PolishWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task ThePanelHasATitleBarButtonAndOpensAgainAsItWasLeft()
     {
@@ -209,6 +214,7 @@ public sealed class PolishWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task TheTitleBarSettingSwapsWickedsBarForTheDesktopsFrameAndBack()
     {
@@ -247,6 +253,7 @@ public sealed class PolishWindowTests
         });
     }
 
+    [Trait("Tier", "Smoke")]
     [Fact]
     public async Task EveryButtonInTheWindowHasANameAScreenReaderCanRead()
     {

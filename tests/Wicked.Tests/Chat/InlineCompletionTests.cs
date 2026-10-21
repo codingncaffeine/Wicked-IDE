@@ -44,6 +44,7 @@ public sealed class InlineCompletionTests
         return (window, shell, tab);
     }
 
+    [Trait("Tier", "Smoke")]
     [Fact]
     public async Task APauseInTypingAsksTheCodingModelAndTabPutsTheSuggestionIn()
     {
@@ -81,6 +82,7 @@ public sealed class InlineCompletionTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task EscapeOrMovingAwayDropsItAndTabIndentsAgain()
     {
@@ -110,6 +112,7 @@ public sealed class InlineCompletionTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task WithoutACodingModelNothingIsAsked()
     {

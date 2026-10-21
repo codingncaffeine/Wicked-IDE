@@ -30,6 +30,7 @@ public sealed class AgentWindowTests
         };
     }
 
+    [Trait("Tier", "Smoke")]
     [Fact]
     public async Task AnAgentTurnReadsAsksBeforeEditingAndTheEditLandsInTheEditor()
     {
@@ -83,6 +84,7 @@ public sealed class AgentWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task ADeniedCommandIsNotRunAndTheModelIsToldSo()
     {

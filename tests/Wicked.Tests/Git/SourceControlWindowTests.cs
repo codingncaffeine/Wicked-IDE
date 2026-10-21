@@ -49,6 +49,7 @@ public sealed class SourceControlWindowTests
         Input.Click(window, button);
     }
 
+    [Trait("Tier", "Smoke")]
     [Fact]
     public async Task ChangeAFileSeeItInChangesStageTypeAMessageCtrlEnterAndTheTreeIsClean()
     {
@@ -94,6 +95,7 @@ public sealed class SourceControlWindowTests
         Assert.Equal("", (await box.GitAsync("status", "--porcelain")).Trim());
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task AFolderWithNoRepositoryOffersInitializeAndMakesOne()
     {
@@ -118,6 +120,7 @@ public sealed class SourceControlWindowTests
         Assert.True(Directory.Exists(box.PathOf(".git")));
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task DiscardAsksFirstAndCancelLeavesTheFileAlone()
     {
@@ -151,6 +154,7 @@ public sealed class SourceControlWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task APushThatNeedsACredentialAsksInADialogAndSendsTheAnswerToGit()
     {

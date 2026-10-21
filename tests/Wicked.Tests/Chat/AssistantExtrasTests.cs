@@ -28,6 +28,7 @@ public sealed class AssistantExtrasTests
         return (window, shell, tab);
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task AQuestionCarriesTheOpenFileAndItsMentionsButShowsOnlyWhatWasTyped()
     {
@@ -58,6 +59,7 @@ public sealed class AssistantExtrasTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task ApplyOnACodeBlockProposesItOverTheSelectionAsAReview()
     {
@@ -87,6 +89,7 @@ public sealed class AssistantExtrasTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task TheSparkleWritesACommitMessageFromTheStagedChanges()
     {
@@ -117,6 +120,7 @@ public sealed class AssistantExtrasTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task FixOnAProblemsHoverAsksForItsLinesAndOpensTheReview()
     {

@@ -2,14 +2,16 @@
 # The unit tests as CI runs them. A test that fails is run once more on its own; when it passes then, the job passes and
 # the test is named as flaky (a warning on the run and a line in its summary), never hidden. A run that did not finish
 # (a crash or a hang) and a run with more than five failures are real breakage and are not run again.
-#   tools/ci-test.sh [RESULTS_DIR]
+#   tools/ci-test.sh [RESULTS_DIR] [push|full]   push (the default): every test but the Window tier (tools/test-tiers.sh)
 set -uo pipefail
 cd "$(dirname "$0")/.."
 results=${1:-TestResults}
+tier=()
+[ "${2:-push}" = full ] || tier=(--filter "Tier!=Window")
 mkdir -p "$results"
 args=(tests/Wicked.Tests -c Release --no-build --blame-hang --blame-hang-timeout 2m --logger "console;verbosity=normal" --results-directory "$results")
 
-dotnet test "${args[@]}" --logger "trx;LogFileName=first.trx" 2>&1 | tee "$results/first.log"
+dotnet test "${args[@]}" "${tier[@]}" --logger "trx;LogFileName=first.trx" 2>&1 | tee "$results/first.log"
 first=${PIPESTATUS[0]}
 [ "$first" -eq 0 ] && exit 0
 

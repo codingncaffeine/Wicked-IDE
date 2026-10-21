@@ -67,6 +67,7 @@ public sealed class DebugWindowTests
     private static bool Stopped(CodeEditor editor, int line) =>
         editor.Decorations[DebugController.MarksLayer].Lines.Any(l => l.LineStart == editor.Document.Text.LineStart(line) && l.Style == LineStyle.Stopped);
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task APreLaunchTaskFromTasksJsonRunsFirstAndAFailingOneStopsTheLaunch()
     {
@@ -115,6 +116,7 @@ public sealed class DebugWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task ClickingTheGlyphMarginSetsAndClearsABreakpointAndTheGutterShowsIt()
     {
@@ -138,6 +140,7 @@ public sealed class DebugWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task ARightClickInTheMarginOffersTheBreakpointMenu()
     {
@@ -160,6 +163,7 @@ public sealed class DebugWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task F5RunsToTheBreakpointShowsTheStoppedLineAndFillsVariablesAndTheStack()
     {
@@ -193,6 +197,7 @@ public sealed class DebugWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task F10MovesTheStoppedLineAndMarksTheVariablesThatChanged()
     {
@@ -217,6 +222,7 @@ public sealed class DebugWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task ShiftF5EndsTheSessionAndTakesTheMarksAndTheToolbarAway()
     {
@@ -242,6 +248,7 @@ public sealed class DebugWindowTests
         });
     }
 
+    [Trait("Tier", "Smoke")]
     [Fact]
     public async Task ValuesAppearAfterTheLinesThatUseThemAndClickingAFrameMovesTheView()
     {
@@ -267,6 +274,7 @@ public sealed class DebugWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task HoveringANameWhileStoppedShowsItsValue()
     {
@@ -294,6 +302,7 @@ public sealed class DebugWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task TheDebuggerRendersAFrameWhileStopped()
     {
@@ -333,6 +342,7 @@ public sealed class DebugWindowTests
     private static IEnumerable<Border> Cards(MainWindow window) =>
         TopLevel.GetTopLevel(window)!.GetVisualDescendants().OfType<Border>().Where(b => b.Name == "DebugHoverCard" && b.IsEffectivelyVisible);
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task BreakpointsFollowTheirCodeAsTheTextIsEdited()
     {
@@ -365,6 +375,7 @@ public sealed class DebugWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task ABreakpointThePreviousRunRememberedComesBackAndTheListShowsIt()
     {
@@ -401,6 +412,7 @@ public sealed class DebugWindowTests
 
     private static TextBox Find(MainWindow window, string name) => window.GetVisualDescendants().OfType<TextBox>().First(t => t.Name == name);
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task TheDebugConsoleEvaluatesInTheStoppedFrameAndUpAndDownRecallWhatWasTyped()
     {
@@ -441,6 +453,7 @@ public sealed class DebugWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task WatchExpressionsAreAddedThroughThePromptAndEvaluatedOnEveryStop()
     {
@@ -474,6 +487,7 @@ public sealed class DebugWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task ChangingAValueSendsItToTheProgramAndTheViewsShowTheNewOne()
     {
@@ -501,6 +515,7 @@ public sealed class DebugWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task TheBreakpointsListEnablesDisablesEditsAndRemovesAndTheGutterFollows()
     {
@@ -539,6 +554,7 @@ public sealed class DebugWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task ABreakpointTheAdapterCannotBindIsDrawnHollowOnceASessionRuns()
     {
@@ -565,6 +581,7 @@ public sealed class DebugWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task ACompoundShowsEachSessionInTheCallStackAndStopAllEndsThem()
     {
@@ -595,6 +612,7 @@ public sealed class DebugWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task WithoutALaunchJsonF5WritesOneForTheFilesLanguageOpensItAndOffersTheMissingAdapter()
     {
@@ -623,6 +641,7 @@ public sealed class DebugWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task AConfigurationWhoseAdapterIsMissingPostsANoticeThatLeadsToItsInstall()
     {
@@ -649,6 +668,7 @@ public sealed class DebugWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task AttachToProcessListsRunningProgramsAndAttachesToTheOneChosen()
     {
@@ -676,6 +696,7 @@ public sealed class DebugWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task DoubleClickingAValueInTheVariablesViewOpensItForEditing()
     {
@@ -705,6 +726,7 @@ public sealed class DebugWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task TheMarginMenuAddsALogpointF9TogglesAtTheCaretAndAClosedFileKeepsItsBreakpoints()
     {
@@ -745,6 +767,7 @@ public sealed class DebugWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task CtrlShiftF5RestartsTheProgramAndTheSettingTurnsTheLineValuesOff()
     {

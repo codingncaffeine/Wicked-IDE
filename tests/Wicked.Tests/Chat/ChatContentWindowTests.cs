@@ -22,6 +22,7 @@ public sealed class ChatContentWindowTests
         return world;
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task ThinkingStreamsInView_ThenFoldsIntoAThoughtLineThatOpensAgain()
     {
@@ -64,6 +65,7 @@ public sealed class ChatContentWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task ACodeBlockIsHighlightedCopiesAndInsertsIntoTheOpenFile()
     {
@@ -116,6 +118,7 @@ public sealed class ChatContentWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task APictureCanBeAttachedOnlyWhenTheModelSeesAndGoesWithTheMessage()
     {

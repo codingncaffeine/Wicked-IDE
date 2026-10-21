@@ -13,6 +13,7 @@ public sealed class RunModelsWindowTests
 
     private static string TextIn(Window window, string name) => ChatUi.Control<TextBlock>(window, name).Text ?? "";
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task AModelInstalledFromThePanelLoadsThroughTheRealRuntime()
     {
@@ -54,6 +55,7 @@ public sealed class RunModelsWindowTests
         }
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task AnInstalledModelLoadsAndUnloadsWithItsStateAndTheFooterFollows()
     {
@@ -136,6 +138,7 @@ public sealed class RunModelsWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task RunSettingsStartAtAutomaticAreEditedSavedAndComeBack()
     {

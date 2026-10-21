@@ -47,6 +47,7 @@ public sealed class SnippetWindowTests
         Ui.Pump(0.05);
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task InsertSnippetFillsItsPlaceholdersWithTabAndMirrorsThem()
     {
@@ -91,6 +92,7 @@ public sealed class SnippetWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task APrefixAndTabExpandOnlyWhenTabCompletionIsOn()
     {
@@ -122,6 +124,7 @@ public sealed class SnippetWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task ConfigureSnippetsOpensTheLanguagesFileAndItsEditsApplyAtOnce()
     {

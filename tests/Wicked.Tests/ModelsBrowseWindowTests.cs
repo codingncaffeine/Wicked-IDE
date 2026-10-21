@@ -42,6 +42,7 @@ public sealed class ModelsBrowseWindowTests
         Ui.Pump(0.1);
     }
 
+    [Trait("Tier", "Smoke")]
     [Fact]
     public async Task TheCatalogListsEveryModelNewestFirstWithFitBadgesAQuantChooserFiltersAndInstall()
     {
@@ -111,6 +112,7 @@ public sealed class ModelsBrowseWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task ADownloadFromTheCatalogCanBePausedResumedAndCancelledOnItsRow()
     {
@@ -142,6 +144,7 @@ public sealed class ModelsBrowseWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task AGatedModelLeadsToTheTokenSettingAndInstallsOnceTheTokenIsRight()
     {
@@ -204,6 +207,7 @@ public sealed class ModelsBrowseWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task TheHuggingFaceTabSearchesShowsQuantsWithTheirFitAndInstallsOne()
     {
@@ -268,6 +272,7 @@ public sealed class ModelsBrowseWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task EscapeClosesTheBrowsePage()
     {

@@ -43,6 +43,7 @@ public sealed class GitEditorIntegrationTests
         static int Offset(string[] lines, int line) => lines.Take(line).Sum(l => l.Length + 1);
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task TypingInATrackedFileMarksTheGutterAndADiffOpensAsATab()
     {

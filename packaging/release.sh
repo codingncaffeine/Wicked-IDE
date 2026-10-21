@@ -7,8 +7,9 @@
 #                                   packaging/RELEASE-NOTES-<version>.md is the release's text, and the metainfo
 #                                   must list the version (build-release.sh refuses otherwise)
 #
-# Before it: tools/gate.sh, then tools/push.sh. Needs gh (logged in), podman or docker, xvfb-run, dbus-run-session,
-# makepkg and an SSH key for aur.archlinux.org. The Windows zip is built here too; CI has run the suite on Windows.
+# Before it: tools/gate.sh, then tools/push.sh; the full CI run of that commit is waited for here. Needs gh (logged in),
+# podman or docker, xvfb-run, dbus-run-session, makepkg and an SSH key for aur.archlinux.org. The Windows zip is built
+# here too; the full CI run has run the suite on Windows.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 VER=$(grep -oPm1 '(?<=<VersionPrefix>)[^<]+' Directory.Build.props)
@@ -32,14 +33,25 @@ tools/identity-audit.sh > /dev/null || { echo "identity-audit found something"; 
 gh auth status > /dev/null 2>&1 || { echo "gh is not logged in"; exit 1; }
 echo "ok"
 
-say "CI for $(git rev-parse --short HEAD)"
-for i in $(seq 1 60); do
-    s=$(gh run list --commit "$(git rev-parse HEAD)" --json status,conclusion -q '.[0] | "\(.status) \(.conclusion)"' 2>/dev/null || true)
-    case "$s" in
-        "completed success") echo "green"; break ;;
-        "completed "*) echo "CI: $s"; exit 1 ;;
+# A push runs every test but the Window tier; a release needs them all, on Linux and Windows. A full run (nightly, or
+# started by hand) of this very commit counts; with none, one is started here and waited for.
+say "CI for $(git rev-parse --short HEAD): the full suite, Window tier included"
+head=$(git rev-parse HEAD)
+full_run() {
+    gh run list --commit "$head" --json databaseId,event,status,conclusion \
+        -q '[.[] | select(.event == "schedule" or .event == "workflow_dispatch")][0] // empty | "\(.databaseId) \(.status) \(.conclusion)"' 2>/dev/null || true
+}
+if [ -z "$(full_run)" ]; then
+    gh workflow run ci.yml --ref main -f tier=full
+    for _ in $(seq 1 20); do [ -n "$(full_run)" ] && break; sleep 15; done
+fi
+for i in $(seq 1 90); do
+    read -r run status conclusion <<< "$(full_run)"
+    case "$status $conclusion" in
+        "completed success") echo "green (run $run)"; break ;;
+        "completed "*) echo "the full CI run $run: $conclusion (gh run view $run --log-failed)"; exit 1 ;;
     esac
-    [ "$i" = 60 ] && { echo "CI did not finish in 30 minutes"; exit 1; }
+    [ "$i" = 90 ] && { echo "the full CI run did not finish in 45 minutes"; exit 1; }
     sleep 30
 done
 

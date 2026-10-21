@@ -17,6 +17,7 @@ public sealed class TerminalShellTests
         return string.Join('\n', frame.Lines.Select(row => string.Concat(row.Cells.Where(c => (c.Flags & CellFlags.WideTail) == 0).Select(c => frame.TextOf(c))).TrimEnd())).TrimEnd();
     }
 
+    [Trait("Tier", "Smoke")]
     [Fact]
     public async Task CtrlBacktickOpensATerminalInThePanelAndTheEditorsLineRunsInIt()
     {

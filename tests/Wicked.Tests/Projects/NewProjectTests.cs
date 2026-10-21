@@ -77,6 +77,7 @@ public sealed class NewProjectTests
         Assert.Contains(log, l => l.StartsWith("> dotnet new console", StringComparison.Ordinal));
     }
 
+    [Trait("Tier", "Smoke")]
     [Fact]
     public async Task CtrlShiftNOpensTheDialogAndCreateOpensTheNewProjectWithItsMainFile()
     {

@@ -29,6 +29,7 @@ public sealed class CodeTextTests
         return ink;
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task LinesAreShapedOnAWorkerAndAGrowingBlockIsNeverDrawnBlank()
     {

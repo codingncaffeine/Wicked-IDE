@@ -18,6 +18,7 @@ public sealed class ChatWindowTests
         return world;
     }
 
+    [Trait("Tier", "Smoke")]
     [Fact]
     public async Task EnterSendsAnAnswerStreamsInAndShiftEnterIsANewLine()
     {
@@ -53,6 +54,7 @@ public sealed class ChatWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task StopEndsAReplyWhereItIsAndKeepsWhatArrived()
     {
@@ -88,6 +90,7 @@ public sealed class ChatWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task RegenerateAsksAgainAndReplacesTheLastReply()
     {
@@ -115,6 +118,7 @@ public sealed class ChatWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task EditingAnEarlierQuestionDropsTheTurnsAfterItAndAsksAgain()
     {
@@ -145,6 +149,7 @@ public sealed class ChatWindowTests
         });
     }
 
+    [Trait("Tier", "Window")]
     [Fact]
     public async Task TheModelChipSwitchesTheModelEvenMidConversation()
     {

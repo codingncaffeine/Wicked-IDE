@@ -2,18 +2,28 @@ name: CI
 
 # Every push to main or to the gate branch (tools/push.sh lands a batch on main only after this
 # has run it there) and every pull request: build the whole solution on Linux and on Windows
-# with warnings as errors, and run the tests, the window's included (Avalonia's headless platform).
+# with warnings as errors, and run the tests: every test but the Window tier, whose area walks
+# are the Smoke tier (tools/test-tiers.sh). The full suite, the Window tier included, runs
+# nightly and when started by hand with tier "full" (packaging/release.sh starts one).
 on:
   push:
     branches: [main, gate]
   pull_request:
+  schedule:
+    - cron: "17 9 * * *"
   workflow_dispatch:
+    inputs:
+      tier:
+        description: "push = every test but the Window tier; full = every test"
+        type: choice
+        options: [full, push]
+        default: full
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
 
 jobs:
@@ -25,7 +35,7 @@ jobs:
         os: [ubuntu-24.04, windows-2025]
     runs-on: ${{ matrix.os }}
     # A hung test ends the job here, not at GitHub's six-hour limit.
-    timeout-minutes: 30
+    timeout-minutes: 40
     env:
       DOTNET_NOLOGO: true
       DOTNET_CLI_TELEMETRY_OPTOUT: true
@@ -50,7 +60,7 @@ jobs:
       # run once more on its own: passing then, it is reported as flaky and the job stays green (tools/ci-test.sh).
       - name: Tests
         shell: bash
-        run: tools/ci-test.sh TestResults
+        run: tools/ci-test.sh TestResults ${{ (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.tier == 'full')) && 'full' || 'push' }}
 
       - name: Keep the hang dumps
         if: failure()
