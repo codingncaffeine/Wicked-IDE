@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.VisualTree;
 using Wicked.Core.Chat;
 using Wicked.Core.Settings;
 using Wicked.Tests.Models;
@@ -112,6 +113,48 @@ public sealed class ChatConversationsWindowTests
             Assert.Equal("Monads, briefly", world.Store.All[0].Title); // the renamed chat moved to the top, so the last row was the other
             Assert.Equal(["Monads, briefly"], shell.Chat.History.Select(h => h.Title));
             Assert.Equal("Monads, briefly", shell.Chat.CurrentTitle); // the open chat was not the one deleted
+            window.Close();
+            return 0;
+        });
+    }
+
+    [Fact]
+    public async Task TheChatsSystemPromptIsShownAndTypedInItsChipAndClearStartsAFreshContext()
+    {
+        using var profile = new TempProfile();
+        var world = World();
+        await Ui.Run(() =>
+        {
+            var (window, shell) = world.Start(profile.Paths);
+            Ui.PumpUntil(() => shell.Chat.SelectedModel is not null, 5);
+            _ = shell.Chat.StartAsync();
+            Assert.Equal("System prompt", shell.Chat.PromptLabel);
+
+            // The chip opens on this chat's prompt, in a box to type in.
+            Input.Click(window, ChatUi.Control<Button>(window, "PromptChip"));
+            Assert.True(Ui.PumpUntil(() => window.GetVisualDescendants().OfType<TextBox>().Any(b => b.Name == "SystemPromptBox"), 5), "the chip shows no prompt box");
+            var box = ChatUi.Control<TextBox>(window, "SystemPromptBox");
+            Assert.Equal("", box.Text);
+            box.Focus();
+            box.Text = "Reply in French.";
+            Assert.True(Ui.PumpUntil(() => shell.Chat.PromptLabel == "Custom prompt", 5), "the chip does not say a prompt is set");
+            Input.Chord(window, Key.Escape, RawInputModifiers.None);
+            Ui.Pump(0.3);
+
+            ChatUi.Send(window, "hello");
+            Assert.True(Ui.PumpUntil(() => world.Engine.Requests.Count == 1 && !shell.Chat.IsStreaming, 10));
+            Assert.Equal(new ChatMessage(ChatRole.System, "Reply in French."), world.Engine.Requests[0].Messages[0]);
+            Assert.True(Ui.PumpUntil(() => world.Store.All.Count == 1, 5));
+
+            // /clear: a fresh chat with an empty context, nothing sent to the model, the old one kept in Past chats.
+            ChatUi.Send(window, "/clear");
+            Assert.True(Ui.PumpUntil(() => shell.Chat.Messages.Count == 0, 5), "/clear did not start over");
+            Assert.Single(world.Engine.Requests);
+            Assert.Equal("", shell.Chat.Draft);
+            Assert.Contains(shell.Chat.History, h => h.Title == "hello");
+            ChatUi.Send(window, "again");
+            Assert.True(Ui.PumpUntil(() => world.Engine.Requests.Count == 2 && !shell.Chat.IsStreaming, 10));
+            Assert.Equal(["again"], world.Engine.Requests[1].Messages.Where(m => m.Role == ChatRole.User).Select(m => m.Content));
             window.Close();
             return 0;
         });

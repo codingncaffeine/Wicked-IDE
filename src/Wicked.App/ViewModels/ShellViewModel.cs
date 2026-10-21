@@ -525,6 +525,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         StartExtensions();
         if (problem is not null) Notices.Post(new Notice("settings", problem, NoticeKind.Warning, $"tab/{Paths.SettingsFile}"));
         _session = await SessionState.ReadAsync(Paths.SessionFile, CancellationToken.None);
+        RestorePanel();
         ShowRecent();
         _ = Models.StartAsync(AllowNetwork);
         _ = Chat.StartAsync();
@@ -546,6 +547,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             _session = _session with { OpenFiles = new Dictionary<string, List<string>>(_session.OpenFiles) { [root] = files } };
         }
 
+        _session = _session with { PanelVisible = BottomPanel.IsVisible, PanelTab = BottomPanel.Active?.Id, PanelHeight = BottomPanel.Height };
         var session = _session;
         try
         {
@@ -702,6 +704,19 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
 
     [RelayCommand]
     private void ToggleAssistant() => AssistantVisible = !AssistantVisible;
+
+    /// <summary>The title bar's panel button (Ctrl+J): Problems, Output (a build's output), Terminal, Debug Console.</summary>
+    [RelayCommand]
+    private void TogglePanel() => BottomPanel.Toggle();
+
+    /// <summary>The panel as the last session left it (layout, so whatever the restore setting says).</summary>
+    private void RestorePanel()
+    {
+        if (_session.PanelHeight >= Shell.BottomPanel.MinHeight) BottomPanel.Height = _session.PanelHeight;
+        if (!_session.PanelVisible) return;
+        if (_session.PanelTab is { } tab && BottomPanel.Tabs.Any(t => t.Id == tab)) BottomPanel.Show(tab);
+        else BottomPanel.IsVisible = true;
+    }
 
     /// <summary>The footer's model status: the Models panel, where models are loaded and set up.</summary>
     [RelayCommand]

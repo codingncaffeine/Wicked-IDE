@@ -128,6 +128,9 @@ public partial class ChatView : UserControl
         await _chat.AddImageFilesAsync(paths);
     }
 
+    // The prompt box closed: what was typed is kept with the chat.
+    private void OnPromptFlyoutClosed(object? sender, EventArgs e) => _chat?.SystemPromptEdited();
+
     // ── Keeping the newest words in view ─────────────────────────────────────────────────────────
 
     private void OnListTemplate(object? sender, TemplateAppliedEventArgs e)

@@ -1,4 +1,7 @@
 using System.Collections.Immutable;
+using Avalonia.Threading;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using Wicked.App.Language;
 using Wicked.App.Shell;
 using Wicked.App.ViewModels;
@@ -13,7 +16,7 @@ namespace Wicked.App.Tasks;
 /// editor's state handed to the variables, the problems sent to the Problems panel and the notices when a task fails.
 /// The work itself is <see cref="TaskService"/>, on the thread pool; this class only talks to the window.
 /// </summary>
-public sealed class TasksHost : ITaskEnvironment, IDisposable
+public sealed partial class TasksHost : ObservableObject, ITaskEnvironment, IDisposable
 {
     private readonly ShellViewModel _shell;
     private readonly Action<Action> _post;
@@ -27,6 +30,7 @@ public sealed class TasksHost : ITaskEnvironment, IDisposable
         Service = new TaskService(_output, this) { WorkspaceFolder = shell.Workbench.Root };
         Service.ProblemsChanged += OnProblems;
         Service.Finished += OnFinished;
+        Service.RunningChanged += () => _post(ShowRunning);
         shell.Workbench.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(Wicked.App.Workbench.Workbench.Root)) _post(() => Service.WorkspaceFolder = shell.Workbench.Root);
@@ -38,7 +42,50 @@ public sealed class TasksHost : ITaskEnvironment, IDisposable
     /// <summary>What the debug lane's preLaunchTask waits on (see <see cref="TaskService.RunTaskByLabelAsync"/>).</summary>
     public Task<bool> RunTaskByLabelAsync(string label, CancellationToken ct = default) => Service.RunTaskByLabelAsync(label, ct);
 
-    public void Dispose() => Service.Dispose();
+    public void Dispose()
+    {
+        _tick?.Stop();
+        Service.Dispose();
+    }
+
+    // ── The status bar: what is running (a build's progress) ─────────────────────────────────────
+
+    private DispatcherTimer? _tick;
+
+    /// <summary>The running task's name and how long it has run ("build · 12 s"); empty when nothing runs.</summary>
+    [ObservableProperty]
+    private string _runningText = "";
+
+    [ObservableProperty]
+    private string _runningTip = "";
+
+    /// <summary>Counted once a second while something runs (no animation: nothing ticks the UI thread every frame).</summary>
+    private void ShowRunning()
+    {
+        var running = Service.Running.OrderBy(r => r.Started).ToList();
+        if (running.Count == 0)
+        {
+            _tick?.Stop();
+            RunningText = "";
+            RunningTip = "";
+            return;
+        }
+
+        var first = running[0];
+        var seconds = (int)(DateTimeOffset.UtcNow - first.Started).TotalSeconds;
+        var more = running.Count > 1 ? $" +{running.Count - 1}" : "";
+        RunningText = first.IsBackground ? $"{first.Definition.Label}{more} · watching" : $"{first.Definition.Label}{more} · {seconds} s";
+        RunningTip = "Running: " + string.Join(", ", running.Select(r => r.Definition.Label)) + ". Click to see the output.";
+        _tick ??= new DispatcherTimer(TimeSpan.FromSeconds(1), DispatcherPriority.Background, (_, _) => ShowRunning());
+        if (!_tick.IsEnabled) _tick.Start();
+    }
+
+    /// <summary>The status bar item: the oldest running task's output.</summary>
+    [RelayCommand]
+    private void ShowRunningOutput()
+    {
+        if (Service.Running.OrderBy(r => r.Started).FirstOrDefault() is { } run) _shell.Navigate($"output/{_output.ChannelName(run.Definition.Label)}");
+    }
 
     // ── The window's side of a run ───────────────────────────────────────────────────────────────
 

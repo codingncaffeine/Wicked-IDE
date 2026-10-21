@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Globalization;
 
 namespace Wicked.Core.Tasks;
 
@@ -71,6 +72,9 @@ public sealed class TaskRun
     }
 
     public TaskDefinition Definition { get; }
+
+    /// <summary>When it started (the status bar counts from here).</summary>
+    public DateTimeOffset Started { get; } = DateTimeOffset.UtcNow;
 
     /// <summary>
     /// True once a task is ready for whatever waits on it: a normal task ended with exit code 0, a background task printed
@@ -365,7 +369,7 @@ public sealed class TaskService : IDisposable
         var sink = _output.Open(def.Label, def.Presentation);
         if (def.Presentation.Echo)
         {
-            sink.Write($"> Executing task: {shown} <");
+            sink.Write($"> Executing task at {DateTime.Now:HH:mm:ss}: {shown} <");
             sink.Write("");
         }
 
@@ -426,7 +430,10 @@ public sealed class TaskService : IDisposable
             var errors = problems.Count(x => x.Severity == ProblemSeverity.Error);
             var warnings = problems.Count(x => x.Severity == ProblemSeverity.Warning);
             sink.Write("");
-            sink.Write(terminated ? "> Task terminated <" : exit == 0 ? "> Task finished <" : $"> Task failed with exit code {exit} <");
+            // The verdict with the time it took and what the matchers found, as Visual Studio's Output window ends a build.
+            var took = $" in {(DateTimeOffset.UtcNow - run.Started).TotalSeconds.ToString("0.0", CultureInfo.InvariantCulture)} s";
+            var found = errors + warnings > 0 ? $", {errors} error(s), {warnings} warning(s)" : "";
+            sink.Write(terminated ? $"> Task terminated{took} <" : exit == 0 ? $"> Task finished{took}{found} <" : $"> Task failed with exit code {exit}{took}{found} <");
             sink.Close(new TaskOutcome(terminated ? null : exit, terminated, null, errors, warnings));
             return new TaskRunResult(terminated ? null : exit, terminated, null, problems);
         }

@@ -63,6 +63,7 @@
   <StreamGeometry x:Key="Icon.MessageSquare">M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z</StreamGeometry>
   <StreamGeometry x:Key="Icon.Minus">M5 12h14</StreamGeometry>
   <StreamGeometry x:Key="Icon.Palette">M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z M13 6.5a0.5 0.5 0 1 0 1 0a0.5 0.5 0 1 0 -1 0z M17 10.5a0.5 0.5 0 1 0 1 0a0.5 0.5 0 1 0 -1 0z M6 12.5a0.5 0.5 0 1 0 1 0a0.5 0.5 0 1 0 -1 0z M8 7.5a0.5 0.5 0 1 0 1 0a0.5 0.5 0 1 0 -1 0z</StreamGeometry>
+  <StreamGeometry x:Key="Icon.PanelBottom">M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2z M3 15h18</StreamGeometry>
   <StreamGeometry x:Key="Icon.PanelLeft">M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2z M9 3v18</StreamGeometry>
   <StreamGeometry x:Key="Icon.PanelRight">M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2z M15 3v18</StreamGeometry>
   <StreamGeometry x:Key="Icon.Paperclip">M16 6l-8.414 8.586a2 2 0 0 0 2.829 2.829l8.414-8.586a4 4 0 1 0-5.657-5.657l-8.379 8.551a6 6 0 1 0 8.485 8.485l8.379-8.551</StreamGeometry>

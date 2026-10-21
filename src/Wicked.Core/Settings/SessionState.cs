@@ -23,6 +23,13 @@ public sealed record SessionState
 
     public bool WindowMaximized { get; init; }
 
+    /// <summary>The panel under the editors as it was left: shown or not, its tab, its height (0: the default).</summary>
+    public bool PanelVisible { get; init; }
+
+    public string? PanelTab { get; init; }
+
+    public double PanelHeight { get; init; }
+
     public SessionState WithRecent(string folder) => this with
     {
         RecentFolders = [folder, .. RecentFolders.Where(f => f != folder).Take(19)],

@@ -41,6 +41,9 @@
           <Button Classes="quiet" Command="{Binding ToggleSidebarCommand}" ToolTip.Tip="Side bar (Ctrl+B)">
             <shell:Icon Data="{StaticResource Icon.PanelLeft}" />
           </Button>
+          <Button Name="PanelToggle" Classes="quiet" Command="{Binding TogglePanelCommand}" ToolTip.Tip="Panel: problems, build output, terminal (Ctrl+J)">
+            <shell:Icon Data="{StaticResource Icon.PanelBottom}" />
+          </Button>
           <Button Classes="quiet" Command="{Binding ToggleAssistantCommand}" ToolTip.Tip="Assistant (Ctrl+L)">
             <shell:Icon Data="{StaticResource Icon.PanelRight}" />
           </Button>
@@ -237,6 +240,13 @@
             </StackPanel>
           </Button>
           <TextBlock Name="BlameStatus" Text="{Binding SourceControl.BlameStatus}" Classes="status" MaxWidth="360" TextTrimming="CharacterEllipsis" />
+          <Button Name="TaskStatus" Classes="status" Command="{Binding Tasks.ShowRunningOutputCommand}" IsVisible="{Binding Tasks.RunningText.Length}"
+                  ToolTip.Tip="{Binding Tasks.RunningTip}" AutomationProperties.Name="Running tasks">
+            <StackPanel Orientation="Horizontal" Spacing="5">
+              <shell:Icon Data="{StaticResource Icon.Play}" Size="12" Foreground="{DynamicResource Brush.Accent}" />
+              <TextBlock Name="TaskStatusText" Text="{Binding Tasks.RunningText}" VerticalAlignment="Center" />
+            </StackPanel>
+          </Button>
           <Button Name="ProblemsStatus" Classes="status" Command="{Binding ShowProblemsCommand}" ToolTip.Tip="{Binding ProblemsTip}" AutomationProperties.Name="Problems">
             <StackPanel Orientation="Horizontal" Spacing="5">
               <shell:Icon Data="{StaticResource Icon.CircleX}" Size="13" />

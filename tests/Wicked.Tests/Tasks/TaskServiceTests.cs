@@ -50,8 +50,8 @@ public sealed class TaskServiceTests
         Assert.Contains("two", lines);
         // The colour codes are kept in what the sink receives (a terminal will show them); the panel strips them.
         Assert.Contains("\u001b[31mred\u001b[0m", lines);
-        Assert.StartsWith("> Executing task: echo one", lines[0], StringComparison.Ordinal);
-        Assert.Equal("> Task failed with exit code 3 <", lines[^1]);
+        Assert.Matches(@"^> Executing task at \d\d:\d\d:\d\d: echo one", lines[0]);
+        Assert.Matches(@"^> Task failed with exit code 3 in \d+\.\d s <$", lines[^1]);
         Assert.Equal(3, output.Outcome("say")!.ExitCode);
 
         var env = await RunAsync(service, "env");

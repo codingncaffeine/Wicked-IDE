@@ -179,6 +179,37 @@ public sealed class PolishWindowTests
     }
 
     [Fact]
+    public async Task ThePanelHasATitleBarButtonAndOpensAgainAsItWasLeft()
+    {
+        using var profile = new TempProfile();
+        var root = Path.Combine(profile.Root, "project");
+        Directory.CreateDirectory(root);
+        File.WriteAllText(Path.Combine(root, "a.txt"), "text\n");
+        await Ui.Run(() =>
+        {
+            var (window, shell) = WorkbenchWindowTests.OpenWorkbench(profile, root);
+            Assert.False(shell.BottomPanel.IsVisible);
+            var toggle = window.GetVisualDescendants().OfType<Button>().Single(b => b.Name == "PanelToggle");
+            Input.Click(window, toggle);
+            Assert.True(Ui.PumpUntil(() => shell.BottomPanel.IsVisible, 5), "the title bar button did not show the panel");
+            Input.Click(window, window.GetVisualDescendants().OfType<Button>().First(b => b.DataContext is PanelTab tab && tab.Id == PanelIds.Output));
+            Assert.True(Ui.PumpUntil(() => shell.BottomPanel.Active?.Id == PanelIds.Output, 5), "the Output tab was not chosen");
+            window.Close();
+            Assert.True(Ui.PumpUntil(() => File.Exists(profile.Paths.SessionFile) && System.Text.RegularExpressions.Regex.IsMatch(File.ReadAllText(profile.Paths.SessionFile), "panelVisible\"\\s*:\\s*true", System.Text.RegularExpressions.RegexOptions.IgnoreCase), 10), "the panel was not remembered");
+
+            // Next time Wicked starts, the panel is open on the tab it was left on.
+            var (again, next) = Ui.Start(profile.Paths);
+            var start = next.StartAsync();
+            Assert.True(Ui.PumpUntil(() => start.IsCompleted && next.BottomPanel.IsVisible, 10), "the panel did not open again");
+            Assert.Equal(PanelIds.Output, next.BottomPanel.Active?.Id);
+            Input.Click(again, again.GetVisualDescendants().OfType<Button>().Single(b => b.Name == "PanelToggle"));
+            Assert.True(Ui.PumpUntil(() => !next.BottomPanel.IsVisible, 5), "the button did not hide the panel");
+            again.Close();
+            return 0;
+        });
+    }
+
+    [Fact]
     public async Task TheTitleBarSettingSwapsWickedsBarForTheDesktopsFrameAndBack()
     {
         using var profile = new TempProfile();

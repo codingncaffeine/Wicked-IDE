@@ -4,6 +4,7 @@ using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.VisualTree;
 using Wicked.App.Language;
+using Wicked.App.Shell;
 using Wicked.App.Tasks;
 using Wicked.App.ViewModels;
 using Wicked.App.Views;
@@ -54,7 +55,7 @@ public sealed class TasksWindowTests
 
             // The output is in its own channel of the Output panel, without escape codes, and the footer says it failed.
             Assert.True(Ui.PumpUntil(() => ChannelText(shell, "Task - build").Contains("Task failed with exit code 1", StringComparison.Ordinal), 10));
-            Assert.Contains("> Executing task: ", ChannelText(shell, "Task - build"), StringComparison.Ordinal);
+            Assert.Contains("> Executing task at ", ChannelText(shell, "Task - build"), StringComparison.Ordinal);
             Assert.Contains("failed with exit code 1", shell.Notices.Top?.Text, StringComparison.Ordinal);
 
             // The status bar counts it; its click opens Problems, and a click on the problem opens the file at the line.
@@ -70,6 +71,45 @@ public sealed class TasksWindowTests
             File.WriteAllText(box.Path_("ok"), "");
             Input.Chord(window, Key.B, RawInputModifiers.Control | RawInputModifiers.Shift);
             Assert.True(Ui.PumpUntil(() => shell.Language.Problems.Errors == 0 && ChannelText(shell, "Task - build").Contains("build fine", StringComparison.Ordinal), 60), "the old problem stayed");
+            window.Close();
+            return 0;
+        });
+    }
+
+    [Fact]
+    public async Task ARunningBuildShowsInTheStatusBarItsOutputInThePanelAndHowItEnded()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "the task is a /bin/sh command");
+        using var profile = new TempProfile();
+        using var box = new Sandbox();
+        box.WriteTasks("""
+            { "version": "2.0.0", "tasks": [
+              { "label": "build", "type": "shell", "command": "echo compiling; sleep 2; echo compiled", "group": { "kind": "build", "isDefault": true } } ] }
+            """);
+        await Ui.Run(() =>
+        {
+            var (window, shell) = WorkbenchWindowTests.OpenWorkbench(profile, box.Root);
+            var status = window.GetVisualDescendants().OfType<Button>().Single(b => b.Name == "TaskStatus");
+            Assert.False(status.IsVisible);
+
+            Input.Chord(window, Key.B, RawInputModifiers.Control | RawInputModifiers.Shift);
+            // While it runs: the status bar names it and counts, and the panel shows its output.
+            Assert.True(Ui.PumpUntil(() => status.IsEffectivelyVisible && shell.Tasks.RunningText.StartsWith("build · ", StringComparison.Ordinal), 10), $"no running build in the status bar: '{shell.Tasks.RunningText}'");
+            Assert.True(shell.BottomPanel.IsVisible && shell.BottomPanel.Active?.Id == PanelIds.Output, "the build's output is not in the panel");
+            Assert.True(Ui.PumpUntil(() => ChannelText(shell, "Task - build").Contains("compiling", StringComparison.Ordinal), 10));
+
+            // The panel closed, a click on the status bar item brings the output back.
+            shell.BottomPanel.IsVisible = false;
+            Input.Click(window, status);
+            Assert.True(Ui.PumpUntil(() => shell.BottomPanel.IsVisible && shell.BottomPanel.Active?.Id == PanelIds.Output, 5), "the status bar item did not show the output");
+
+            // Done: the item goes, and the output says how it ended and how long it took.
+            Assert.True(Ui.PumpUntil(() => !status.IsVisible, 20), "the status bar item stayed after the build");
+            Assert.True(Ui.PumpUntil(() =>
+            {
+                shell.Output.Flush();
+                return System.Text.RegularExpressions.Regex.IsMatch(ChannelText(shell, "Task - build"), @"> Task finished in \d+\.\d s <");
+            }, 10), ChannelText(shell, "Task - build"));
             window.Close();
             return 0;
         });

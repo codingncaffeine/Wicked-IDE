@@ -233,7 +233,7 @@ public sealed partial class ChatViewModel : ObservableObject, ICodeActions, IDis
 
     public string ModelLabel => SelectedModel is null ? "No model" : SelectedModel.Name;
 
-    public string ComposerHint => SelectedModel is null ? "Install a model to start chatting" : "Ask anything, Enter to send";
+    public string ComposerHint => SelectedModel is null ? "Install a model to start chatting" : "Ask anything · Enter sends · /clear starts over";
 
     // ── Starting ─────────────────────────────────────────────────────────────────────────────────
 
@@ -327,6 +327,14 @@ public sealed partial class ChatViewModel : ObservableObject, ICodeActions, IDis
     [RelayCommand]
     private async Task Send()
     {
+        // /clear (or /new), as in VS Code's chat: a fresh conversation, an empty context; the old one stays in Past chats.
+        if (Draft.Trim() is "/clear" or "/new" && !IsStreaming)
+        {
+            Draft = "";
+            await NewChat();
+            return;
+        }
+
         if (!CanSend) return;
         var text = Draft.Trim();
         var images = Attachments.Select(a => a.Image).ToList();
@@ -833,8 +841,28 @@ public sealed partial class ChatViewModel : ObservableObject, ICodeActions, IDis
         PromptChoices.Clear();
         PromptChoices.Add(new PromptChoice(this, null) { IsCurrent = _systemPrompt.Length == 0 });
         foreach (var preset in _presets) PromptChoices.Add(new PromptChoice(this, preset) { IsCurrent = _systemPrompt == preset.Prompt && _systemPrompt.Length > 0 });
-        PromptLabel = _systemPrompt.Length == 0 ? "No system prompt"
+        PromptLabel = _systemPrompt.Length == 0 ? "System prompt"
             : _presets.FirstOrDefault(p => p.Prompt == _systemPrompt)?.Name ?? "Custom prompt";
+        OnPropertyChanged(nameof(SystemPrompt));
+    }
+
+    /// <summary>The system prompt this chat sends, shown and edited in the prompt chip's box; a preset fills it.</summary>
+    public string SystemPrompt
+    {
+        get => _systemPrompt;
+        set
+        {
+            value ??= "";
+            if (value == _systemPrompt) return;
+            _systemPrompt = value;
+            RefreshPromptState();
+        }
+    }
+
+    /// <summary>The prompt box closed: a chat already under way keeps what was typed.</summary>
+    public void SystemPromptEdited()
+    {
+        if (Messages.Count > 0) Save();
     }
 
     internal void SelectPrompt(PromptPreset? preset)
