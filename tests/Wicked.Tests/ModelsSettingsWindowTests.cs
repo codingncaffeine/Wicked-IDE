@@ -104,6 +104,40 @@ public sealed class ModelsSettingsWindowTests
     }
 
     [Fact]
+    public async Task TheEngineUpdateNoticeLeadsToAnUpdateButtonThatInstallsIt()
+    {
+        Assert.SkipUnless(StandIns.CanRunEngine, "the stand-in engine is a shell script");
+        using var profile = new TempProfile();
+        await using var world = await ModelWorld.StartAsync();
+        await Ui.Run(() =>
+        {
+            var (window, shell) = world.Start(profile.Paths);
+            Start(shell);
+            var ensure = Task.Run(() => shell.Models.Services.EnsureEngineAsync());
+            Assert.True(Ui.PumpUntil(() => ensure.IsCompleted, 30), "the engine did not install");
+            Assert.Equal("b999-vulkan", shell.Models.Services.Engines.Current?.Id);
+
+            // The daily check finds a newer build and says so in the footer.
+            world.Builds = [999, 1000];
+            var sweep = Task.Run(() => shell.Models.Services.Updates.CheckNowAsync());
+            Assert.True(Ui.PumpUntil(() => sweep.IsCompleted && shell.Notices.All.Any(n => n.Key == "engine-update"), 30), "no engine notice");
+            while (shell.Notice?.Key is { } key && key != "engine-update") shell.Notices.Clear(key);
+
+            // The user clicks it: Settings opens on Runtime, and the update is right there to install, no Check needed.
+            Assert.True(Ui.PumpUntil(() => shell.Notice?.Key == "engine-update", 5), $"the footer shows '{shell.Notice?.Text}'");
+            Input.Click(window, Control<Button>(window, "NoticeButton"));
+            Assert.True(Ui.PumpUntil(() => shell.SettingsOpen, 5), "the notice did not open Settings");
+            Assert.True(Ui.PumpUntil(() => Control<Button>(window, "UpdateEngine").IsVisible, 10), $"no Update button: '{Control<TextBlock>(window, "RuntimeStatus").Text}'");
+            Assert.Equal("Update to b1000-vulkan", Control<Button>(window, "UpdateEngine").Content);
+            Press(window, Control<Button>(window, "UpdateEngine"));
+            Assert.True(Ui.PumpUntil(() => shell.Models.Services.Engines.Current?.Id == "b1000-vulkan", 30), Control<TextBlock>(window, "RuntimeStatus").Text);
+            Assert.True(Ui.PumpUntil(() => !Control<Button>(window, "UpdateEngine").IsVisible, 10), "the Update button stayed after the update");
+            window.Close();
+            return 0;
+        });
+    }
+
+    [Fact]
     public async Task TheRuntimeSettingsShowTheEngineUpdateItAndRollBack()
     {
         Assert.SkipUnless(StandIns.CanRunEngine, "the stand-in engine is a shell script");

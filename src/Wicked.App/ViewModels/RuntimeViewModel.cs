@@ -41,6 +41,29 @@ public sealed partial class RuntimeViewModel : ObservableObject
         {
             if (state.Engine?.Id != _shownEngine) _ = RefreshAsync();
         };
+        // The daily check found a newer engine: the section offers it at once (its notice leads here).
+        models.Services.Updates.Swept += sweep =>
+        {
+            if (sweep.Engine is { } found) Dispatcher.UIThread.Post(() => OfferFound(found));
+        };
+    }
+
+    /// <summary>An update the background check found, unless it is the engine already running or one is being offered.</summary>
+    private void OfferFound(EngineUpdate found)
+    {
+        if (_pending is not null || Busy || found.Id == _shownEngine) return;
+        Offer(found);
+    }
+
+    private void Offer(EngineUpdate update)
+    {
+        _pending = update;
+        UpdateButtonText = update.From is null ? $"Install {update.Release.Tag} ({update.Choice.Backend.DisplayName})" : $"Update to {update.Id}";
+        Status = update.From is null
+            ? $"{update.Release.Tag} is available for {update.Choice.Backend.DisplayName}"
+            : update.From.Backend == update.Choice.Backend.Slug
+                ? $"{update.Release.Tag} is newer than {update.From.Tag}"
+                : $"{update.Choice.Backend.DisplayName} build {update.Release.Tag} is available; your {Pretty(update.From.Backend)} engine is kept for rollback";
     }
 
     private string? _shownEngine;
@@ -135,6 +158,7 @@ public sealed partial class RuntimeViewModel : ObservableObject
             }
 
             RollbackButtonText = status.Previous is { } previous ? $"Roll back to {previous.Id}" : null;
+            if (_models.Services.Updates.Last?.Engine is { } found) OfferFound(found);
         }
         catch (Exception ex)
         {
@@ -163,12 +187,7 @@ public sealed partial class RuntimeViewModel : ObservableObject
             }
             else
             {
-                UpdateButtonText = update.From is null ? $"Install {update.Release.Tag} ({update.Choice.Backend.DisplayName})" : $"Update to {update.Id}";
-                Status = update.From is null
-                    ? $"{update.Release.Tag} is available for {update.Choice.Backend.DisplayName}"
-                    : update.From.Backend == update.Choice.Backend.Slug
-                        ? $"{update.Release.Tag} is newer than {update.From.Tag}"
-                        : $"{update.Choice.Backend.DisplayName} build {update.Release.Tag} is available; your {Pretty(update.From.Backend)} engine is kept for rollback";
+                Offer(update);
             }
         }
         catch (Exception ex)
