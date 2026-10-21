@@ -40,6 +40,7 @@ public static class EditorPainter
         canvas.Save();
         canvas.ClipRect(new SKRect(frame.GutterWidth, 0, frame.Width, frame.Height));
         foreach (var (x, top, bottom, active) in frame.Guides) Fill(canvas, paint, new SKRect(x, top, x + 1, bottom), active ? theme.IndentGuideActive : theme.IndentGuide);
+        foreach (var x in frame.Rulers) Fill(canvas, paint, new SKRect(MathF.Round(x), 0, MathF.Round(x) + 1, frame.Height), theme.Ruler);
         foreach (var rect in frame.Matches) FillRound(canvas, paint, rect, theme.FindMatch, 3);
         foreach (var rect in frame.CurrentMatch) FillRound(canvas, paint, rect, theme.FindMatchCurrent, 3);
         foreach (var (rect, style) in frame.RangeMarks)
@@ -159,6 +160,8 @@ public static class EditorPainter
 
         foreach (var (y, glyph) in frame.GutterMarks) DrawGlyph(canvas, paint, frame, y, glyph);
 
+        if (frame.Sticky.Count > 0) DrawSticky(canvas, paint, frame, numbers);
+
         if (frame.Preedit is { } preedit)
         {
             // The composition covers what is under it and is underlined, as every input method expects.
@@ -180,6 +183,52 @@ public static class EditorPainter
         if (!frame.HorizontalThumb.IsEmpty) FillRound(canvas, paint, frame.HorizontalThumb, thumb, 4);
         canvas.Restore();
         LayoutService.FrameRendered(frame.Generation);
+    }
+
+    /// <summary>
+    /// Sticky scroll's band: the pinned header lines over the first rows, the gutter's numbers with them, and a shadow under
+    /// the band so the code is seen to scroll beneath it. The minimap and the scrollbar stay on top.
+    /// </summary>
+    private static void DrawSticky(SKCanvas canvas, SKPaint paint, EditorFrame frame, SKFont numbers)
+    {
+        var theme = frame.Theme;
+        var lineHeight = frame.Fonts.LineHeight;
+        var right = frame.Minimap is { } minimap ? minimap.Left : frame.Width;
+        var bottom = frame.Sticky.Count * lineHeight;
+        Fill(canvas, paint, new SKRect(0, 0, right, bottom), theme.StickyBackground != 0 ? theme.StickyBackground : theme.Background);
+
+        canvas.Save();
+        canvas.ClipRect(new SKRect(frame.GutterWidth, 0, right, bottom));
+        var origin = frame.TextLeft - frame.ScrollX;
+        foreach (var line in frame.Sticky)
+        {
+            var baseline = line.Y + frame.Fonts.Baseline;
+            if (line.Shaped is { } shaped)
+            {
+                foreach (var run in shaped.Runs)
+                {
+                    paint.Color = new SKColor(run.Color);
+                    canvas.DrawText(run.Blob, origin, baseline, paint);
+                }
+            }
+            else if (line.Text.Length > 0)
+            {
+                DrawPlain(canvas, paint, frame, line, origin, baseline);
+            }
+        }
+
+        canvas.Restore();
+
+        paint.Color = new SKColor(theme.LineNumber);
+        foreach (var line in frame.Sticky)
+        {
+            if (frame.HideLineNumbers) break;
+            var number = frame.LineNumber is { } map ? map(line.Line) : line.Line + 1;
+            if (number is null) continue;
+            canvas.DrawText(number.Value.ToString(CultureInfo.InvariantCulture), frame.GutterWidth - 22, line.Y + frame.Fonts.Baseline, SKTextAlign.Right, numbers, paint);
+        }
+
+        Fill(canvas, paint, new SKRect(0, bottom, right, bottom + 3), theme.StickyShadow);
     }
 
     /// <summary>

@@ -55,6 +55,18 @@ public sealed record WickedSettings
     [JsonPropertyName("breadcrumbs.enabled")]
     public bool Breadcrumbs { get; init; } = true;
 
+    /// <summary>Columns to draw a vertical line at; VS Code's numbers or { "column": n } objects are both read.</summary>
+    [JsonPropertyName("editor.rulers")]
+    [JsonConverter(typeof(RulerColumnsConverter))]
+    public int[] Rulers { get; init; } = [];
+
+    /// <summary>The headers of the scopes the top line is in stay at the top as the code scrolls under them.</summary>
+    [JsonPropertyName("editor.stickyScroll.enabled")]
+    public bool StickyScroll { get; init; } = true;
+
+    [JsonPropertyName("editor.stickyScroll.maxLineCount")]
+    public int StickyScrollMaxLines { get; init; } = 5;
+
     [JsonPropertyName("editor.guides.indentation")]
     public bool IndentGuides { get; init; } = true;
 

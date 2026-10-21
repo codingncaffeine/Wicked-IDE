@@ -128,3 +128,14 @@ public sealed class EditToolsTests
         Assert.Equal(expected, Show(doc));
     }
 }
+
+/// <summary>editor.rulers as VS Code's settings write it: numbers, or objects with a column.</summary>
+public sealed class RulerSettingsTests
+{
+    [Theory]
+    [InlineData("""{ "editor.rulers": [120, 80] }""", new[] { 80, 120 })]
+    [InlineData("""{ "editor.rulers": [{ "column": 100, "color": "#ff0000" }, 72] }""", new[] { 72, 100 })]
+    [InlineData("""{ }""", new int[0])]
+    public void RulersReadNumbersAndObjects(string json, int[] expected) =>
+        Assert.Equal(expected, System.Text.Json.JsonSerializer.Deserialize<Wicked.Core.Settings.WickedSettings>(json, Wicked.Core.Settings.WickedSettings.Json)!.Rulers);
+}

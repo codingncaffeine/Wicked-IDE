@@ -108,6 +108,12 @@ public sealed record EditorFrame
     /// <summary>The number shown beside a document line, when it is not the line's own (a diff side's filler rows show none).</summary>
     public Func<int, int?>? LineNumber { get; init; }
 
+    /// <summary>The x of each editor.rulers column in the view.</summary>
+    public IReadOnlyList<float> Rulers { get; init; } = [];
+
+    /// <summary>Sticky scroll's pinned header lines, drawn over the first rows (Y from the top of the view).</summary>
+    public IReadOnlyList<FrameLine> Sticky { get; init; } = [];
+
     /// <summary>editor.lineNumbers off: the gutter keeps its fold arrows but draws no numbers.</summary>
     public bool HideLineNumbers { get; init; }
 

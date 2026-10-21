@@ -103,6 +103,15 @@ public sealed record EditorTheme
 
     public uint ScrollbarThumbActive { get; init; } = 0x40FFFFFF;
 
+    /// <summary>The vertical lines at editor.rulers' columns.</summary>
+    public uint Ruler { get; init; } = 0xFF2A2E36;
+
+    /// <summary>Sticky scroll's band of scope headers; 0 means the editor's background.</summary>
+    public uint StickyBackground { get; init; }
+
+    /// <summary>The shadow under sticky scroll's band.</summary>
+    public uint StickyShadow { get; init; } = 0x66000000;
+
     /// <summary>The caret's width in pixels (VS Code's default is 2).</summary>
     public float CaretWidth { get; init; } = 2;
 
@@ -137,6 +146,8 @@ public sealed record EditorTheme
         InlayForeground = 0xFF7A7A7A,
         InlayBackground = 0x1A7A7A7A,
         GhostText = 0x80000000,
+        Ruler = 0xFFE0E2E6,
+        StickyShadow = 0x29000000,
     };
 
     /// <summary>
@@ -169,6 +180,9 @@ public sealed record EditorTheme
             GhostText = Pick("editorGhostText.foreground", GhostText),
             WordHighlight = Pick("editor.wordHighlightBackground", WordHighlight),
             WordHighlightWrite = Pick("editor.wordHighlightStrongBackground", WordHighlightWrite),
+            Ruler = Pick("editorRuler.foreground", Ruler),
+            StickyBackground = Pick("editorStickyScroll.background", StickyBackground),
+            StickyShadow = Pick("editorStickyScroll.shadow", Pick("scrollbar.shadow", StickyShadow)),
         };
     }
 }

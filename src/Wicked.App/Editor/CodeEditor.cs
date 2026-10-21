@@ -496,6 +496,9 @@ public sealed partial class CodeEditor : Control
         _view.WordWrap = _wrapOverride ?? _settingsWrap;
         _view.ShowMinimap = settings.Minimap;
         _view.LineNumbers = settings.LineNumbers switch { "off" => LineNumbersMode.Off, "relative" => LineNumbersMode.Relative, _ => LineNumbersMode.On };
+        _view.Rulers = settings.Rulers;
+        _view.StickyScroll = settings.StickyScroll;
+        _view.StickyMaxLines = settings.StickyScrollMaxLines;
         _view.ShowIndentGuides = settings.IndentGuides;
         _view.RenderWhitespace = Enum.TryParse<Wicked.Editor.Features.WhitespaceMode>(settings.RenderWhitespace, ignoreCase: true, out var mode) ? mode : Wicked.Editor.Features.WhitespaceMode.Selection;
         RequestFeatures();
@@ -698,6 +701,18 @@ public sealed partial class CodeEditor : Control
         if (!point.Properties.IsLeftButtonPressed) return;
         Focus();
         var (x, y) = ((float)point.Position.X, (float)point.Position.Y);
+
+        var stickyRow = (int)(y / _view.LineHeight);
+        if (stickyRow < _view.StickyLinesShown.Count && (!_view.ShowMinimap || x < _view.MinimapLeft) && !_view.VerticalThumb.Contains(x, y))
+        {
+            // A click on sticky scroll's band goes to that header, with it at the top of the view.
+            var header = _view.StickyLinesShown[stickyRow];
+            Document.SetSelections([Selection.Caret(Document.Text.LineStart(header))]);
+            _view.ScrollTo(_view.ScrollX, _view.VisualOf(header) * _view.LineHeight);
+            InvalidateVisual();
+            e.Handled = true;
+            return;
+        }
 
         if (_view.VerticalThumb.Contains(x, y))
         {

@@ -403,6 +403,39 @@ public sealed class TextView
     /// <summary>The number to show beside a line (1-based, or null for none); unset, every line shows its own.</summary>
     public Func<int, int?>? LineNumber { get; set; }
 
+    /// <summary>editor.rulers: the columns to draw a vertical line at.</summary>
+    public IReadOnlyList<int> Rulers { get; set; } = [];
+
+    /// <summary>editor.stickyScroll: the headers of the scopes the top line is in stay at the top (at most <see cref="StickyMaxLines"/>).</summary>
+    public bool StickyScroll { get; set; }
+
+    public int StickyMaxLines { get; set; } = 5;
+
+    /// <summary>The header lines the last frame pinned at the top, top first (a click on the band goes to one).</summary>
+    public IReadOnlyList<int> StickyLinesShown { get; private set; } = [];
+
+    /// <summary>
+    /// The header lines to pin for a view whose top line is <paramref name="firstLine"/>: each range around it whose header has
+    /// scrolled away and whose end is still below the band, outermost first, as VS Code's sticky scroll picks them.
+    /// </summary>
+    private List<int> StickyHeaders(int firstLine)
+    {
+        // Folding ranges for a text with as many lines will do while the worker catches up, so typing does not flicker the band.
+        if (!StickyScroll || StickyMaxLines <= 0 || Features?.Folding is not { Count: > 0 } ranges || Features.LineCount != Document.Text.LineCount) return [];
+        var chain = new List<int>();
+        for (var i = ranges.InnermostContaining(firstLine); i >= 0; i = ranges.Parent(i)) chain.Add(i);
+        chain.Reverse();
+        var shown = new List<int>();
+        foreach (var i in chain)
+        {
+            if (shown.Count >= StickyMaxLines) break;
+            var under = firstLine + shown.Count; // the line the band's next row would cover
+            if (ranges.StartLine(i) < under && ranges.EndLine(i) > under) shown.Add(ranges.StartLine(i));
+        }
+
+        return shown;
+    }
+
     /// <summary>editor.lineNumbers when no <see cref="LineNumber"/> map is set: every line's own, none, or relative to the caret.</summary>
     public LineNumbersMode LineNumbers { get; set; } = LineNumbersMode.On;
 
@@ -608,6 +641,22 @@ public sealed class TextView
             for (var line = Math.Max(0, first - page); line < first; line++) AddIfMissing(missing, line);
         }
 
+        // Sticky scroll: the headers of the scopes the top line is in, drawn over the first rows.
+        var stickyLines = StickyHeaders(first);
+        StickyLinesShown = stickyLines;
+        var sticky = new List<FrameLine>(stickyLines.Count);
+        for (var i = 0; i < stickyLines.Count; i++)
+        {
+            var stickyKey = Key(stickyLines[i]);
+            if (!_layout.TryGet(stickyKey, out var stickyShaped))
+            {
+                stickyShaped = null;
+                missing.Add(stickyKey);
+            }
+
+            sticky.Add(new FrameLine(stickyLines[i], i * LineHeight, stickyShaped, stickyKey.Text, stickyKey.Tokens, stickyKey.Colors, false));
+        }
+
         _layout.Request([.. missing]);
         var (selections, carets) = SelectionGeometry(first, last);
         var (matches, current) = MatchGeometry(first, last);
@@ -644,6 +693,8 @@ public sealed class TextView
             GlyphMargin = GlyphMargin,
             LineNumber = LineNumber ?? NumbersForMode(),
             HideLineNumbers = LineNumber is null && LineNumbers == LineNumbersMode.Off,
+            Rulers = [.. Rulers.Select(column => TextLeft - ScrollX + column * Fonts.CharAdvance)],
+            Sticky = sticky,
             CaretsVisible = CaretsVisible && Focused,
             Focused = Focused,
             VerticalThumb = vThumb,

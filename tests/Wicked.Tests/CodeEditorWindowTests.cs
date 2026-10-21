@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
@@ -72,6 +73,68 @@ public sealed class CodeEditorWindowTests
             window.Close();
             return 0;
         });
+    }
+
+    [Trait("Tier", "Window")]
+    [Fact]
+    public async Task StickyScrollPinsTheScopesHeadersAndRulersAreDrawn()
+    {
+        var body = string.Join('\n', Enumerable.Range(0, 60).Select(i => $"    let v{i} = {i};"));
+        var text = "function outer() {\n  function inner() {\n" + body.Replace("    ", "      ", StringComparison.Ordinal) + "\n  }\n}\n";
+        await Ui.Run(() =>
+        {
+            var (window, editor) = Open(text, "a.js");
+            editor.ApplySettings(new Wicked.Core.Settings.WickedSettings { Rulers = [20], StickyScroll = true, Minimap = false });
+            var view = editor.View;
+
+            // Scrolled into inner(): both headers are pinned, outermost first, over the first two rows.
+            view.ScrollTo(0, 20 * view.LineHeight);
+            editor.InvalidateVisual();
+            Assert.True(Ui.PumpUntil(() => view.BuildFrame().Sticky.Count == 2, 5), $"pinned: {view.BuildFrame().Sticky.Count}");
+            var frame = view.BuildFrame();
+            Assert.Equal([0, 1], frame.Sticky.Select(l => l.Line));
+            Assert.Equal([0f, view.LineHeight], frame.Sticky.Select(l => l.Y));
+
+            // The ruler at column 20, drawn in the ruler colour below the band.
+            var rulerX = Assert.Single(frame.Rulers);
+            Assert.Equal(view.TextLeft + 20 * view.Fonts.CharAdvance, rulerX, 0.5);
+            Ui.Pump(0.2);
+            using (var shot = window.CaptureRenderedFrame()!)
+            {
+                var pixel = PixelAt(shot, (int)MathF.Round(rulerX), (int)(view.LineHeight * 6));
+                Assert.Equal(view.Theme.Ruler & 0xFFFFFF, pixel & 0xFFFFFF);
+            }
+
+            // At the top of the file nothing is pinned.
+            view.ScrollTo(0, 0);
+            Assert.Empty(view.BuildFrame().Sticky);
+
+            // A click on a pinned header goes to it, the header at the top of the view.
+            view.ScrollTo(0, 20 * view.LineHeight);
+            view.BuildFrame();
+            var centre = editor.TranslatePoint(new Avalonia.Point(view.TextLeft + 40, view.LineHeight * 1.5), window)!.Value;
+            window.MouseDown(centre, MouseButton.Left);
+            window.MouseUp(centre, MouseButton.Left);
+            Ui.Pump(0.1);
+            Assert.Equal(1, editor.Document.Text.LineOf(editor.Document.Primary.Active));
+            Assert.Equal(view.LineHeight, view.ScrollY, 0.5);
+
+            // Off, nothing is pinned.
+            editor.ApplySettings(new Wicked.Core.Settings.WickedSettings { StickyScroll = false });
+            view.ScrollTo(0, 20 * view.LineHeight);
+            Assert.Empty(view.BuildFrame().Sticky);
+            window.Close();
+            return 0;
+        });
+    }
+
+    /// <summary>A pixel of a captured frame as 0xAARRGGBB, whichever byte order the frame is in.</summary>
+    private static uint PixelAt(Avalonia.Media.Imaging.WriteableBitmap bitmap, int x, int y)
+    {
+        using var buffer = bitmap.Lock();
+        var raw = (uint)System.Runtime.InteropServices.Marshal.ReadInt32(buffer.Address, y * buffer.RowBytes + x * 4);
+        if (buffer.Format != Avalonia.Platform.PixelFormat.Rgba8888) return raw; // BGRA in memory reads as 0xAARRGGBB
+        return (raw & 0xFF00FF00) | ((raw & 0xFF) << 16) | ((raw >> 16) & 0xFF);
     }
 
     [Trait("Tier", "Window")]
