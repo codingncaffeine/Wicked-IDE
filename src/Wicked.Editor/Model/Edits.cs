@@ -245,15 +245,22 @@ public static class Edits
     /// <summary>Every caret moved to where <paramref name="to"/> says (a view's own Home and End: wrapped rows).</summary>
     public static void MoveCarets(Document doc, bool select, Func<int, int> to) => Move(doc, s => Extend(s, to(s.Active), select));
 
+    /// <summary>Moves every caret to where <paramref name="to"/> says, with its affinity on a wrap break (End and Home on wrapped rows).</summary>
+    public static void MoveCaretsOnRows(Document doc, bool select, Func<Selection, (int To, bool Upstream)> to) => Move(doc, s =>
+    {
+        var (at, upstream) = to(s);
+        return select ? new Selection(s.Anchor, at, -1, upstream) : Selection.Caret(at, -1, upstream);
+    });
+
     /// <summary>
     /// Up or down by the rows a view shows (wrapped lines): <paramref name="row"/> takes a caret's offset, the rows to
-    /// move and the x it aims for (-1 for none), and gives the offset reached and the aim to keep.
+    /// move, the x it aims for (-1 for none) and its affinity, and gives the offset reached, the aim to keep and the affinity there.
     /// </summary>
-    public static void ByRows(Document doc, int rows, bool select, Func<int, int, int, (int To, int Goal)> row) => Move(doc, s =>
+    public static void ByRows(Document doc, int rows, bool select, Func<int, int, int, bool, (int To, int Goal, bool Upstream)> row) => Move(doc, s =>
     {
         if (!select && !s.IsEmpty) s = Selection.Caret(rows < 0 ? s.Start : s.End);
-        var (to, goal) = row(s.Active, rows, s.Column);
-        return select ? new Selection(s.Anchor, to, goal) : Selection.Caret(to, goal);
+        var (to, goal, upstream) = row(s.Active, rows, s.Column, s.Upstream);
+        return select ? new Selection(s.Anchor, to, goal, upstream) : Selection.Caret(to, goal, upstream);
     });
 
     public static void End(Document doc, bool select) => Move(doc, s =>

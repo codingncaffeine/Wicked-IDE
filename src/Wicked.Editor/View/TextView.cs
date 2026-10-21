@@ -213,70 +213,81 @@ public sealed class TextView
         }
     }
 
-    /// <summary>The row a text position is drawn on, and its x from the text's left edge (before horizontal scrolling).</summary>
-    public (int Row, float X) Place(int line, int column)
+    /// <summary>
+    /// The row a text position is drawn on, and its x from the text's left edge (before horizontal scrolling). With
+    /// <paramref name="upstream"/> a position on a wrap break is drawn at the end of the row above (<see cref="Selection.Upstream"/>).
+    /// </summary>
+    public (int Row, float X) Place(int line, int column, bool upstream = false)
     {
         if (Wrap is not { } w) return (VisualOf(line), XOf(line, column));
-        var sub = w.SubOf(line, column);
+        var sub = SubAt(w, line, column, upstream);
         var (start, _) = w.Segment(line, sub, LineText(line).Length);
         return (w.FirstRow(line) + sub, XOf(line, column) - XOf(line, start) + w.IndentOf(line, sub));
     }
 
-    /// <summary>The line on a row and its column nearest an x (from the text's left edge); a wrapped row's end stays on it.</summary>
-    public (int Line, int Column) PositionOnRow(int row, float x)
+    // The row a column is on: a break column starts the next row unless the caret holds to the row above.
+    private int SubAt(WrapLayout w, int line, int column, bool upstream)
+    {
+        var sub = w.SubOf(line, column);
+        return upstream && sub > 0 && column == w.Segment(line, sub, LineText(line).Length).Start ? sub - 1 : sub;
+    }
+
+    /// <summary>
+    /// The line on a row and its column nearest an x (from the text's left edge). Past the end of a row that wraps, the column
+    /// is the break, held to this row (<c>Upstream</c>), as a click there puts the caret in VS Code.
+    /// </summary>
+    public (int Line, int Column, bool Upstream) PositionOnRow(int row, float x)
     {
         if (Wrap is not { } w)
         {
             var plain = DocumentOf(row);
-            return (plain, ColumnAt(plain, x));
+            return (plain, ColumnAt(plain, x), false);
         }
 
         var (line, sub) = w.LineAtRow(row);
         var (start, end) = w.Segment(line, sub, LineText(line).Length);
-        var column = ColumnAt(line, x - w.IndentOf(line, sub) + XOf(line, start));
-        // A break column is drawn at the next row's start, so a row other than the line's last ends just before it.
-        var last = sub < w.RowsOf(line) - 1 ? Math.Max(start, end - 1) : end;
-        return (line, Math.Clamp(column, start, last));
+        var column = Math.Clamp(ColumnAt(line, x - w.IndentOf(line, sub) + XOf(line, start)), start, end);
+        return (line, column, column == end && sub < w.RowsOf(line) - 1);
     }
 
     /// <summary>
     /// Where a caret lands <paramref name="rows"/> rows up or down when lines wrap, keeping the x it aims for
-    /// (<paramref name="goal"/> in whole pixels, -1 for where it is): the offset reached and the goal to keep.
+    /// (<paramref name="goal"/> in whole pixels, -1 for where it is): the offset reached, the goal to keep and its affinity.
     /// </summary>
-    public (int To, int Goal) RowStep(int offset, int rows, int goal)
+    public (int To, int Goal, bool Upstream) RowStep(int offset, int rows, int goal, bool upstream = false)
     {
         var rope = Document.Text;
         var (line, column) = rope.Position(offset);
-        var (row, x) = Place(line, column);
+        var (row, x) = Place(line, column, upstream);
         var want = goal >= 0 ? goal : (int)MathF.Round(x);
         var target = row + rows;
-        if (target < 0) return (0, want);
-        if (target >= VisualLineCount) return (rope.Length, want);
-        var (toLine, toColumn) = PositionOnRow(target, want);
-        return (rope.LineStart(toLine) + toColumn, want);
+        if (target < 0) return (0, want, false);
+        if (target >= VisualLineCount) return (rope.Length, want, false);
+        var (toLine, toColumn, toUpstream) = PositionOnRow(target, want);
+        return (rope.LineStart(toLine) + toColumn, want, toUpstream);
     }
 
-    /// <summary>End on a wrapped row: the row's end, then the line's (VS Code's order).</summary>
-    public int RowEnd(int offset)
+    /// <summary>End on a wrapped row: the row's end (the break, held to the row), then the line's (VS Code's order).</summary>
+    public (int To, bool Upstream) RowEnd(int offset, bool upstream = false)
     {
         var rope = Document.Text;
         var (line, column) = rope.Position(offset);
         var lineEnd = rope.LineStart(line) + rope.LineLength(line);
-        if (Wrap is not { } w) return lineEnd;
-        var sub = w.SubOf(line, column);
-        if (sub == w.RowsOf(line) - 1) return lineEnd;
-        var (start, end) = w.Segment(line, sub, rope.LineLength(line));
-        var rowEnd = rope.LineStart(line) + Math.Max(start, end - 1);
-        return offset == rowEnd ? lineEnd : rowEnd;
+        if (Wrap is not { } w) return (lineEnd, false);
+        var sub = SubAt(w, line, column, upstream);
+        if (sub == w.RowsOf(line) - 1) return (lineEnd, false);
+        var (_, end) = w.Segment(line, sub, rope.LineLength(line));
+        var rowEnd = rope.LineStart(line) + end;
+        return offset == rowEnd && upstream ? (lineEnd, false) : (rowEnd, true);
     }
 
     /// <summary>Home on a wrapped row after the first: the row's start; null where the line's own Home applies.</summary>
-    public int? RowHome(int offset)
+    public int? RowHome(int offset, bool upstream = false)
     {
         if (Wrap is not { } w) return null;
         var rope = Document.Text;
         var (line, column) = rope.Position(offset);
-        var sub = w.SubOf(line, column);
+        var sub = SubAt(w, line, column, upstream);
         if (sub == 0) return null;
         var (start, _) = w.Segment(line, sub, rope.LineLength(line));
         return column == start ? null : rope.LineStart(line) + start;
@@ -362,7 +373,7 @@ public sealed class TextView
         get
         {
             var (line, column) = Document.Text.Position(Document.Primary.Active);
-            var (row, at) = Place(line, column);
+            var (row, at) = Place(line, column, Document.Primary.Upstream);
             var x = TextLeft - ScrollX + at;
             var y = row * LineHeight - ScrollY;
             return new SKRect(x, y, x + Theme.CaretWidth, y + LineHeight);
@@ -415,13 +426,13 @@ public sealed class TextView
     public void ScrollBy(float dx, float dy) => ScrollTo(ScrollX + dx, ScrollY + dy);
 
     /// <summary>Scrolls just enough to bring <paramref name="offset"/> into sight, with a little margin.</summary>
-    public void Reveal(int offset)
+    public void Reveal(int offset, bool upstream = false)
     {
         var rope = Document.Text;
         var (line, column) = rope.Position(Math.Clamp(offset, 0, rope.Length));
         // A caret that lands in folded text opens the fold, as in VS Code.
         if (IsHidden(line)) Folds = Folds.Reveal(line);
-        var (row, x) = Place(line, column);
+        var (row, x) = Place(line, column, upstream);
         var top = row * LineHeight;
         var y = ScrollY;
         if (top < y) y = top;
@@ -436,11 +447,14 @@ public sealed class TextView
     }
 
     /// <summary>The text offset under a point in the view (clamped into the text).</summary>
-    public int OffsetAt(float x, float y)
+    public int OffsetAt(float x, float y) => PositionAt(x, y).Offset;
+
+    /// <summary>The text offset under a point and its affinity: past the end of a row that wraps, the break held to that row.</summary>
+    public (int Offset, bool Upstream) PositionAt(float x, float y)
     {
         var row = Math.Clamp((int)MathF.Floor((y + ScrollY) / LineHeight), 0, Math.Max(0, VisualLineCount - 1));
-        var (line, column) = PositionOnRow(row, x - TextLeft + ScrollX);
-        return Document.Text.LineStart(line) + column;
+        var (line, column, upstream) = PositionOnRow(row, x - TextLeft + ScrollX);
+        return (Document.Text.LineStart(line) + column, upstream);
     }
 
     /// <summary>The visual column a point falls in (for column selection), counting past the end of the line.</summary>
@@ -644,7 +658,7 @@ public sealed class TextView
 
             var (caretLine, caretColumn) = rope.Position(s.Active);
             if (caretLine < first || caretLine > last || IsHidden(caretLine)) continue;
-            var (caretRow, caretX) = Place(caretLine, caretColumn);
+            var (caretRow, caretX) = Place(caretLine, caretColumn, s.Upstream);
             var cx = origin + caretX;
             var cy = caretRow * LineHeight - ScrollY;
             carets.Add(new SKRect(cx - Theme.CaretWidth / 2, cy + 1, cx + Theme.CaretWidth / 2, cy + LineHeight - 1));

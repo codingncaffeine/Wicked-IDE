@@ -111,6 +111,20 @@ public sealed class WrapViewTests(FontsFixture fixture) : IClassFixture<FontsFix
             var y = row * view.LineHeight - view.ScrollY + view.LineHeight / 2;
             Assert.Equal(offset, view.OffsetAt(view.TextLeft + x + 0.5f, y));
         }
+
+        // A break held to the row above is drawn at that row's end, and a click there finds it held.
+        var held = 0;
+        for (var offset = 1; offset < doc.Text.Length; offset++)
+        {
+            var (row, x) = view.Place(0, offset, upstream: true);
+            if (row == view.Place(0, offset).Row) continue;
+            held++;
+            var y = row * view.LineHeight - view.ScrollY + view.LineHeight / 2;
+            Assert.Equal((offset, true), view.PositionAt(view.TextLeft + x + 0.5f, y));
+            Assert.Equal((offset, true), view.PositionAt(view.TextLeft + x + 40 * _fonts.CharAdvance, y)); // far past the row's end
+        }
+
+        Assert.True(held > 0, "the line did not wrap");
     }
 
     [Fact]
@@ -130,16 +144,22 @@ public sealed class WrapViewTests(FontsFixture fixture) : IClassFixture<FontsFix
         var doc = new Document(Long + "\nshort");
         var view = Wrapped(layout, doc);
         var (row0, x0) = view.Place(0, 6);
-        var (to, goal) = view.RowStep(6, 1, -1);
+        var (to, goal, _) = view.RowStep(6, 1, -1);
         var (row1, x1) = view.Place(0, to);
         Assert.Equal(row0 + 1, row1);
         Assert.InRange(x1, x0 - _fonts.CharAdvance, x0 + _fonts.CharAdvance);
 
         // Down past the long line's last row reaches the next line; the aim is kept through a short line.
         var rows = view.VisualOf(1);
-        var (atShort, kept) = view.RowStep(6, rows, -1);
+        var (atShort, kept, _) = view.RowStep(6, rows, -1);
         Assert.Equal(doc.Text.Length, atShort); // "short" is shorter than the aim: its end
         Assert.Equal(goal, kept);
+
+        // From a row's end (held there), Down goes one row, not two; an aim past the next row's end holds there too.
+        var (rowEnd, held) = view.RowEnd(0);
+        Assert.True(held);
+        var (down, _, downHeld) = view.RowStep(rowEnd, 1, 100_000, upstream: true);
+        Assert.Equal(1, view.Place(0, down, downHeld).Row);
     }
 
     [Fact]
@@ -148,15 +168,22 @@ public sealed class WrapViewTests(FontsFixture fixture) : IClassFixture<FontsFix
         using var layout = new LayoutService(_fonts);
         var doc = new Document(Long);
         var view = Wrapped(layout, doc);
-        var rowEnd = view.RowEnd(0);
+        var (rowEnd, held) = view.RowEnd(0);
+        Assert.True(held);
         Assert.True(rowEnd < doc.Text.Length);
-        Assert.Equal(0, view.Place(0, rowEnd).Row);
-        Assert.Equal(doc.Text.Length, view.RowEnd(rowEnd));
 
-        var secondRowStart = rowEnd + 1;
-        Assert.Equal(1, view.Place(0, secondRowStart).Row);
+        // End puts the caret after the row's last character, on that row: the break, held to the row above.
+        var (endRow, endX) = view.Place(0, rowEnd, upstream: true);
+        Assert.Equal(0, endRow);
+        Assert.Equal(view.XOf(0, rowEnd) - view.XOf(0, 0), endX, 2);
+        Assert.Equal(1, view.Place(0, rowEnd).Row); // the same offset not held starts the next row
+        Assert.Equal((doc.Text.Length, false), view.RowEnd(rowEnd, upstream: true));
+        Assert.True(view.RowEnd(rowEnd).To > rowEnd, "End from the next row's start went nowhere");
+
+        var secondRowStart = rowEnd;
         Assert.Equal(secondRowStart, view.RowHome(secondRowStart + 3));
         Assert.Null(view.RowHome(secondRowStart));
+        Assert.Null(view.RowHome(rowEnd, upstream: true)); // Home from the first row's end is the line's own
     }
 
     [Fact]
@@ -165,7 +192,7 @@ public sealed class WrapViewTests(FontsFixture fixture) : IClassFixture<FontsFix
         using var layout = new LayoutService(_fonts);
         var doc = new Document(Long);
         var view = Wrapped(layout, doc);
-        var rowEnd = view.RowEnd(0);
+        var (rowEnd, _) = view.RowEnd(0);
         doc.SetSelections([new Selection(2, rowEnd + 6)]);
         var frame = view.BuildFrame();
         Assert.Equal(2, frame.Selections.Count);

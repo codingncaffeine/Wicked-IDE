@@ -51,6 +51,10 @@ public sealed class WordWrapWindowTests
             var rowEnd = doc.Primary.Active;
             Assert.Equal(2, doc.Text.LineOf(rowEnd));
             Assert.True(rowEnd < doc.Text.LineStart(2) + doc.Text.LineLength(2), "End went to the line's end, not the row's");
+            Assert.True(doc.Primary.Upstream, "End left the caret at the next row's start");
+            var endColumn = rowEnd - doc.Text.LineStart(2);
+            Assert.Equal(editor.View.VisualOf(2), editor.View.Place(2, endColumn, upstream: true).Row);
+            Assert.True(editor.View.Place(2, endColumn, upstream: true).X > editor.View.Place(2, endColumn - 1).X, "the caret is not after the row's last character");
             Key(window, Avalonia.Input.Key.Down);
             Assert.Equal(2, doc.Text.LineOf(doc.Primary.Active));
             Key(window, Avalonia.Input.Key.End);

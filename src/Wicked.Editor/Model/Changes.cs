@@ -14,10 +14,13 @@ public readonly record struct TextChange(int Offset, int RemovedLength, string I
 /// <summary>
 /// One selection: the anchor stays where the selection began, the active end is the caret. <see cref="Column"/> is the
 /// visual column a vertical move aims for, kept while moving up and down through shorter lines (-1 when not set).
+/// <see cref="Upstream"/> is the caret's affinity where a line wraps: an active end on a break is drawn at the end of the row
+/// above (End, or a click past a row's end, puts it there) instead of the start of the row below. Every other move makes a
+/// new selection, which clears it.
 /// </summary>
-public readonly record struct Selection(int Anchor, int Active, int Column = -1)
+public readonly record struct Selection(int Anchor, int Active, int Column = -1, bool Upstream = false)
 {
-    public static Selection Caret(int offset, int column = -1) => new(offset, offset, column);
+    public static Selection Caret(int offset, int column = -1, bool upstream = false) => new(offset, offset, column, upstream);
 
     public int Start => Math.Min(Anchor, Active);
 

@@ -390,7 +390,7 @@ public sealed class CodeEditor : Control
     /// <summary>After a command: the caret back in sight and steady, the input method told, a redraw.</summary>
     private void AfterCommand(bool reveal = true)
     {
-        if (reveal) _view.Reveal(Document.Primary.Active);
+        if (reveal) _view.Reveal(Document.Primary.Active, Document.Primary.Upstream);
         RestartBlink();
         _ime.Changed();
         InvalidateVisual();
@@ -468,14 +468,14 @@ public sealed class CodeEditor : Control
     /// <summary>Home: a wrapped row's start first, then the line's smart home.</summary>
     internal void LineHome(bool select)
     {
-        if (_view.Wrapping) Edits.MoveCarets(Document, select, offset => _view.RowHome(offset) ?? Edits.SmartHome(Document.Text, offset));
+        if (_view.Wrapping) Edits.MoveCaretsOnRows(Document, select, s => (_view.RowHome(s.Active, s.Upstream) ?? Edits.SmartHome(Document.Text, s.Active), false));
         else Edits.Home(Document, select);
     }
 
     /// <summary>End: a wrapped row's end first, then the line's.</summary>
     internal void LineEnd(bool select)
     {
-        if (_view.Wrapping) Edits.MoveCarets(Document, select, _view.RowEnd);
+        if (_view.Wrapping) Edits.MoveCaretsOnRows(Document, select, s => _view.RowEnd(s.Active, s.Upstream));
         else Edits.End(Document, select);
     }
 
@@ -586,7 +586,7 @@ public sealed class CodeEditor : Control
         }
         else
         {
-            var offset = _view.OffsetAt(x, y);
+            var (offset, upstream) = _view.PositionAt(x, y);
             var mods = e.KeyModifiers;
             if (mods.HasFlag(KeyModifiers.Alt) && mods.HasFlag(KeyModifiers.Shift))
             {
@@ -623,7 +623,7 @@ public sealed class CodeEditor : Control
             else
             {
                 Document.BreakUndoGroup();
-                Document.SetSelections([Selection.Caret(offset)]);
+                Document.SetSelections([Selection.Caret(offset, upstream: upstream)]);
                 _dragAnchor = offset;
                 _drag = Drag.Text;
             }
@@ -671,9 +671,9 @@ public sealed class CodeEditor : Control
                 _view.MinimapDrag(y - _dragGrab);
                 break;
             case Drag.Text:
-                var offset = _view.OffsetAt(x, y);
-                Document.SetSelections([new Selection(_dragAnchor, offset)]);
-                _view.Reveal(offset);
+                var (offset, upstream) = _view.PositionAt(x, y);
+                Document.SetSelections([new Selection(_dragAnchor, offset, -1, upstream)]);
+                _view.Reveal(offset, upstream);
                 break;
             case Drag.Lines:
                 SelectLines(_dragAnchor, _view.LineAt(y), false);
