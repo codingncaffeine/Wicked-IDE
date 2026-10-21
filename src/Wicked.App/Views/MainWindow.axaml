@@ -203,35 +203,30 @@
 
       <!-- ── Footer: the waiting notice on the left (a click goes where it is dealt with), the editor and daemon on the right. ── -->
       <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto" Margin="10,0,8,0">
-        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
-        <Button Name="NoticeButton" Classes="quiet" Padding="6,2" HorizontalAlignment="Left"
-                IsVisible="{Binding Notice, Converter={x:Static ObjectConverters.IsNotNull}}"
-                Command="{Binding OpenNoticeCommand}" ToolTip.Tip="{Binding NoticeTip}">
-          <StackPanel Orientation="Horizontal" Spacing="7">
-            <Ellipse Width="7" Height="7" Fill="{Binding Notice.Kind, Converter={x:Static shell:NoticeBrush.Instance}}" VerticalAlignment="Center" />
-            <TextBlock Name="NoticeText" Text="{Binding Notice.Text}" FontSize="{DynamicResource Font.Size.Small}"
-                       Foreground="{DynamicResource Brush.Text.Secondary}" VerticalAlignment="Center" />
-            <ProgressBar Width="80" MinWidth="80" Height="3" MinHeight="3" VerticalAlignment="Center"
-                         Minimum="0" Maximum="1" Value="{Binding Notice.Progress, FallbackValue=0}"
-                         IsIndeterminate="{Binding Notice.Progress, Converter={x:Static ObjectConverters.IsNull}}"
-                         IsVisible="{Binding IsProgressNotice}" />
-          </StackPanel>
-        </Button>
-        <Button Name="MoreNoticesButton" Classes="quiet" Padding="6,2" Command="{Binding OpenNotificationsCommand}" ToolTip.Tip="Everything waiting: updates, problems, finished work"
+        <!-- The notice and the status items share column 0 in their own columns: a long notice is cut short with "…" (its
+             tooltip has it all), never drawn under the branch, the problems or the language status. -->
+        <Grid ColumnDefinitions="*,Auto">
+        <DockPanel HorizontalAlignment="Left" VerticalAlignment="Center">
+        <Button Name="MoreNoticesButton" DockPanel.Dock="Right" Classes="quiet" Padding="6,2" Command="{Binding OpenNotificationsCommand}" ToolTip.Tip="Everything waiting: updates, problems, finished work"
                 IsVisible="{Binding MoreNotices, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" AutomationProperties.Name="More notifications">
           <TextBlock Name="MoreNoticesText" Text="{Binding MoreNotices}" FontSize="{DynamicResource Font.Size.Small}" Foreground="{DynamicResource Brush.Text.Muted}" VerticalAlignment="Center" />
         </Button>
-        </StackPanel>
-
-        <Button Grid.Column="1" Name="ModelStatus" Classes="quiet" Padding="6,2" Margin="0,0,10,0" IsVisible="{Binding Models.HasRuntimeStatus}"
-                Command="{Binding ShowModelsStatusCommand}" ToolTip.Tip="Models: load, unload and run settings" AutomationProperties.Name="Model status">
-          <StackPanel Orientation="Horizontal" Spacing="6">
-            <Ellipse Classes="state" Classes.loaded="{Binding Models.RuntimeLoaded}" Classes.loading="{Binding Models.RuntimeLoading}" Classes.failed="{Binding Models.RuntimeFailed}" />
-            <TextBlock Name="ModelStatusText" Text="{Binding Models.RuntimeStatus}" FontSize="{DynamicResource Font.Size.Small}"
+        <Button Name="NoticeButton" Classes="quiet" Padding="6,2" HorizontalAlignment="Left"
+                IsVisible="{Binding Notice, Converter={x:Static ObjectConverters.IsNotNull}}"
+                Command="{Binding OpenNoticeCommand}" ToolTip.Tip="{Binding NoticeTip}">
+          <Grid ColumnDefinitions="Auto,*,Auto">
+            <Ellipse Width="7" Height="7" Margin="0,0,7,0" Fill="{Binding Notice.Kind, Converter={x:Static shell:NoticeBrush.Instance}}" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="1" Name="NoticeText" Text="{Binding Notice.Text}" FontSize="{DynamicResource Font.Size.Small}" TextTrimming="CharacterEllipsis"
                        Foreground="{DynamicResource Brush.Text.Secondary}" VerticalAlignment="Center" />
-          </StackPanel>
+            <ProgressBar Grid.Column="2" Margin="7,0,0,0" Width="80" MinWidth="80" Height="3" MinHeight="3" VerticalAlignment="Center"
+                         Minimum="0" Maximum="1" Value="{Binding Notice.Progress, FallbackValue=0}"
+                         IsIndeterminate="{Binding Notice.Progress, Converter={x:Static ObjectConverters.IsNull}}"
+                         IsVisible="{Binding IsProgressNotice}" />
+          </Grid>
         </Button>
-        <StackPanel Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,10,0" Spacing="2">
+        </DockPanel>
+
+        <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="10,0,10,0" Spacing="2">
           <Button Name="BranchStatus" Classes="status" Command="{Binding ShowSourceControlCommand}" IsVisible="{Binding SourceControl.BranchName.Length}"
                   ToolTip.Tip="Source control: the branch, and commits to pull and push" AutomationProperties.Name="Branch">
             <StackPanel Orientation="Horizontal" Spacing="5">
@@ -258,6 +253,15 @@
           </Button>
           <TextBlock Name="LanguageStatus" Text="{Binding Language.StatusText}" Classes="status" />
         </StackPanel>
+        </Grid>
+        <Button Grid.Column="1" Name="ModelStatus" Classes="quiet" Padding="6,2" Margin="0,0,10,0" IsVisible="{Binding Models.HasRuntimeStatus}"
+                Command="{Binding ShowModelsStatusCommand}" ToolTip.Tip="Models: load, unload and run settings" AutomationProperties.Name="Model status">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <Ellipse Classes="state" Classes.loaded="{Binding Models.RuntimeLoaded}" Classes.loading="{Binding Models.RuntimeLoading}" Classes.failed="{Binding Models.RuntimeFailed}" />
+            <TextBlock Name="ModelStatusText" Text="{Binding Models.RuntimeStatus}" FontSize="{DynamicResource Font.Size.Small}"
+                       Foreground="{DynamicResource Brush.Text.Secondary}" VerticalAlignment="Center" />
+          </StackPanel>
+        </Button>
         <TextBlock Grid.Column="2" Name="CaretStatus" Text="{Binding CaretText}" Classes="status" />
         <TextBlock Grid.Column="3" Name="DocumentStatus" Text="{Binding DocumentText}" Classes="status" />
         <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="6" Margin="0,0,14,0" VerticalAlignment="Center">

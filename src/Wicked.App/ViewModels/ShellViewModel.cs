@@ -809,7 +809,8 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
 
     public bool IsProgressNotice => Notice?.Kind == NoticeKind.Progress;
 
-    public string? NoticeTip => Notice?.Route is null ? null : "Go to where this is dealt with";
+    /// <summary>The whole notice (the footer cuts a long one short), and where a click goes.</summary>
+    public string? NoticeTip => Notice is null ? null : Notice.Route is null ? Notice.Text : Notice.Text + "\nClick to go where this is dealt with";
 
     partial void OnNoticeChanged(Notice? value)
     {

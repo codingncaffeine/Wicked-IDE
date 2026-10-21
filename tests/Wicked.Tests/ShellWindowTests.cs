@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
@@ -107,6 +108,40 @@ public sealed class ShellWindowTests
             board.Clear("update:a");
             Ui.Pump(0.2);
             Assert.False(button.IsEffectivelyVisible);
+
+            window.Close();
+            return 0;
+        });
+    }
+
+    [Trait("Tier", "Window")]
+    [Fact]
+    public async Task ALongNoticeIsCutShortBeforeTheStatusItems()
+    {
+        using var profile = new TempProfile();
+        var board = new NoticeBoard();
+        await Ui.Run(() =>
+        {
+            var (window, _) = Ui.Start(profile.Paths, board);
+            var words = string.Join(' ', Enumerable.Repeat("TypeScript is not installed: Wicked can install it with npm.", 8));
+            board.Post(new Notice("a", "A newer upload of Qwen is out", NoticeKind.Action, ShellRoutes.Models));
+            board.Post(new Notice("b", words, NoticeKind.Warning, ShellRoutes.Models));
+            Ui.Pump(0.3);
+
+            // The notice and its "+1" end before the first status item starts; the text is cut, its tooltip keeps it all.
+            double Left(Control c) => c.TranslatePoint(default, window)!.Value.X;
+            double Right(Control c) => Left(c) + c.Bounds.Width;
+            var notice = window.FindControl<Button>("NoticeButton")!;
+            var more = window.FindControl<Button>("MoreNoticesButton")!;
+            var problems = window.FindControl<Button>("ProblemsStatus")!;
+            Assert.True(notice.IsEffectivelyVisible && more.IsEffectivelyVisible && problems.IsEffectivelyVisible);
+            Assert.True(Right(notice) <= Left(more) + 0.5, $"the notice ends at {Right(notice)}, under the +1 at {Left(more)}");
+            Assert.True(Right(more) <= Left(problems) + 0.5, $"the notices end at {Right(more)}, under the problems at {Left(problems)}");
+            var text = Text(window, "NoticeText");
+            var whole = new TextBlock { Text = words, FontSize = text.FontSize, FontFamily = text.FontFamily };
+            whole.Measure(Size.Infinity);
+            Assert.True(text.Bounds.Width < whole.DesiredSize.Width - 100, $"the notice text is {text.Bounds.Width} px wide, all of it {whole.DesiredSize.Width}");
+            Assert.StartsWith(words, ToolTip.GetTip(notice) as string);
 
             window.Close();
             return 0;
