@@ -8,19 +8,29 @@ public enum ChatRole
     System,
     User,
     Assistant,
+
+    /// <summary>A tool's answer to an assistant's call (<see cref="ChatMessage.ToolCallId"/> says which).</summary>
+    Tool,
 }
+
+/// <summary>A tool the model may call (OpenAI's function tools): its name, what it does, its parameters as a JSON schema.</summary>
+public sealed record ChatTool(string Name, string Description, System.Text.Json.JsonElement Parameters);
+
+/// <summary>A call an assistant turn made: the id its answer refers to, the tool, the arguments as JSON text.</summary>
+public sealed record ChatToolCall(string Id, string Name, string Arguments);
 
 /// <summary>An image attached to a user message (vision models, through the model's mmproj). <c>MediaType</c> is e.g. <c>image/png</c>.</summary>
 public sealed record ChatImage(string MediaType, byte[] Data);
 
 /// <summary>One turn. <c>Reasoning</c> is the model's thinking for an assistant turn, kept apart from the answer and never sent back.</summary>
-public sealed record ChatMessage(ChatRole Role, string Content, IReadOnlyList<ChatImage>? Images = null, string? Reasoning = null);
+public sealed record ChatMessage(ChatRole Role, string Content, IReadOnlyList<ChatImage>? Images = null, string? Reasoning = null,
+    IReadOnlyList<ChatToolCall>? ToolCalls = null, string? ToolCallId = null);
 
 /// <summary>Per-request sampling; null means the model's own default (its preset, then the engine's).</summary>
 public sealed record ChatSampling(double? Temperature = null, double? TopP = null, int? MaxTokens = null);
 
 /// <summary>A chat completion for the model with id <c>Model</c> (the id <see cref="IModelRuntime"/> lists).</summary>
-public sealed record ChatRequest(string Model, IReadOnlyList<ChatMessage> Messages, ChatSampling? Sampling = null);
+public sealed record ChatRequest(string Model, IReadOnlyList<ChatMessage> Messages, ChatSampling? Sampling = null, IReadOnlyList<ChatTool>? Tools = null);
 
 /// <summary>What a streamed reply yields, in order: deltas as they arrive, at most one <see cref="ChatUsage"/>, then exactly one <see cref="ChatFinished"/>.</summary>
 public abstract record ChatChunk;
@@ -28,6 +38,9 @@ public abstract record ChatChunk;
 public sealed record ContentDelta(string Text) : ChatChunk;
 
 public sealed record ReasoningDelta(string Text) : ChatChunk;
+
+/// <summary>A piece of a tool call as it streams: the call at <c>Index</c>, its id and name when they arrive, more of its arguments.</summary>
+public sealed record ToolCallDelta(int Index, string? Id, string? Name, string Arguments) : ChatChunk;
 
 /// <summary>Token counts and speed from the engine's final event. <c>ContextSize</c> is the loaded context, for the usage meter.</summary>
 public sealed record ChatUsage(int PromptTokens, int CompletionTokens, double? TokensPerSecond, int? ContextSize) : ChatChunk;

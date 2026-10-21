@@ -14,7 +14,17 @@ internal sealed class ShellChatHost : IChatHost
     {
         _shell = shell;
         shell.Workbench.ActiveEditorChanged += () => CanInsertChanged?.Invoke();
+        // A folder opened or closed: the agent has tools, or has none.
+        shell.Workbench.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(shell.Workbench.Root)) CanInsertChanged?.Invoke();
+        };
     }
+
+    private Wicked.App.Assistant.WorkspaceAgentTools? _agent;
+
+    /// <summary>The agent's tools, for the folder that is open (none without one).</summary>
+    public Wicked.App.Assistant.IAgentTools? Agent => _shell.Workbench.Root is null ? null : _agent ??= new Wicked.App.Assistant.WorkspaceAgentTools(_shell);
 
     public WickedSettings Settings => _shell.Settings;
 

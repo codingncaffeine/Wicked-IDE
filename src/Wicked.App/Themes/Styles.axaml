@@ -716,4 +716,19 @@
   <Style Selector="Button.status:pointerover /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource Brush.Hover}" />
   </Style>
+  <!-- An agent's steps in a reply: one quiet row each, a failed or refused one in red. -->
+  <Style Selector="Border.agentstep">
+    <Setter Property="Background" Value="{DynamicResource Brush.Raised}" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Padding" Value="6,3" />
+    <Setter Property="Margin" Value="0,0,0,4" />
+  </Style>
+  <Style Selector="Border.agentstep.failed TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Danger}" />
+  </Style>
+  <Style Selector="SelectableTextBlock.stepdetail">
+    <Setter Property="FontFamily" Value="monospace" />
+    <Setter Property="FontSize" Value="{DynamicResource Font.Size.Small}" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}" />
+  </Style>
 </Styles>

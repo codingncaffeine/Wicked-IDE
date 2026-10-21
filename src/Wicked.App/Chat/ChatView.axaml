@@ -3,6 +3,7 @@
              xmlns:vm="using:Wicked.App.ViewModels"
              xmlns:shell="using:Wicked.App.Shell"
              xmlns:chat="using:Wicked.App.Chat"
+             xmlns:assist="using:Wicked.App.Assistant"
              x:Class="Wicked.App.Chat.ChatView"
              x:DataType="chat:ChatViewModel">
   <DockPanel>
@@ -122,6 +123,13 @@
           </Button>
 
           <!-- Pictures: only for a model that can see. -->
+          <ToggleButton Grid.Column="2" Name="AgentToggle" Classes="chipbutton" HorizontalAlignment="Left" IsChecked="{Binding AgentMode}" IsVisible="{Binding CanUseAgent}"
+                        ToolTip.Tip="Agent: the model may read, search, edit and run commands in the project, asking before it changes anything" AutomationProperties.Name="Agent mode">
+            <StackPanel Orientation="Horizontal" Spacing="5">
+              <shell:Icon Data="{StaticResource Icon.Wrench}" Size="12" />
+              <TextBlock Text="Agent" FontSize="{DynamicResource Font.Size.Small}" />
+            </StackPanel>
+          </ToggleButton>
           <Button Grid.Column="3" Name="AttachButton" Classes="quiet" Click="OnAttach" IsVisible="{Binding AcceptsImages}"
                   ToolTip.Tip="Attach a picture (or paste or drop one)" AutomationProperties.Name="Attach picture">
             <shell:Icon Data="{StaticResource Icon.Paperclip}" Size="15" />
@@ -235,6 +243,33 @@
                       <chat:MarkdownView Name="ReasoningView" Blocks="{Binding ReasoningBlocks}" IsVisible="{Binding ReasoningExpanded}" Classes="reasoningtext" />
                     </StackPanel>
                   </Border>
+                  <ItemsControl Name="AgentSteps" ItemsSource="{Binding Steps}" IsVisible="{Binding HasSteps}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="assist:AgentStep">
+                        <Border Classes="agentstep" Classes.failed="{Binding IsFailed}">
+                          <StackPanel Spacing="4">
+                            <Button Classes="quiet small" Padding="2" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Command="{Binding ToggleDetailCommand}">
+                              <StackPanel Orientation="Horizontal" Spacing="7">
+                                <shell:Icon Data="{Binding Icon, Converter={x:Static assist:IconKey.Instance}}" Size="13" />
+                                <TextBlock Text="{Binding Text}" FontSize="{DynamicResource Font.Size.Small}" TextTrimming="CharacterEllipsis" MaxWidth="300" />
+                                <TextBlock Text="…" Classes="muted" IsVisible="{Binding IsRunning}" />
+                              </StackPanel>
+                            </Button>
+                            <SelectableTextBlock Text="{Binding Detail}" Classes="stepdetail" TextWrapping="Wrap" IsVisible="{Binding Expanded}" />
+                            <StackPanel Spacing="6" IsVisible="{Binding IsAsking}">
+                              <SelectableTextBlock Text="{Binding Detail}" Classes="stepdetail" TextWrapping="Wrap" MaxHeight="180" IsVisible="{Binding HasDetail}" />
+                              <TextBlock Text="{Binding Question}" TextWrapping="Wrap" FontWeight="SemiBold" />
+                              <StackPanel Orientation="Horizontal" Spacing="6">
+                                <Button Name="StepAllow" Classes="primary small" Content="Allow" Command="{Binding AllowCommand}" />
+                                <Button Name="StepAlways" Classes="secondary small" Content="Always allow" Command="{Binding AlwaysAllowCommand}" />
+                                <Button Name="StepDeny" Classes="secondary small" Content="Deny" Command="{Binding DenyCommand}" />
+                              </StackPanel>
+                            </StackPanel>
+                          </StackPanel>
+                        </Border>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
                   <TextBlock Name="WaitingText" Text="{Binding Status}" Classes="muted" IsVisible="{Binding IsWaiting}" />
                   <chat:MarkdownView Name="AnswerView" Blocks="{Binding Blocks}" />
                   <Border Classes="replyerror" IsVisible="{Binding HasError}">

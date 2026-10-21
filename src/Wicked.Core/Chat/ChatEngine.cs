@@ -87,6 +87,11 @@ public sealed class ChatEngine(ModelRuntime runtime, HttpClient http) : IChatEng
                 if (cancelled || data is null || data == "[DONE]") break;
                 var parsed = Parse(data, contextSize);
                 if (parsed.Delta is { } delta) yield return delta;
+                if (parsed.Tools is { } calls)
+                {
+                    foreach (var call in calls) yield return call;
+                }
+
                 if (parsed.Reasoning is { } thinking) yield return thinking;
                 reason = parsed.FinishReason ?? reason;
                 usage = parsed.Usage ?? usage;
@@ -130,7 +135,7 @@ public sealed class ChatEngine(ModelRuntime runtime, HttpClient http) : IChatEng
         }
     }
 
-    internal readonly record struct Parsed(ContentDelta? Delta, ReasoningDelta? Reasoning, string? FinishReason, ChatUsage? Usage);
+    internal readonly record struct Parsed(ContentDelta? Delta, ReasoningDelta? Reasoning, string? FinishReason, ChatUsage? Usage, IReadOnlyList<ToolCallDelta>? Tools = null);
 
     /// <summary>Reads one event of the stream. An <c>error</c> event throws.</summary>
     internal static Parsed Parse(string data, int? contextSize)
@@ -157,6 +162,7 @@ public sealed class ChatEngine(ModelRuntime runtime, HttpClient http) : IChatEng
             ContentDelta? content = null;
             ReasoningDelta? reasoning = null;
             string? finish = null;
+            List<ToolCallDelta>? tools = null;
             if (root.TryGetProperty("choices", out var choices) && choices.ValueKind == JsonValueKind.Array && choices.GetArrayLength() > 0)
             {
                 var choice = choices[0];
@@ -164,6 +170,23 @@ public sealed class ChatEngine(ModelRuntime runtime, HttpClient http) : IChatEng
                 {
                     if (delta.TryGetProperty("content", out var c) && c.ValueKind == JsonValueKind.String && c.GetString() is { Length: > 0 } text) content = new ContentDelta(text);
                     if (delta.TryGetProperty("reasoning_content", out var r) && r.ValueKind == JsonValueKind.String && r.GetString() is { Length: > 0 } thought) reasoning = new ReasoningDelta(thought);
+                    if (delta.TryGetProperty("tool_calls", out var calls) && calls.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var call in calls.EnumerateArray())
+                        {
+                            var index = call.TryGetProperty("index", out var i) && i.TryGetInt32(out var n) ? n : 0;
+                            var id = call.TryGetProperty("id", out var idElement) && idElement.ValueKind == JsonValueKind.String ? idElement.GetString() : null;
+                            string? name = null;
+                            var arguments = "";
+                            if (call.TryGetProperty("function", out var fn) && fn.ValueKind == JsonValueKind.Object)
+                            {
+                                if (fn.TryGetProperty("name", out var nm) && nm.ValueKind == JsonValueKind.String) name = nm.GetString();
+                                if (fn.TryGetProperty("arguments", out var a) && a.ValueKind == JsonValueKind.String) arguments = a.GetString() ?? "";
+                            }
+
+                            (tools ??= []).Add(new ToolCallDelta(index, id, name, arguments));
+                        }
+                    }
                 }
 
                 if (choice.TryGetProperty("finish_reason", out var f) && f.ValueKind == JsonValueKind.String) finish = f.GetString();
@@ -176,7 +199,7 @@ public sealed class ChatEngine(ModelRuntime runtime, HttpClient http) : IChatEng
                 usage = new ChatUsage(Int(u, "prompt_tokens"), Int(u, "completion_tokens"), speed, contextSize);
             }
 
-            return new Parsed(content, reasoning, finish, usage);
+            return new Parsed(content, reasoning, finish, usage, tools);
         }
     }
 
@@ -187,7 +210,30 @@ public sealed class ChatEngine(ModelRuntime runtime, HttpClient http) : IChatEng
         var messages = new JsonArray();
         foreach (var m in request.Messages)
         {
-            var role = m.Role switch { ChatRole.System => "system", ChatRole.Assistant => "assistant", _ => "user" };
+            var role = m.Role switch { ChatRole.System => "system", ChatRole.Assistant => "assistant", ChatRole.Tool => "tool", _ => "user" };
+            if (m.Role == ChatRole.Tool)
+            {
+                messages.Add(new JsonObject { ["role"] = "tool", ["tool_call_id"] = m.ToolCallId ?? "", ["content"] = m.Content });
+                continue;
+            }
+
+            if (m.ToolCalls is { Count: > 0 } toolCalls)
+            {
+                var array = new JsonArray();
+                foreach (var call in toolCalls)
+                {
+                    array.Add(new JsonObject
+                    {
+                        ["id"] = call.Id,
+                        ["type"] = "function",
+                        ["function"] = new JsonObject { ["name"] = call.Name, ["arguments"] = call.Arguments },
+                    });
+                }
+
+                messages.Add(new JsonObject { ["role"] = "assistant", ["content"] = m.Content.Length > 0 ? m.Content : null, ["tool_calls"] = array });
+                continue;
+            }
+
             if (m.Images is { Count: > 0 })
             {
                 var parts = new JsonArray { new JsonObject { ["type"] = "text", ["text"] = m.Content } };
@@ -215,6 +261,28 @@ public sealed class ChatEngine(ModelRuntime runtime, HttpClient http) : IChatEng
             ["stream"] = true,
             ["stream_options"] = new JsonObject { ["include_usage"] = true },
         };
+        if (request.Tools is { Count: > 0 } tools)
+        {
+            var list = new JsonArray();
+            foreach (var tool in tools)
+            {
+                list.Add(new JsonObject
+                {
+                    ["type"] = "function",
+                    ["function"] = new JsonObject
+                    {
+                        ["name"] = tool.Name,
+                        ["description"] = tool.Description,
+                        ["parameters"] = JsonNode.Parse(tool.Parameters.GetRawText()),
+                    },
+                });
+            }
+
+            body["tools"] = list;
+            body["tool_choice"] = "auto";
+            body["parallel_tool_calls"] = true;
+        }
+
         if (request.Sampling is { } s)
         {
             if (s.Temperature is { } t) body["temperature"] = t;

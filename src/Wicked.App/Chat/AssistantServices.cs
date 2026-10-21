@@ -46,4 +46,7 @@ public interface IChatHost
 
     /// <summary>Goes to the Models panel.</summary>
     void ShowModels();
+
+    /// <summary>The tools the agent may use in the open folder; null where there are none (agent mode is then off).</summary>
+    Wicked.App.Assistant.IAgentTools? Agent => null;
 }

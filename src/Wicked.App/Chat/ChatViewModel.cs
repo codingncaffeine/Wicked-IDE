@@ -154,7 +154,12 @@ public sealed partial class ChatViewModel : ObservableObject, ICodeActions, IDis
         _services = services;
         _host = host;
         _services.Runtime.Changed += (_, _) => Dispatcher.UIThread.Post(RefreshModels);
-        _host.CanInsertChanged += () => Dispatcher.UIThread.Post(() => CanInsertChanged?.Invoke(this, EventArgs.Empty));
+        _host.CanInsertChanged += () => Dispatcher.UIThread.Post(() =>
+        {
+            CanInsertChanged?.Invoke(this, EventArgs.Empty);
+            OnPropertyChanged(nameof(CanUseAgent));
+            if (!CanUseAgent) AgentMode = false;
+        });
         Attachments.CollectionChanged += (_, _) => OnPropertyChanged(nameof(CanSend));
         Messages.CollectionChanged += (_, _) => OnPropertyChanged(nameof(IsEmpty));
         ApplySettings(host.Settings);
@@ -354,7 +359,7 @@ public sealed partial class ChatViewModel : ObservableObject, ICodeActions, IDis
         var request = BuildRequest(model, assistant);
         _cts = new CancellationTokenSource();
         var ct = _cts.Token;
-        var turn = PumpAsync(request, assistant, ct);
+        var turn = AgentMode && _host.Agent is { } tools ? AgentPumpAsync(request, assistant, tools, ct) : PumpAsync(request, assistant, ct);
         _turn = turn;
         TurnResult result;
         try
@@ -387,6 +392,9 @@ public sealed partial class ChatViewModel : ObservableObject, ICodeActions, IDis
         foreach (var m in Messages)
         {
             if (ReferenceEquals(m, upTo)) break;
+            if (m.IsAssistant && m.Text.Length == 0 && m.Transcript.Count == 0) continue;
+            // An agent turn: its tool calls and their answers before what it said.
+            if (m.IsAssistant) messages.AddRange(m.Transcript);
             if (m.IsAssistant && m.Text.Length == 0) continue;
             // A model that cannot see does not get the pictures an earlier turn carried.
             messages.Add(new ChatMessage(m.Role, m.Text, model.AcceptsImages && m.Images.Count > 0 ? m.Images : null));

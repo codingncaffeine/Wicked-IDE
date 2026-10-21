@@ -29,6 +29,16 @@ public sealed partial class ChatMessageViewModel : ObservableObject
 
     public ChatRole Role { get; }
 
+    /// <summary>What the agent did in this turn, in order (read, searched, edited, ran), shown above the answer.</summary>
+    public ObservableCollection<Wicked.App.Assistant.AgentStep> Steps { get; } = [];
+
+    public bool HasSteps => Steps.Count > 0;
+
+    internal void StepsChanged() => OnPropertyChanged(nameof(HasSteps));
+
+    /// <summary>The turn's tool calls and their answers, sent back to the model with the later turns (never shown as text).</summary>
+    public List<ChatMessage> Transcript { get; } = [];
+
     public bool IsUser => Role == ChatRole.User;
 
     public bool IsAssistant => Role == ChatRole.Assistant;
