@@ -141,12 +141,19 @@ public sealed class SourceControlPanelTests
             Assert.Equal(("!", "Both modified"), (file.Letter, file.Detail));
 
             // Take the incoming side for the file and continue: the merge ends.
-            _ = scm.TakeSideAsync([file], ours: false);
-            Assert.True(Ui.PumpUntil(() => scm.Status.Conflicts.Count() == 0 && scm.Status.Staged.Any(), 10), "the side was not taken");
-            Input.Click(window, Find<Button>(window, "ContinueButton"));
+            // Continue is pressed from the keyboard (focus, Space) once resolving has finished. Under a loaded suite the headless
+            // window's hit test stopped finding this panel at all (the window's root answered at the button's centre, frames
+            // drawn or not; on Windows CI every time), so a mouse click here measured the harness, not the panel.
+            var take = scm.TakeSideAsync([file], ours: false);
+            Assert.True(Ui.PumpUntil(() => take.IsCompleted && scm.BusyText.Length == 0 && scm.Status.Conflicts.Count() == 0 && scm.Status.Staged.Any(), 10), "the side was not taken");
+            var continueButton = Find<Button>(window, "ContinueButton");
+            Assert.True(continueButton.IsEffectivelyVisible && continueButton.IsEffectivelyEnabled, "Continue is not there to press");
+            continueButton.Focus();
+            Input.Chord(window, Key.Space, RawInputModifiers.None);
             Assert.True(Ui.PumpUntil(() => !scm.HasOperation && scm.IsClean, 10),
                 $"the merge did not finish: operation {scm.HasOperation}, staged [{string.Join(", ", scm.Status.Staged.Select(c => c.Path))}], " +
-                $"unstaged [{string.Join(", ", scm.Status.Unstaged.Select(c => c.Path))}], untracked [{string.Join(", ", scm.Status.Untracked.Select(c => c.Path))}], notices [{string.Join(" | ", shell.Notices.All.Select(n => n.Text))}]");
+                $"unstaged [{string.Join(", ", scm.Status.Unstaged.Select(c => c.Path))}], untracked [{string.Join(", ", scm.Status.Untracked.Select(c => c.Path))}], notices [{string.Join(" | ", shell.Notices.All.Select(n => n.Text))}], " +
+                $"MERGE_HEAD {File.Exists(Path.Combine(box.RepoPath, ".git", "MERGE_HEAD"))}, running {scm.ContinueOperationCommand.IsRunning}, busy '{scm.BusyText}', error '{scm.ErrorText}'");
             window.Close();
             return 0;
         });
