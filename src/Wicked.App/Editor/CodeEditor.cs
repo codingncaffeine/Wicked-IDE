@@ -74,8 +74,8 @@ public sealed partial class CodeEditor : Control
         {
             Markers = FoldingMarkers.For(language),
         };
-        document.Changed += change => _view.Folds = _view.Folds.Map(change);
-        document.Changed += OnSnippetEdit;
+        OnChanged(change => _view.Folds = _view.Folds.Map(change));
+        OnChanged(OnSnippetEdit);
         TrackCursorHistory();
         Focusable = true;
         ClipToBounds = true;
@@ -90,8 +90,8 @@ public sealed partial class CodeEditor : Control
             if (snapshot.ValidLines == document.Text.LineCount && snapshot.Version == document.Version) RequestFeatures();
             InvalidateVisual();
         }, DispatcherPriority.Render));
-        document.Changed += _syntax.Edit;
-        document.Changed += _ => RequestFeatures();
+        OnChanged(_syntax.Edit);
+        OnChanged(_ => RequestFeatures());
         RequestFeatures();
         services.Layout.Ready += OnLinesReady;
 
@@ -356,7 +356,7 @@ public sealed partial class CodeEditor : Control
     {
         _lastSelections = Document.Selections;
         _lastSelectionsVersion = Document.Version;
-        Document.SelectionsChanged += () =>
+        OnSelectionsChanged(() =>
         {
             // Only a move over unchanged text is a cursor step (an edit's selections come with a new version).
             if (!_restoringCursor && Document.Version == _lastSelectionsVersion && !_lastSelections.SequenceEqual(Document.Selections))
@@ -367,14 +367,14 @@ public sealed partial class CodeEditor : Control
 
             _lastSelections = Document.Selections;
             _lastSelectionsVersion = Document.Version;
-        };
+        });
         // Offsets from before an edit would point at other text, so an edit starts the history afresh.
-        Document.Changed += _ =>
+        OnChanged(_ =>
         {
             _cursorHistory.Clear();
             _lastSelections = Document.Selections;
             _lastSelectionsVersion = Document.Version;
-        };
+        });
     }
 
     /// <summary>Ctrl+U: the selections go back to where they were before the last caret move (VS Code's cursorUndo).</summary>
@@ -439,13 +439,37 @@ public sealed partial class CodeEditor : Control
 
     internal TextView View => _view;
 
-    /// <summary>Stops highlighting this document (the tab closed).</summary>
+    /// <summary>
+    /// The editor is done with (its tab closed, or its language changed): every handler it and its parts put on the document
+    /// comes off, so a document that lives on does not keep a dead editor working.
+    /// </summary>
     public void Close()
     {
-        Document.Changed -= _syntax.Edit;
+        foreach (var unhook in _unhook) unhook();
+        _unhook.Clear();
+        _view.Detach();
+        Find.Detach();
         _services.Layout.Ready -= OnLinesReady;
         _syntax.Close();
         _blink.Stop();
+        Closed?.Invoke();
+    }
+
+    /// <summary>Raised by <see cref="Close"/>: the language UI and the assistant let go of the document then.</summary>
+    public event Action? Closed;
+
+    private readonly List<Action> _unhook = [];
+
+    private void OnChanged(Action<DocumentChange> handler)
+    {
+        Document.Changed += handler;
+        _unhook.Add(() => Document.Changed -= handler);
+    }
+
+    private void OnSelectionsChanged(Action handler)
+    {
+        Document.SelectionsChanged += handler;
+        _unhook.Add(() => Document.SelectionsChanged -= handler);
     }
 
     // ── Drawing ──────────────────────────────────────────────────────────────────────────────────

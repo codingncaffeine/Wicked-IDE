@@ -73,6 +73,12 @@ public sealed partial class DebugController
         if (_binders.Any(b => b.Editor == editor)) return;
         var binder = new Binder(this, tab, editor);
         _binders.Add(binder);
+        // An editor that goes while its tab stays (Change Language Mode makes a new one) takes its binder with it.
+        editor.Closed += () =>
+        {
+            binder.Dispose();
+            _binders.Remove(binder);
+        };
         binder.Redecorate();
     }
 

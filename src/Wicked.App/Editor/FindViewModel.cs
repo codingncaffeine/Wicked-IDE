@@ -25,14 +25,24 @@ public sealed partial class FindViewModel : ObservableObject
             _afterEdit!.Stop();
             _ = SearchAsync(keepPosition: true);
         });
-        editor.Document.Changed += change =>
-        {
-            // The Find in Selection scope moves with the text, as VS Code's does.
-            if (_scope.Count > 0) _scope = [.. _scope.Select(s => (ChangeSet.Map(s.Start, change.Changes, stickAfter: false), ChangeSet.Map(s.End, change.Changes)))];
-            if (!IsOpen) return;
-            _afterEdit.Stop();
-            _afterEdit.Start();
-        };
+        editor.Document.Changed += OnDocumentChanged;
+    }
+
+    private void OnDocumentChanged(DocumentChange change)
+    {
+        // The Find in Selection scope moves with the text, as VS Code's does.
+        if (_scope.Count > 0) _scope = [.. _scope.Select(s => (ChangeSet.Map(s.Start, change.Changes, stickAfter: false), ChangeSet.Map(s.End, change.Changes)))];
+        if (!IsOpen) return;
+        _afterEdit.Stop();
+        _afterEdit.Start();
+    }
+
+    /// <summary>The editor closed: no more searching as its document changes.</summary>
+    public void Detach()
+    {
+        _editor.Document.Changed -= OnDocumentChanged;
+        _afterEdit.Stop();
+        _search?.Cancel();
     }
 
     [ObservableProperty]

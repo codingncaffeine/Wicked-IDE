@@ -106,3 +106,22 @@ breadcrumbs.toggle	workbench
 workbench.action.editor.nextChange	workbench	Alt+F5
 workbench.action.editor.previousChange	workbench	Shift+Alt+F5
 editor.action.triggerSuggest	workbench	
+workbench.action.closeAllEditors	workbench	Ctrl+K Ctrl+W
+workbench.action.closeOtherEditors	workbench	
+workbench.action.closeEditorsToTheRight	workbench	
+workbench.action.closeUnmodifiedEditors	workbench	Ctrl+K U
+workbench.action.reopenClosedEditor	workbench	Ctrl+Shift+T
+workbench.action.files.revert	workbench	
+workbench.action.toggleAutoSave	workbench	
+workbench.action.files.copyPathOfActiveFile	workbench	Ctrl+K P
+workbench.action.files.copyRelativePathOfActiveFile	workbench	Ctrl+K Ctrl+Shift+C
+workbench.files.action.showActiveFileInExplorer	workbench	
+revealFileInOS	workbench	Ctrl+Alt+R
+workbench.files.action.compareWithSaved	workbench	Ctrl+K D
+workbench.action.openRecent	workbench	Ctrl+R
+workbench.action.clearRecentFiles	workbench	
+workbench.action.closeFolder	workbench	Ctrl+K F
+workbench.action.quit	workbench	Ctrl+Q
+workbench.action.editor.changeLanguageMode	workbench	Ctrl+K M
+workbench.action.editor.changeEOL	workbench	
+workbench.action.editor.changeEncoding	workbench	

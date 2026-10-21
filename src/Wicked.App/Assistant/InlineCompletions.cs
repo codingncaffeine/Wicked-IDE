@@ -45,9 +45,16 @@ public sealed class InlineCompletions
         editor.Typed += OnTyped;
         editor.TypePreview = Chain(editor.TypePreview, OnTypePreview);
         editor.KeyPreviews.Add(OnKey);
-        editor.Document.SelectionsChanged += () =>
+        void Moved()
         {
             if (Suggestion is not null && _editor.Document.Primary.Active != _at) Dismiss();
+        }
+
+        editor.Document.SelectionsChanged += Moved;
+        editor.Closed += () =>
+        {
+            editor.Document.SelectionsChanged -= Moved;
+            _pause.Stop();
         };
         editor.LostFocus += (_, _) => Dismiss();
     }

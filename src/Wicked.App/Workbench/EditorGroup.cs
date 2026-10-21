@@ -23,6 +23,9 @@ public sealed partial class EditorGroup(Workbench workbench) : ObservableObject
         Workbench.ActiveTabChanged();
     }
 
+    /// <summary>The view shows the active tab again (its editor was replaced).</summary>
+    public void Reshow() => OnPropertyChanged(nameof(Active));
+
     public void Activate(EditorTab tab)
     {
         Active = tab;

@@ -83,6 +83,18 @@ public sealed partial class EditorTab : ObservableObject
         return Editor;
     }
 
+    /// <summary>
+    /// Change Language Mode: the tab's editor is let go and the next show makes one for the new language (highlighting,
+    /// comments, brackets, folding and snippets all follow the language from its start).
+    /// </summary>
+    public void ChangeLanguage(LanguageInfo? language)
+    {
+        Language = language;
+        var old = Editor;
+        Editor = null;
+        old?.Close();
+    }
+
     /// <summary>After Save As: a new name may mean a new language.</summary>
     public void Renamed(string path)
     {

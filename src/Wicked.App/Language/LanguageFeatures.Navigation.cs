@@ -27,6 +27,7 @@ public sealed partial class LanguageFeatures
         editor.ShowGlyphMargin = tab.Path is not null;
         var ui = new EditorLanguageUi(editor, this, () => GoToAsync(tab, "definition"));
         _ui.Add(editor, ui);
+        editor.Closed += () => _ui.Remove(editor);
         var previous = editor.GlyphMarginClicked;
         editor.GlyphMarginClicked = line =>
         {

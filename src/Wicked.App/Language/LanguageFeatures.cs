@@ -45,6 +45,7 @@ public sealed partial class LanguageFeatures : ObservableObject, IAsyncDisposabl
             OpenLocation?.Invoke(path, new Wicked.Core.Lsp.Range(new Position(line, column), new Position(endLine, endColumn))) ?? Task.CompletedTask);
         bench.TabOpened += OnTabOpened;
         bench.TabClosed += OnTabClosed;
+        bench.TabLanguageChanged += OnTabLanguageChanged;
         bench.Saved += tab =>
         {
             if (_documents.TryGetValue(tab.Document, out var doc)) doc.Saved();
@@ -95,6 +96,18 @@ public sealed partial class LanguageFeatures : ObservableObject, IAsyncDisposabl
     {
         tab.EditorCreated += editor => OnEditorCreated(tab, editor);
         if (tab.Editor is { } made) OnEditorCreated(tab, made);
+        OpenDocument(tab);
+    }
+
+    /// <summary>Change Language Mode: the document leaves its old language's server and joins the new one's.</summary>
+    private void OnTabLanguageChanged(EditorTab tab)
+    {
+        OnTabClosed(tab);
+        OpenDocument(tab);
+    }
+
+    private void OpenDocument(EditorTab tab)
+    {
         if (!_settings.LanguageServers || tab.Path is not { } path || tab.Language is not { } language) return;
         if (_documents.TryGetValue(tab.Document, out var known))
         {

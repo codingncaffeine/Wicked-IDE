@@ -83,6 +83,7 @@ public partial class MainWindow : Window, IWorkbenchDialogs
             ApplyPanelRows();
             _shell.PaletteRequested += OnPaletteRequested;
             _shell.FocusPartRequested += FocusPart;
+            _shell.QuitRequested += Close;
             _shell.SearchFocusRequested += () => Avalonia.Threading.Dispatcher.UIThread.Post(SearchPanel.FocusQuery, Avalonia.Threading.DispatcherPriority.Loaded);
             _shell.Workbench.Dialogs = this;
             _shell.Clipboard = text => Clipboard?.SetTextAsync(text) ?? Task.CompletedTask;

@@ -41,6 +41,9 @@ public sealed class TextView
         document.Changed += OnDocumentChanged;
     }
 
+    /// <summary>The view is done with: it stops following the document (which may live on in another editor).</summary>
+    public void Detach() => Document.Changed -= OnDocumentChanged;
+
     public Document Document { get; }
 
     public EditOptions Options { get; set; }

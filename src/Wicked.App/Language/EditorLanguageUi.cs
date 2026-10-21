@@ -74,18 +74,30 @@ public sealed partial class EditorLanguageUi
             CloseSuggestions();
             CloseSignature();
         };
-        editor.Document.SelectionsChanged += () =>
+        void Moved()
         {
             _caretTimer.Stop();
             _caretTimer.Start();
             OnCaretMovedForSignature();
-        };
-        editor.Document.Changed += _ =>
+        }
+
+        void Edited(DocumentChange _)
         {
             _hover.Hide();
             ClearLink();
             _semanticTimer.Stop();
             _semanticTimer.Start();
+        }
+
+        editor.Document.SelectionsChanged += Moved;
+        editor.Document.Changed += Edited;
+        // The editor closed (its tab, or a language change): this UI lets go of the document.
+        editor.Closed += () =>
+        {
+            editor.Document.SelectionsChanged -= Moved;
+            editor.Document.Changed -= Edited;
+            _caretTimer.Stop();
+            _semanticTimer.Stop();
         };
         editor.KeyPreview = OnKey;
         editor.TypePreview = OnTypePreview;

@@ -145,6 +145,7 @@ public sealed partial class Workbench : ObservableObject, IDisposable
         }
 
         _carets.Remove(tab);
+        RememberClosed(tab);
         if (tab.Path is null) History.Forget(tab);
         TabClosed?.Invoke(tab);
     }

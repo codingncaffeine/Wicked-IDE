@@ -106,6 +106,15 @@ public sealed class Document
         DirtyChanged?.Invoke();
     }
 
+    /// <summary>Change End of Line Sequence: the next save writes <paramref name="lineBreak"/>; the document is unsaved until then.</summary>
+    public void ChangeLineBreak(string lineBreak)
+    {
+        if (lineBreak == LineBreak) return;
+        LineBreak = lineBreak;
+        _state = _nextState++;
+        DirtyChanged?.Invoke();
+    }
+
     /// <summary>Sets the selections: sorted, overlapping ones merged; <paramref name="primary"/> indexes the list as given.</summary>
     public void SetSelections(IReadOnlyList<Selection> selections, int primary = -1)
     {
