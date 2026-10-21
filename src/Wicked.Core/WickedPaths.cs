@@ -28,6 +28,9 @@ public sealed record WickedPaths(string Config, string Data, string State, strin
 
     public string KeybindingsFile => Path.Combine(Config, "keybindings.json");
 
+    /// <summary>The API keys the daemon's gateway accepts (hashes only).</summary>
+    public string ApiKeysFile => Path.Combine(Config, "api-keys.json");
+
     /// <summary>The folders for this user, read through <paramref name="env"/> so a test can supply its own environment.</summary>
     public static WickedPaths Resolve(Func<string, string?> env)
     {

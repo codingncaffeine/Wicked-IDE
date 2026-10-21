@@ -65,7 +65,6 @@ internal sealed class UpdateStateStore(string stateFile, string journalFile)
     };
 
     private readonly SemaphoreSlim _gate = new(1, 1);
-    private UpdateStateFile? _state;
 
     public async Task<UpdateStateFile> SnapshotAsync(CancellationToken ct)
     {
@@ -124,14 +123,14 @@ internal sealed class UpdateStateStore(string stateFile, string journalFile)
         }
     }
 
+    /// <summary>Read from the file every time: the window and the daemon share it, and each must see what the other wrote.</summary>
     private async Task<UpdateStateFile> LoadLockedAsync(CancellationToken ct)
     {
-        if (_state is not null) return _state;
         try
         {
             if (File.Exists(stateFile))
             {
-                _state = JsonSerializer.Deserialize<UpdateStateFile>(await File.ReadAllTextAsync(stateFile, ct).ConfigureAwait(false), Json);
+                return JsonSerializer.Deserialize<UpdateStateFile>(await File.ReadAllTextAsync(stateFile, ct).ConfigureAwait(false), Json) ?? new UpdateStateFile();
             }
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException)
@@ -139,7 +138,7 @@ internal sealed class UpdateStateStore(string stateFile, string journalFile)
             Log.Warn($"Ignoring unreadable {stateFile}: {ex.Message}");
         }
 
-        return _state ??= new UpdateStateFile();
+        return new UpdateStateFile();
     }
 
     private async Task<List<UpdateJournalEntry>> ReadJournalLockedAsync(CancellationToken ct)

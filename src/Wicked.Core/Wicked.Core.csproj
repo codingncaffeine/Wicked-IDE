@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Wicked.Tests" />
+    <InternalsVisibleTo Include="wickedd" />
   </ItemGroup>
 
   <!-- The signed catalog is also built in, as the offline fallback (D8). -->

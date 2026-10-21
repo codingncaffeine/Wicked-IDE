@@ -13,12 +13,35 @@ if (args.Any(a => a is "--help" or "-h"))
     Console.WriteLine("""
         Usage: wickedd [options]
 
-        The Wicked daemon: keeps the model store, downloads, engines and the local API running for the
-        window and the command line. One runs per profile; WICKED_HOME chooses another profile.
+        The Wicked daemon: keeps the model store, downloads, engines and updates running, and serves the OpenAI and
+        Anthropic APIs on http://127.0.0.1:1337 (settings.json and Settings > Server change that). One runs per
+        profile; WICKED_HOME chooses another profile.
 
+          --port N    Serve the API on port N for this run.
+          --serve     Serve the API even if settings.json has it switched off.
           --version   Print the version and licence, then exit.
         """);
     return 0;
+}
+
+int? port = null;
+var serve = false;
+for (var i = 0; i < args.Length; i++)
+{
+    if (args[i] == "--port" && i + 1 < args.Length && int.TryParse(args[i + 1], out var parsed) && parsed is >= 0 and <= 65535)
+    {
+        port = parsed;
+        i++;
+    }
+    else if (args[i] == "--serve")
+    {
+        serve = true;
+    }
+    else
+    {
+        Console.Error.WriteLine($"Unknown option: {args[i]}. Try wickedd --help.");
+        return 2;
+    }
 }
 
 var paths = WickedPaths.ForCurrentUser();
@@ -26,7 +49,7 @@ paths.EnsureCreated();
 Log.Initialize("wickedd", paths.Logs);
 try
 {
-    await using var host = await DaemonHost.StartAsync(paths, CancellationToken.None);
+    await using var host = await DaemonHost.StartAsync(paths, CancellationToken.None, new DaemonOptions { Port = port, ForceGateway = serve });
     await host.WaitForShutdownAsync(CancellationToken.None);
     Log.Info("wickedd stopping");
     return 0;

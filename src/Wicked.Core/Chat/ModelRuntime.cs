@@ -207,8 +207,39 @@ public sealed class ModelRuntime : IModelRuntime, IAsyncDisposable
         await WaitForAsync(id, s => s is RunState.Unloaded or RunState.Failed, TimeSpan.FromSeconds(60), ct).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Attaches to the router another process runs, if there is one, so this process sees what is loaded without starting anything.
+    /// False when no router is running (or this process already has one).
+    /// </summary>
+    public async Task<bool> AttachExistingAsync(CancellationToken ct = default)
+    {
+        await _lifecycle.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            lock (_gate)
+            {
+                if (_router is { IsRunning: true }) return true;
+            }
+
+            if (RouterOwnership.Read(_paths) is not { } info || !RouterOwnership.IsAlive(info.RouterPid)
+                || !await AttachedRouter.IsHealthyAsync(_http, info, ct).ConfigureAwait(false))
+            {
+                return false;
+            }
+
+            await StopRouterLockedAsync(ct).ConfigureAwait(false);
+            await RefreshLockedAsync(ct).ConfigureAwait(false);
+            await WatchRouterAsync(new AttachedRouter(_paths, _http, info, Tuning.AttachedPoll, Tuning.OwnerGrace), ownership: null, ct).ConfigureAwait(false);
+            return true;
+        }
+        finally
+        {
+            _lifecycle.Release();
+        }
+    }
+
     /// <summary>Loads <paramref name="id"/> if it is not, and returns the router's address for a request.</summary>
-    internal async Task<Uri> EnsureLoadedAsync(string id, CancellationToken ct)
+    public async Task<Uri> EnsureLoadedAsync(string id, CancellationToken ct)
     {
         await LoadAsync(id, ct).ConfigureAwait(false);
         RouterClient? client;
@@ -673,9 +704,21 @@ public sealed class ModelRuntime : IModelRuntime, IAsyncDisposable
             {
                 await router.WaitHealthyAsync(TimeSpan.FromSeconds(30), ct).ConfigureAwait(false);
                 await SyncAsync(client, ct).ConfigureAwait(false);
-                await foreach (var ev in client.EventsAsync(ct).ConfigureAwait(false))
+                // What another process does to the router reaches this one by events only; the events a connection missed
+                // while it was being made are caught by reading the list again now and then.
+                using var reconcile = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                var reconciling = router is AttachedRouter ? Task.Run(() => ReconcileAsync(reconcile.Token), CancellationToken.None) : Task.CompletedTask;
+                try
                 {
-                    await ApplyEventAsync(client, ev, ct).ConfigureAwait(false);
+                    await foreach (var ev in client.EventsAsync(ct).ConfigureAwait(false))
+                    {
+                        await ApplyEventAsync(client, ev, ct).ConfigureAwait(false);
+                    }
+                }
+                finally
+                {
+                    await reconcile.CancelAsync().ConfigureAwait(false);
+                    await reconciling.ConfigureAwait(false);
                 }
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
@@ -710,6 +753,22 @@ public sealed class ModelRuntime : IModelRuntime, IAsyncDisposable
             {
                 return;
             }
+        }
+    }
+
+    private async Task ReconcileAsync(CancellationToken ct)
+    {
+        try
+        {
+            while (!ct.IsCancellationRequested)
+            {
+                await Task.Delay(Tuning.PollInterval, ct).ConfigureAwait(false);
+                await SyncQuietlyAsync(ct).ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // The watcher moved on.
         }
     }
 

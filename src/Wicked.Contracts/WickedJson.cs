@@ -11,4 +11,16 @@ namespace Wicked.Contracts;
     UseStringEnumConverter = true,
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
 [JsonSerializable(typeof(HealthReport))]
+[JsonSerializable(typeof(GatewayStatus))]
+[JsonSerializable(typeof(DaemonStatus))]
+[JsonSerializable(typeof(ApiLogEntry))]
+[JsonSerializable(typeof(ApiLogEntry[]))]
+[JsonSerializable(typeof(ModelInfo[]))]
+[JsonSerializable(typeof(PullEvent))]
+[JsonSerializable(typeof(UpdateReport))]
+[JsonSerializable(typeof(UpdateResultInfo[]))]
+[JsonSerializable(typeof(LoadRequest))]
+[JsonSerializable(typeof(UnloadRequest))]
+[JsonSerializable(typeof(PullRequest))]
+[JsonSerializable(typeof(UpdateRequest))]
 public sealed partial class WickedJson : JsonSerializerContext;

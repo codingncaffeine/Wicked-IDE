@@ -48,6 +48,25 @@ public static class UpdatePolicies
     };
 }
 
+/// <summary>What the settings file says about the model half, in the form <see cref="ModelServices.Configure"/> takes.</summary>
+public static class ModelOptionsFile
+{
+    public static ModelOptions From(Settings.WickedSettings s) => new(
+        s.HuggingFaceToken,
+        s.DownloadLimit > 0 ? (long)(s.DownloadLimit * 1_048_576) : null,
+        s.StoreLocation,
+        s.RuntimeBackend?.ToLowerInvariant() switch
+        {
+            "cuda" => EngineBackendKind.Cuda,
+            "vulkan" => EngineBackendKind.Vulkan,
+            "rocm" => EngineBackendKind.Rocm,
+            "cpu" => EngineBackendKind.Cpu,
+            _ => null,
+        },
+        UpdatePolicies.Parse(s.UpdatePolicy) ?? UpdatePolicy.Notify,
+        s.CheckForUpdates);
+}
+
 /// <summary>Why a model is flagged on the installed list.</summary>
 public enum UpdateKind
 {
