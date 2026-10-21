@@ -238,7 +238,14 @@ public sealed partial class ChatViewModel : ObservableObject, ICodeActions, IDis
     // ── Starting ─────────────────────────────────────────────────────────────────────────────────
 
     /// <summary>Lists the saved conversations on a worker and reopens the newest.</summary>
-    public async Task StartAsync()
+    /// <summary>The chat open now, as the session keeps it: its id, or "" when it is a fresh one with nothing said yet.</summary>
+    public string OpenConversation => Messages.Count == 0 ? "" : _conversationId.ToString();
+
+    /// <summary>
+    /// Lists the saved conversations and reopens the one open when Wicked last closed (<paramref name="reopen"/>): "" keeps a
+    /// fresh chat (the user had cleared it), null (nothing recorded) opens the newest, as before.
+    /// </summary>
+    public async Task StartAsync(string? reopen = null)
     {
         if (_started) return;
         _started = true;
@@ -254,7 +261,14 @@ public sealed partial class ChatViewModel : ObservableObject, ICodeActions, IDis
         }
 
         foreach (var summary in list.OrderByDescending(s => s.Updated)) History.Add(new ConversationItem(summary.Id, this) { Title = summary.Title, Updated = summary.Updated });
-        if (Messages.Count == 0 && History.Count > 0) await OpenAsync(History[0].Id);
+        if (Messages.Count > 0 || History.Count == 0) return;
+        var wanted = reopen switch
+        {
+            null => History[0].Id,
+            "" => (Guid?)null,
+            _ => Guid.TryParse(reopen, out var id) && History.Any(h => h.Id == id) ? id : null,
+        };
+        if (wanted is { } open) await OpenAsync(open);
     }
 
     // ── Models ───────────────────────────────────────────────────────────────────────────────────

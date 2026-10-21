@@ -56,6 +56,46 @@ public sealed class ChatConversationsWindowTests
     }
 
     [Fact]
+    public async Task AChatClearedBeforeClosingIsStillClearWhenWickedStartsAgain()
+    {
+        using var profile = new TempProfile();
+        var world = World();
+        await Ui.Run(() =>
+        {
+            // Wicked started as a user starts it, a chat, then /clear, then closed.
+            var (window, shell) = world.Start(profile.Paths);
+            var start = shell.StartAsync();
+            Assert.True(Ui.PumpUntil(() => start.IsCompleted && shell.Chat.SelectedModel is not null, 10));
+            ChatUi.Send(window, "hello");
+            Assert.True(Ui.PumpUntil(() => !shell.Chat.IsStreaming && world.Store.All.Count == 1, 10), "nothing was saved");
+            ChatUi.Send(window, "/clear");
+            Assert.True(Ui.PumpUntil(() => shell.Chat.Messages.Count == 0, 5));
+            window.Close();
+            Assert.True(Ui.PumpUntil(() => File.Exists(profile.Paths.SessionFile) && File.ReadAllText(profile.Paths.SessionFile).Contains("chatConversation", StringComparison.OrdinalIgnoreCase), 10), "the session was not saved");
+
+            // Started again: still clear, the old chat in Past chats.
+            var (again, second) = world.Start(profile.Paths);
+            var restart = second.StartAsync();
+            Assert.True(Ui.PumpUntil(() => restart.IsCompleted && second.Chat.History.Count == 1, 10), "the old chat is not in the history");
+            Ui.Pump(0.5);
+            Assert.Empty(second.Chat.Messages);
+            Assert.Equal("hello", second.Chat.History[0].Title);
+
+            // The other way round: a chat open when Wicked closes is open when it starts.
+            ChatUi.Send(again, "second topic");
+            Assert.True(Ui.PumpUntil(() => !second.Chat.IsStreaming && world.Store.All.Count == 2, 10));
+            again.Close();
+            Assert.True(Ui.PumpUntil(() => File.ReadAllText(profile.Paths.SessionFile).Contains(second.Chat.History.First(h => h.Title == "second topic").Id.ToString(), StringComparison.Ordinal), 10), "the open chat was not remembered");
+            var (third, thirdShell) = world.Start(profile.Paths);
+            var last = thirdShell.StartAsync();
+            Assert.True(Ui.PumpUntil(() => last.IsCompleted && thirdShell.Chat.Messages.Count == 2, 10), "the open chat did not come back");
+            Assert.Equal("second topic", thirdShell.Chat.CurrentTitle);
+            third.Close();
+            return 0;
+        });
+    }
+
+    [Fact]
     public async Task ChatsAreListedNewestFirstOpenedRenamedAndDeletedWithAnAsk()
     {
         using var profile = new TempProfile();

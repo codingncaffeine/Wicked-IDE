@@ -529,7 +529,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         RestorePanel();
         ShowRecent();
         _ = Models.StartAsync(AllowNetwork);
-        _ = Chat.StartAsync();
+        _ = Chat.StartAsync(_session.ChatConversation);
         if (!Settings.RestoreSession || _session.LastFolder is not { } folder || !Directory.Exists(folder)) return;
         await Workbench.OpenFolderAsync(folder);
         if (_session.OpenFiles.TryGetValue(folder, out var files))
@@ -548,7 +548,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             _session = _session with { OpenFiles = new Dictionary<string, List<string>>(_session.OpenFiles) { [root] = files } };
         }
 
-        _session = _session with { PanelVisible = BottomPanel.IsVisible, PanelTab = BottomPanel.Active?.Id, PanelHeight = BottomPanel.Height };
+        _session = _session with { PanelVisible = BottomPanel.IsVisible, PanelTab = BottomPanel.Active?.Id, PanelHeight = BottomPanel.Height, ChatConversation = Chat.OpenConversation };
         var session = _session;
         try
         {

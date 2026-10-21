@@ -30,6 +30,10 @@ public sealed record SessionState
 
     public double PanelHeight { get; init; }
 
+    /// <summary>The chat open when Wicked closed: a conversation's id, "" for a fresh one (after New chat or /clear), null when
+    /// not recorded (the newest conversation opens).</summary>
+    public string? ChatConversation { get; init; }
+
     /// <summary>The folder the last new project was made in (New Project offers it again).</summary>
     public string? ProjectLocation { get; init; }
 
