@@ -116,6 +116,20 @@ public static class Languages
         lock (Gate) return [.. Index.Value.GetAvailableLanguages().Select(l => l.Id).Concat(AddedGrammars.LanguageIds).Distinct().Order(StringComparer.Ordinal)];
     }
 
+    /// <summary>
+    /// The name a language goes by in lists and the status bar ("C#", "Python", "Shell Script"): its grammar's first alias,
+    /// as VS Code shows it; the id for a language with none.
+    /// </summary>
+    public static string DisplayName(string id)
+    {
+        if (id == "plaintext") return "Plain Text";
+        lock (Gate)
+        {
+            var language = Index.Value.GetAvailableLanguages().FirstOrDefault(l => l.Id == id);
+            return language?.Aliases is { Count: > 0 } aliases && !string.IsNullOrWhiteSpace(aliases[0]) ? aliases[0] : id;
+        }
+    }
+
     internal static RegistryOptions Registry => Index.Value;
 
     /// <summary>What a TextMate registry reads grammars through: the bundled ones, then those extensions added.</summary>

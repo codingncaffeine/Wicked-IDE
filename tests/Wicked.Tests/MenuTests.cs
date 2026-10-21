@@ -175,6 +175,33 @@ public sealed class MenuTests
 
     [Trait("Tier", "Window")]
     [Fact]
+    public async Task TheLanguageGoesByItsNameInTheStatusBarAndThePicker()
+    {
+        using var profile = new TempProfile();
+        var root = Path.Combine(profile.Root, "project");
+        Directory.CreateDirectory(root);
+        File.WriteAllText(Path.Combine(root, "a.txt"), "x\n");
+        File.WriteAllText(Path.Combine(root, "b.py"), "x = 1\n");
+        await Ui.Run(() =>
+        {
+            var (window, shell) = OpenWorkbench(profile, root);
+            OpenByClicks(window, shell, "a.txt");
+            Assert.Equal("Plain Text", shell.LanguageText);
+            OpenByClicks(window, shell, "b.py");
+            Assert.Equal("Python", shell.LanguageText);
+
+            Input.Click(window, window.FindControl<Button>("LanguageModeStatus")!);
+            Assert.True(Ui.PumpUntil(() => shell.QuickInput.IsOpen && shell.QuickInput.Items.Count > 10, 5), "no language list");
+            // VS Code's way: the name to read, the id to type; the file's own language first.
+            Assert.Equal(("Python (python)", "current"), (shell.QuickInput.Items[0].Label, shell.QuickInput.Items[0].Detail));
+            Assert.Contains(shell.QuickInput.Items, i => i.Label == "C# (csharp)");
+            window.Close();
+            return 0;
+        });
+    }
+
+    [Trait("Tier", "Window")]
+    [Fact]
     public async Task AStatusBarItemStillTakesAClickWhileItsTipIsOpen()
     {
         using var profile = new TempProfile();

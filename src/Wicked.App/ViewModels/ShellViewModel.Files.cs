@@ -135,7 +135,8 @@ public sealed partial class ShellViewModel
     {
         var current = tab.Language?.Id ?? "plaintext";
         var ids = Languages.All().Where(id => id != current).Prepend(current).ToList();
-        ShowList("Select Language Mode", [.. ids.Select(id => new QuickItem(id, id == current ? "current" : "", "", () =>
+        // As VS Code lists them: "Python (python)", the name to read and the id to type.
+        ShowList("Select Language Mode", [.. ids.Select(id => new QuickItem(Languages.DisplayName(id) is var name && name != id ? $"{name} ({id})" : id, id == current ? "current" : "", "", () =>
         {
             if (id != current) Workbench.ChangeLanguage(tab, Languages.ForName(id));
             OnActiveEditorChanged();

@@ -163,7 +163,7 @@ public sealed class FileCommandsWindowTests
             Assert.True(Ui.PumpUntil(() => a.Editor is { } now && now != before && now.IsAttachedToVisualTree(), 5), "no new editor");
             Assert.Equal("python", a.Language!.Id);
             Assert.Equal("python", a.Editor!.Language!.Id);
-            Assert.EndsWith("python", shell.DocumentText, StringComparison.Ordinal);
+            Assert.EndsWith("Python", shell.DocumentText, StringComparison.Ordinal);
             var python = a.Editor;
             bench.ChangeLanguage(a, null);
             Assert.True(Ui.PumpUntil(() => a.Editor is { } plain && plain != python && plain.IsAttachedToVisualTree(), 5), "no plain-text editor");

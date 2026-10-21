@@ -637,7 +637,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         IndentText = tab is null ? "" : tab.Editor?.Options is { } o ? (o.InsertSpaces ? $"Spaces: {o.TabSize}" : $"Tab Size: {o.TabSize}") : "Spaces: 4";
         EncodingText = tab?.Encoding.Label ?? "";
         LineBreakText = tab is null ? "" : tab.Document.LineBreak switch { "\r\n" => "CRLF", "\r" => "CR", _ => "LF" };
-        LanguageText = tab is null ? "" : tab.Language?.Id ?? "Plain Text";
+        LanguageText = tab is null ? "" : Wicked.Editor.Syntax.Languages.DisplayName(tab.Language?.Id ?? "plaintext");
         DocumentText = tab is null ? "" : string.Join("    ", IndentText, EncodingText, LineBreakText, LanguageText);
     }
 
