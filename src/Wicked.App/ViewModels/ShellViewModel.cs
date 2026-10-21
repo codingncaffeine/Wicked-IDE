@@ -557,10 +557,18 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         var restore = launch is null || (launch.Folders.Count == 0 && !launch.NewWindow);
         if (restore && Settings.RestoreSession && _session.LastFolder is { } folder && Directory.Exists(folder))
         {
-            await Workbench.OpenFolderAsync(folder);
-            if (_session.OpenFiles.TryGetValue(folder, out var files))
+            // The list is read before the folder opens, and kept while it reopens: opening the folder saves the session (the
+            // debugger stores its state), which would record the files open at that moment, none.
+            var files = _session.OpenFiles.GetValueOrDefault(folder) ?? [];
+            _restoringFiles = true;
+            try
             {
+                await Workbench.OpenFolderAsync(folder);
                 foreach (var file in files.Where(File.Exists)) await Workbench.OpenAsync(file);
+            }
+            finally
+            {
+                _restoringFiles = false;
             }
         }
 
@@ -569,10 +577,12 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         if (launch is { IsEmpty: false }) StartedTabs = await OpenLaunchAsync(launch);
     }
 
+    private bool _restoringFiles;
+
     /// <summary>Remembers the open folder and files (on a worker).</summary>
     public async Task SaveSessionAsync()
     {
-        if (Workbench.Root is { } root)
+        if (Workbench.Root is { } root && !_restoringFiles)
         {
             var files = Workbench.AllTabs.Where(t => t.Path is not null && t != Workbench.ActiveTab).Select(t => t.Path!).Distinct().ToList();
             if (Workbench.ActiveTab?.Path is { } active) files.Add(active);

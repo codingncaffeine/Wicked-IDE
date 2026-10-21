@@ -385,6 +385,42 @@ public sealed class WayfindingTests
             return 0;
         });
     }
+
+    [Trait("Tier", "Window")]
+    [Fact]
+    public async Task TheNextStartReopensTheFolderAndItsOpenFiles()
+    {
+        using var profile = new TempProfile();
+        var root = Path.Combine(profile.Root, "project");
+        Directory.CreateDirectory(root);
+        File.WriteAllText(Path.Combine(root, "a.txt"), "a");
+        File.WriteAllText(Path.Combine(root, "b.txt"), "b");
+        await Ui.Run(() =>
+        {
+            // The first run opens the folder and two files (kept, not previews), b.txt in front, and closes.
+            var (first, firstShell) = WorkbenchWindowTests.OpenWorkbench(profile, root);
+            foreach (var name in new[] { "a.txt", "b.txt" })
+            {
+                var open = firstShell.Workbench.OpenAsync(Path.Combine(root, name));
+                Assert.True(Ui.PumpUntil(() => open.IsCompleted, 5));
+            }
+
+            Assert.Equal(2, firstShell.Workbench.AllTabs.Count());
+            first.Close();
+            Assert.True(Ui.PumpUntil(() => File.Exists(profile.Paths.SessionFile) && File.ReadAllText(profile.Paths.SessionFile).Contains("b.txt", StringComparison.Ordinal), 5),
+                "the open files were not remembered");
+
+            // The next start shows them again, b.txt in front, in its editor.
+            var (window, shell) = Ui.Start(profile.Paths);
+            var start = shell.StartAsync();
+            Assert.True(Ui.PumpUntil(() => start.IsCompleted, 10));
+            Assert.True(Ui.PumpUntil(() => shell.Workbench.ActiveTab?.Editor?.IsAttachedToVisualTree() == true, 5), "no editor is shown");
+            Assert.Equal(["a.txt", "b.txt"], shell.Workbench.ActiveGroup.Tabs.Select(t => t.Title));
+            Assert.Equal("b.txt", shell.Workbench.ActiveTab!.Title);
+            window.Close();
+            return 0;
+        });
+    }
 }
 
 /// <summary>A project's .editorconfig governs its files: indentation, line endings and tidying on save.</summary>
