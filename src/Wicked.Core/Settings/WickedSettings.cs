@@ -93,6 +93,56 @@ public sealed record WickedSettings
     [JsonPropertyName("runtime.backend")]
     public string RuntimeBackend { get; init; } = "auto";
 
+    // ── Language servers (Phase 9) ──
+
+    /// <summary>Language servers start for the languages they serve; off, no server is ever started.</summary>
+    [JsonPropertyName("lsp.enabled")]
+    public bool LanguageServers { get; init; } = true;
+
+    /// <summary>Per server (by catalog id): its own command line, or <c>enabled: false</c> to keep it off.</summary>
+    [JsonPropertyName("lsp.servers")]
+    public Dictionary<string, LanguageServerSetting>? Servers { get; init; }
+
+    [JsonPropertyName("editor.formatOnSave")]
+    public bool FormatOnSave { get; init; }
+
+    [JsonPropertyName("editor.formatOnType")]
+    public bool FormatOnType { get; init; }
+
+    /// <summary>Suggestions while typing (VS Code's editor.quickSuggestions, simplified to on or off).</summary>
+    [JsonPropertyName("editor.quickSuggestions")]
+    public bool QuickSuggestions { get; init; } = true;
+
+    [JsonPropertyName("editor.suggestOnTriggerCharacters")]
+    public bool SuggestOnTriggerCharacters { get; init; } = true;
+
+    [JsonPropertyName("editor.acceptSuggestionOnEnter")]
+    public string AcceptSuggestionOnEnter { get; init; } = "on";
+
+    [JsonPropertyName("editor.parameterHints.enabled")]
+    public bool ParameterHints { get; init; } = true;
+
+    [JsonPropertyName("editor.hover.enabled")]
+    public bool Hover { get; init; } = true;
+
+    [JsonPropertyName("editor.hover.delay")]
+    public int HoverDelay { get; init; } = 300;
+
+    /// <summary>on, off, onUnlessPressed, offUnlessPressed (Ctrl+Alt held), as VS Code has it.</summary>
+    [JsonPropertyName("editor.inlayHints.enabled")]
+    public string InlayHints { get; init; } = "on";
+
+    [JsonPropertyName("editor.semanticHighlighting.enabled")]
+    public bool SemanticHighlighting { get; init; } = true;
+
+    /// <summary>Other uses of the symbol at the caret, highlighted.</summary>
+    [JsonPropertyName("editor.occurrencesHighlight")]
+    public bool OccurrencesHighlight { get; init; } = true;
+
+    /// <summary>The lightbulb beside a line with quick fixes.</summary>
+    [JsonPropertyName("editor.lightbulb.enabled")]
+    public bool Lightbulb { get; init; } = true;
+
     /// <summary>Keys this build does not know, kept so a save never drops them.</summary>
     [JsonExtensionData]
     public Dictionary<string, JsonElement>? Other { get; init; }
@@ -106,6 +156,20 @@ public sealed record WickedSettings
         AllowTrailingCommas = true,
         NumberHandling = JsonNumberHandling.AllowReadingFromString,
     };
+}
+
+/// <summary>One language server's own settings: a command line to run instead of the one found, or off.</summary>
+public sealed record LanguageServerSetting
+{
+    [JsonPropertyName("command")]
+    public List<string>? Command { get; init; }
+
+    [JsonPropertyName("enabled")]
+    public bool Enabled { get; init; } = true;
+
+    /// <summary>Answers the server's workspace/configuration requests (its own settings, by section).</summary>
+    [JsonPropertyName("settings")]
+    public JsonElement? Settings { get; init; }
 }
 
 /// <summary>

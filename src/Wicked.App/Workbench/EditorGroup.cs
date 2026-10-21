@@ -37,12 +37,15 @@ public sealed partial class EditorGroup(Workbench workbench) : ObservableObject
             var at = Tabs.IndexOf(preview);
             Tabs[at] = tab;
             preview.Close();
+            Workbench.TabRemoved(preview);
         }
         else
         {
             var at = Active is null ? Tabs.Count : Tabs.IndexOf(Active) + 1;
             Tabs.Insert(at, tab);
         }
+
+        Workbench.TabAdded(tab);
 
         Activate(tab);
     }
@@ -54,6 +57,7 @@ public sealed partial class EditorGroup(Workbench workbench) : ObservableObject
         if (at < 0) return;
         Tabs.RemoveAt(at);
         tab.Close();
+        Workbench.TabRemoved(tab);
         if (Active == tab) Active = Tabs.Count == 0 ? null : Tabs[Math.Min(at, Tabs.Count - 1)];
     }
 

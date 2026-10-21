@@ -61,11 +61,15 @@ public sealed partial class EditorTab : ObservableObject
     /// <summary>The editor control, made by the group view the first time the tab is shown.</summary>
     public CodeEditor? Editor { get; private set; }
 
+    /// <summary>The tab's editor was made (the first time the tab was shown).</summary>
+    public event Action<CodeEditor>? EditorCreated;
+
     public CodeEditor EditorFor(EditorServices services, Wicked.Core.Settings.WickedSettings settings, SnippetLibrary? snippets = null)
     {
         if (Editor is not null) return Editor;
         Editor = new CodeEditor(services, Document, Language) { EditorConfig = EditorConfig, Snippets = snippets, FilePath = Path };
         Editor.ApplySettings(settings);
+        EditorCreated?.Invoke(Editor);
         return Editor;
     }
 

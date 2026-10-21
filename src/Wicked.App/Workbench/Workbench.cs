@@ -104,6 +104,22 @@ public sealed partial class Workbench : ObservableObject, IDisposable
     /// <summary>Raised when the active tab, or the active tab's carets, change (the status bar listens).</summary>
     public event Action? ActiveEditorChanged;
 
+    /// <summary>A tab was added to a group (a file opened, a split made); its document may already be open in another tab.</summary>
+    public event Action<EditorTab>? TabOpened;
+
+    /// <summary>A tab left its group (closed, or replaced as the preview).</summary>
+    public event Action<EditorTab>? TabClosed;
+
+    /// <summary>Runs before a file is written (format on save, code actions on save); the save waits for it.</summary>
+    public Func<EditorTab, Task>? BeforeSave { get; set; }
+
+    /// <summary>A tab's file was written.</summary>
+    public event Action<EditorTab>? Saved;
+
+    internal void TabAdded(EditorTab tab) => TabOpened?.Invoke(tab);
+
+    internal void TabRemoved(EditorTab tab) => TabClosed?.Invoke(tab);
+
     internal void ActiveTabChanged()
     {
         OnPropertyChanged(nameof(ActiveTab));
@@ -388,6 +404,7 @@ public sealed partial class Workbench : ObservableObject, IDisposable
         settings = new WickedSettingsView(
             tab.EditorConfig.TrimTrailingWhitespace ?? settings?.TrimTrailingWhitespace ?? false,
             tab.EditorConfig.InsertFinalNewline ?? settings?.InsertFinalNewline ?? false);
+        if (BeforeSave is { } beforeSave && !auto) await beforeSave(tab);
         var doc = tab.Document;
         if (settings?.TrimTrailingWhitespace == true) Edits.TrimTrailingWhitespace(doc, keepAtCarets: auto);
         if (settings?.InsertFinalNewline == true && doc.Text.Length > 0 && doc.Text[doc.Text.Length - 1] != '\n')
@@ -414,6 +431,7 @@ public sealed partial class Workbench : ObservableObject, IDisposable
         if (Path.GetFileName(path) == ".editorconfig") EditorConfigResolver.Disk.Invalidate(Path.GetDirectoryName(path));
         _notices.Clear($"conflict:{path}");
         _notices.Post(new Notice($"saved:{path}", $"Saved {tab.Title}", NoticeKind.Success));
+        Saved?.Invoke(tab);
         return true;
     }
 

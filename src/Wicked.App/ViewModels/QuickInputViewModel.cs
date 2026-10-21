@@ -142,9 +142,21 @@ public sealed partial class QuickInputViewModel(ShellViewModel shell) : Observab
         {
             items = GoToLine(query[1..].Trim());
         }
+        else if (query.StartsWith('@'))
+        {
+            Placeholder = "Go to a symbol in this file";
+            items = await shell.Language.SymbolItemsAsync(shell.Workbench.ActiveTab, query[1..].Trim(), cts.Token);
+            if (cts.IsCancellationRequested) return;
+        }
+        else if (query.StartsWith('#'))
+        {
+            Placeholder = "Go to a symbol in the workspace";
+            items = await shell.Language.WorkspaceSymbolItemsAsync(query[1..].Trim(), cts.Token);
+            if (cts.IsCancellationRequested) return;
+        }
         else
         {
-            Placeholder = "Search files by name (type > for commands, : for a line)";
+            Placeholder = "Search files by name (> commands, : a line, @ a symbol, # a workspace symbol)";
             items = await FilesAsync(query.Trim(), cts.Token);
             if (cts.IsCancellationRequested) return;
         }

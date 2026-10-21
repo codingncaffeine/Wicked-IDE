@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Wicked.App.Chat;
 using Wicked.App.Editor;
+using Wicked.App.Language;
 using Wicked.App.Shell;
 using Wicked.Core;
 using Wicked.Core.Settings;
@@ -48,6 +49,19 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             OnPropertyChanged(nameof(WorkspaceName));
             OnPropertyChanged(nameof(CommandCentreText));
         };
+        Output = new OutputLog();
+        Language = new LanguageFeatures(Workbench, paths, Output, Notices);
+        Language.Problems.Opened += p => _ = OpenAtAsync(p.Path, p.Line, p.Column);
+        Language.Problems.CountsChanged += () =>
+        {
+            if (BottomPanel[PanelIds.Problems] is { } tab) tab.Badge = Language.Problems.Total;
+            OnPropertyChanged(nameof(ProblemsText));
+            OnPropertyChanged(nameof(ProblemsTip));
+        };
+        BottomPanel.Add(PanelIds.Problems, "PROBLEMS", () => new Views.ProblemsView { DataContext = Language.Problems });
+        BottomPanel.Add(PanelIds.Output, "OUTPUT", () => new Views.OutputView(Output, () => Settings));
+        BottomPanel.IsVisible = false;
+        WireLanguage();
         Commands = BuildCommands();
         QuickInput = new QuickInputViewModel(this);
         Models = new ModelsViewModel(paths, Notices);
@@ -66,6 +80,36 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     public IReadOnlyList<WorkbenchCommand> Commands { get; }
 
     public QuickInputViewModel QuickInput { get; }
+
+    /// <summary>The Output panel's channels (language servers, git, tasks, …).</summary>
+    public OutputLog Output { get; }
+
+    /// <summary>The language servers: problems, completion, hover, go to, rename, format.</summary>
+    public LanguageFeatures Language { get; }
+
+    /// <summary>The status bar's problem counts ("⊗ 2  ⚠ 5"), a click opens Problems.</summary>
+    public string ProblemsText => $"{Language.Problems.Errors}  ·  {Language.Problems.Warnings}";
+
+    public string ProblemsTip => $"{Language.Problems.Errors} errors, {Language.Problems.Warnings} warnings, {Language.Problems.Infos} infos — show Problems";
+
+    [RelayCommand]
+    private void ShowProblems() => BottomPanel.Toggle(PanelIds.Problems);
+
+    /// <summary>Opens a file with the caret at a line and column (0-based), from Problems, a reference or a definition.</summary>
+    public async Task OpenAtAsync(string path, int line, int column, int? endLine = null, int? endColumn = null)
+    {
+        var tab = await Workbench.OpenAsync(path);
+        if (tab is null) return;
+        var rope = tab.Document.Text;
+        var start = LspText.OffsetOf(rope, new Wicked.Core.Lsp.Position(line, column));
+        var end = endLine is int el ? LspText.OffsetOf(rope, new Wicked.Core.Lsp.Position(el, endColumn ?? 0)) : start;
+        tab.Document.SetSelections([new Selection(start, end)]);
+        if (tab.Editor is { } editor) editor.Select(start, end);
+        else _post(() => tab.Editor?.Select(start, end));
+    }
+
+    /// <summary>The panel under the editors: Problems, Output, Terminal and the rest.</summary>
+    public BottomPanel BottomPanel { get; } = new();
 
     public ModelsViewModel Models { get; }
 
@@ -124,6 +168,10 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             new("workbench.action.previousEditor", "View", "Previous Editor", "Ctrl+PageUp", () => Sync(() => bench.ActiveGroup.Cycle(-1))),
             new("workbench.action.quickOpenNavigateNext", "View", "Switch Editor", "Ctrl+Tab", () => Sync(() => bench.ActiveGroup.Cycle(1))),
             new("workbench.action.toggleSidebarVisibility", "View", "Toggle Side Bar", "Ctrl+B", () => Sync(ToggleSidebar)),
+            new("workbench.action.togglePanel", "View", "Toggle Panel", "Ctrl+J", () => Sync(() => BottomPanel.Toggle())),
+            new("workbench.actions.view.problems", "View", "Show Problems", null, () => Sync(() => BottomPanel.Toggle(PanelIds.Problems))),
+            new("workbench.action.output.toggleOutput", "View", "Show Output", "Ctrl+Shift+U", () => Sync(() => BottomPanel.Toggle(PanelIds.Output))),
+            new("workbench.action.toggleMaximizedPanel", "View", "Maximise Panel", null, () => Sync(() => BottomPanel.IsMaximized = !BottomPanel.IsMaximized)),
             new("wicked.toggleAssistant", "View", "Toggle Assistant", "Ctrl+L", () => Sync(ToggleAssistant)),
             new("workbench.view.explorer", "View", "Show Explorer", "Ctrl+Shift+E", () => Sync(() => Navigate(ShellRoutes.Explorer))),
             new("workbench.view.search", "View", "Show Search", "Ctrl+Shift+F", () => Sync(() => Navigate(ShellRoutes.Search))),
@@ -142,6 +190,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             new("editor.unfoldAll", "View", "Unfold All", "Ctrl+K Ctrl+J", () => Sync(() => Workbench.ActiveTab?.Editor?.UnfoldAll())),
             new("editor.action.toggleWordWrap", "View", "Toggle Word Wrap", "Alt+Z", () => Sync(() => Workbench.ActiveTab?.Editor?.ToggleWordWrap())),
             new("editor.action.insertSnippet", "Snippets", "Insert Snippet", null, () => Sync(PickSnippet)),
+            .. LanguageCommands(),
             new("workbench.action.openSnippets", "Snippets", "Configure Snippets", null, ConfigureSnippetsAsync),
             new("workbench.action.openGlobalKeybindingsFile", "Preferences", "Open Keyboard Shortcuts (JSON)", null, OpenKeybindingsJsonAsync),
         ];
@@ -170,6 +219,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         Settings = settings;
         Workbench.Settings = settings;
         Models.Configure(settings);
+        Language.ApplySettings(settings);
         Chat.ApplySettings(settings);
         OnPropertyChanged(nameof(Settings));
         var services = await EditorServices.Ready;
@@ -554,6 +604,19 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             return true;
         }
 
+        if (route.StartsWith("lsp/install/", StringComparison.Ordinal))
+        {
+            OfferServerInstall(route["lsp/install/".Length..]);
+            return true;
+        }
+
+        if (route.StartsWith("output/", StringComparison.Ordinal))
+        {
+            Output.Shown = Output.Channel(route["output/".Length..]);
+            BottomPanel.Show(PanelIds.Output);
+            return true;
+        }
+
         switch (route)
         {
             case ShellRoutes.Explorer: Panel = SidePanel.Explorer; SidebarVisible = true; return true;
@@ -636,6 +699,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         _settingsWatcher?.Dispose();
         Snippets.Dispose();
         Workbench.Dispose();
+        _ = Language.DisposeAsync().AsTask();
         _ = Models.DisposeAsync().AsTask();
         _stop.Cancel();
         _stop.Dispose();

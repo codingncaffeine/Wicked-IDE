@@ -74,6 +74,9 @@ public sealed class LanguageClient : IAsyncDisposable
 
     public bool IsRunning => _disposed == 0 && !_rpc.IsClosed;
 
+    /// <summary>Set before a deliberate stop, so its exit is not taken for a crash.</summary>
+    public bool Stopping { get; set; }
+
     /// <summary>Starts the server in <paramref name="root"/>, initialises it, and returns once it said <c>initialized</c>.</summary>
     public static async Task<LanguageClient> StartAsync(LanguageServerCommand command, string root, string logPath, CancellationToken ct = default)
     {
@@ -305,6 +308,111 @@ public sealed class LanguageClient : IAsyncDisposable
     public async Task<IReadOnlyList<InlayHint>> InlayHintsAsync(string uri, Range range, CancellationToken ct = default) =>
         LspShapes.InlayHints(await _rpc.RequestAsync("textDocument/inlayHint", LspShapes.Write(new InlayHintParams(new TextDocumentIdentifier(uri), range)), ct).ConfigureAwait(false));
 
+    /// <summary>Fills in a code action's edit when the server sends actions without one (resolveProvider).</summary>
+    public async Task<CodeAction> ResolveAsync(CodeAction action, CancellationToken ct = default)
+    {
+        if (action.Edit is not null || !(Initialized.Capabilities.TryGetProperty("codeActionProvider", out var c) && c.ValueKind == JsonValueKind.Object
+            && c.TryGetProperty("resolveProvider", out var r) && r.ValueKind == JsonValueKind.True))
+        {
+            return action;
+        }
+
+        var resolved = LspShapes.Actions(JsonDocument.Parse($"[{(await _rpc.RequestAsync("codeAction/resolve", action.Raw, ct).ConfigureAwait(false)).GetRawText()}]").RootElement);
+        return resolved.Count == 1 ? resolved[0] : action;
+    }
+
+    public async Task<IReadOnlyList<WorkspaceSymbol>> WorkspaceSymbolsAsync(string query, CancellationToken ct = default) =>
+        LspShapes.WorkspaceSymbols(await _rpc.RequestAsync("workspace/symbol", JsonDocument.Parse($$"""{"query":{{JsonSerializer.Serialize(query, LspJson.Default.String)}}}""").RootElement.Clone(), ct).ConfigureAwait(false));
+
+    /// <summary>The other uses of the symbol at a position (kind 1 text, 2 read, 3 write).</summary>
+    public async Task<IReadOnlyList<DocumentHighlight>> DocumentHighlightsAsync(string uri, Position position, CancellationToken ct = default)
+    {
+        var result = await _rpc.RequestAsync("textDocument/documentHighlight", At(uri, position), ct).ConfigureAwait(false);
+        return result.ValueKind == JsonValueKind.Array ? LspShapes.Read<List<DocumentHighlight>>(result) : [];
+    }
+
+    /// <summary>The token types and modifiers a server's semantic tokens index into, or null without them.</summary>
+    public SemanticTokensLegend? SemanticLegend =>
+        Initialized.Capabilities.TryGetProperty("semanticTokensProvider", out var p) && p.ValueKind == JsonValueKind.Object && p.TryGetProperty("legend", out var legend)
+            ? LspShapes.Read<SemanticTokensLegend>(legend)
+            : null;
+
+    /// <summary>The whole document's semantic tokens, as the protocol's relative integers (5 per token).</summary>
+    public async Task<int[]?> SemanticTokensAsync(string uri, CancellationToken ct = default)
+    {
+        var result = await _rpc.RequestAsync("textDocument/semanticTokens/full",
+            JsonDocument.Parse($$"""{"textDocument":{{LspShapes.Write(new TextDocumentIdentifier(uri)).GetRawText()}}}""").RootElement.Clone(), ct).ConfigureAwait(false);
+        return result.ValueKind == JsonValueKind.Object && result.TryGetProperty("data", out var data) && data.ValueKind == JsonValueKind.Array
+            ? [.. data.EnumerateArray().Select(x => x.GetInt32())]
+            : null;
+    }
+
+    /// <summary>Whether a rename can start here, and the range to rename with its placeholder; null when it cannot.</summary>
+    public async Task<(Range Range, string? Placeholder)?> PrepareRenameAsync(string uri, Position position, CancellationToken ct = default)
+    {
+        var result = await _rpc.RequestAsync("textDocument/prepareRename", At(uri, position), ct).ConfigureAwait(false);
+        if (result.ValueKind != JsonValueKind.Object) return null;
+        if (result.TryGetProperty("start", out _)) return (LspShapes.Read<Range>(result), null);
+        if (result.TryGetProperty("range", out var range))
+        {
+            return (LspShapes.Read<Range>(range), result.TryGetProperty("placeholder", out var p) ? p.GetString() : null);
+        }
+
+        return null;
+    }
+
+    /// <summary>Expand Selection: the ranges around a position from the innermost out.</summary>
+    public async Task<IReadOnlyList<Range>> SelectionRangesAsync(string uri, Position position, CancellationToken ct = default)
+    {
+        var result = await _rpc.RequestAsync("textDocument/selectionRange",
+            JsonDocument.Parse($$"""{"textDocument":{{LspShapes.Write(new TextDocumentIdentifier(uri)).GetRawText()}},"positions":[{{LspShapes.Write(position).GetRawText()}}]}""").RootElement.Clone(), ct).ConfigureAwait(false);
+        var ranges = new List<Range>();
+        if (result.ValueKind != JsonValueKind.Array || result.GetArrayLength() == 0) return ranges;
+        for (JsonElement? at = result[0]; at is { ValueKind: JsonValueKind.Object } e; at = e.TryGetProperty("parent", out var parent) ? parent : null)
+        {
+            ranges.Add(LspShapes.Read<Range>(e.GetProperty("range")));
+        }
+
+        return ranges;
+    }
+
+    /// <summary>The characters that format as they are typed (a ';', a '}'), from <c>documentOnTypeFormattingProvider</c>.</summary>
+    public IReadOnlyList<string> OnTypeFormattingTriggers
+    {
+        get
+        {
+            if (!Initialized.Capabilities.TryGetProperty("documentOnTypeFormattingProvider", out var p) || p.ValueKind != JsonValueKind.Object) return [];
+            var list = new List<string>();
+            if (p.TryGetProperty("firstTriggerCharacter", out var first) && first.GetString() is { } f) list.Add(f);
+            if (p.TryGetProperty("moreTriggerCharacter", out var more) && more.ValueKind == JsonValueKind.Array) list.AddRange(more.EnumerateArray().Select(x => x.GetString()!));
+            return list;
+        }
+    }
+
+    public async Task<IReadOnlyList<TextEdit>> FormatOnTypeAsync(string uri, Position position, string typed, FormattingOptions options, CancellationToken ct = default)
+    {
+        var parameters = JsonDocument.Parse($$"""{"textDocument":{{LspShapes.Write(new TextDocumentIdentifier(uri)).GetRawText()}},"position":{{LspShapes.Write(position).GetRawText()}},"ch":{{JsonSerializer.Serialize(typed, LspJson.Default.String)}},"options":{{LspShapes.Write(options).GetRawText()}}}""").RootElement.Clone();
+        var result = await _rpc.RequestAsync("textDocument/onTypeFormatting", parameters, ct).ConfigureAwait(false);
+        return result.ValueKind == JsonValueKind.Array ? LspShapes.Read<List<TextEdit>>(result) : [];
+    }
+
+    /// <summary>The call-hierarchy items at a position (the start of Show Call Hierarchy), raw for the follow-up calls.</summary>
+    public async Task<IReadOnlyList<CallHierarchyItem>> PrepareCallHierarchyAsync(string uri, Position position, CancellationToken ct = default)
+    {
+        var result = await _rpc.RequestAsync("textDocument/prepareCallHierarchy", At(uri, position), ct).ConfigureAwait(false);
+        return result.ValueKind == JsonValueKind.Array ? [.. result.EnumerateArray().Select(LspShapes.CallItem)] : [];
+    }
+
+    /// <summary>Who calls an item (<paramref name="incoming"/>) or what it calls, with the ranges of the calls.</summary>
+    public async Task<IReadOnlyList<(CallHierarchyItem Item, IReadOnlyList<Range> Ranges)>> CallsAsync(CallHierarchyItem item, bool incoming, CancellationToken ct = default)
+    {
+        var result = await _rpc.RequestAsync(incoming ? "callHierarchy/incomingCalls" : "callHierarchy/outgoingCalls",
+            JsonDocument.Parse($$"""{"item":{{item.Raw.GetRawText()}}}""").RootElement.Clone(), ct).ConfigureAwait(false);
+        if (result.ValueKind != JsonValueKind.Array) return [];
+        return [.. result.EnumerateArray().Select(e => (LspShapes.CallItem(e.GetProperty(incoming ? "from" : "to")),
+            (IReadOnlyList<Range>)[.. e.GetProperty("fromRanges").EnumerateArray().Select(LspShapes.Read<Range>)]))];
+    }
+
     /// <summary>Runs a command a code action or a lens carries (<c>{command, arguments}</c>), as the server defines it.</summary>
     public Task<JsonElement> ExecuteCommandAsync(JsonElement command, CancellationToken ct = default) =>
         _rpc.RequestAsync("workspace/executeCommand", command, ct);
@@ -404,8 +512,21 @@ public sealed class LanguageClient : IAsyncDisposable
             },
             "formatting": {},
             "rangeFormatting": {},
-            "rename": { "prepareSupport": false },
-            "inlayHint": {}
+            "rename": { "prepareSupport": true },
+            "inlayHint": {},
+            "documentHighlight": {},
+            "selectionRange": {},
+            "onTypeFormatting": {},
+            "callHierarchy": {},
+            "foldingRange": { "lineFoldingOnly": true },
+            "semanticTokens": {
+              "requests": { "full": true, "range": false },
+              "tokenTypes": ["namespace", "type", "class", "enum", "interface", "struct", "typeParameter", "parameter", "variable", "property", "enumMember", "event", "function", "method", "macro", "keyword", "modifier", "comment", "string", "number", "regexp", "operator", "decorator"],
+              "tokenModifiers": ["declaration", "definition", "readonly", "static", "deprecated", "abstract", "async", "modification", "documentation", "defaultLibrary"],
+              "formats": ["relative"],
+              "multilineTokenSupport": false,
+              "overlappingTokenSupport": false
+            }
           },
           "window": { "workDoneProgress": true, "showMessage": {} }
         }

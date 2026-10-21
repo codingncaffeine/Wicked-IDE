@@ -1,0 +1,40 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:lang="using:Wicked.App.Language"
+             xmlns:shell="using:Wicked.App.Shell"
+             x:Class="Wicked.App.Views.ProblemsView"
+             x:DataType="lang:ProblemsViewModel">
+  <DockPanel>
+    <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="10,0,10,4">
+      <TextBlock Classes="muted" VerticalAlignment="Center" FontSize="{DynamicResource Font.Size.Small}"
+                 Text="No problems have been detected in the workspace." IsVisible="{Binding IsEmpty}" />
+      <TextBox Grid.Column="1" Name="ProblemsFilter" Classes="find" Width="240" Text="{Binding Filter}" PlaceholderText="Filter (e.g. text, **/*.ts)" />
+    </Grid>
+    <ListBox Name="ProblemsList" ItemsSource="{Binding Rows}" Classes="problems" Background="Transparent">
+      <ListBox.ItemsPanel>
+        <ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate>
+      </ListBox.ItemsPanel>
+      <ListBox.DataTemplates>
+        <DataTemplate DataType="lang:FileProblems">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <shell:Icon Data="{StaticResource Icon.ChevronDown}" Size="13" IsVisible="{Binding IsExpanded}" />
+            <shell:Icon Data="{StaticResource Icon.ChevronRight}" Size="13" IsVisible="{Binding !IsExpanded}" />
+            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding Folder}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="480" />
+            <Border Classes="badge"><TextBlock Text="{Binding Count}" /></Border>
+          </StackPanel>
+        </DataTemplate>
+        <DataTemplate DataType="lang:ProblemItem">
+          <StackPanel Orientation="Horizontal" Spacing="7" Margin="22,0,0,0">
+            <shell:Icon Data="{StaticResource Icon.CircleX}" Size="14" Foreground="{DynamicResource Brush.Danger}" IsVisible="{Binding IsError}" />
+            <shell:Icon Data="{StaticResource Icon.TriangleAlert}" Size="14" Foreground="{DynamicResource Brush.Warning}" IsVisible="{Binding IsWarning}" />
+            <shell:Icon Data="{StaticResource Icon.Info}" Size="14" Foreground="{DynamicResource Brush.Accent}" IsVisible="{Binding IsInfo}" />
+            <TextBlock Text="{Binding Message}" TextTrimming="CharacterEllipsis" MaxWidth="900" />
+            <TextBlock Text="{Binding Origin}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" VerticalAlignment="Center" />
+            <TextBlock Text="{Binding Where}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" VerticalAlignment="Center" />
+          </StackPanel>
+        </DataTemplate>
+      </ListBox.DataTemplates>
+    </ListBox>
+  </DockPanel>
+</UserControl>

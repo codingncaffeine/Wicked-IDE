@@ -107,10 +107,44 @@
         </Border>
         <GridSplitter Grid.Column="2" Classes="gap" ResizeDirection="Columns" IsVisible="{Binding SidebarVisible}" />
 
-        <!-- The editor groups -->
-        <Border Grid.Column="3" Name="Editor" Classes="panel editor" Margin="0,0,0,6">
-          <views:EditorAreaView DataContext="{Binding Workbench}" />
-        </Border>
+        <!-- The editor groups, and the panel under them (Problems, Output, Terminal, …) -->
+        <Grid Grid.Column="3" Name="EditorColumn" RowDefinitions="*,0,0">
+          <Border Name="Editor" Classes="panel editor" Margin="0,0,0,6">
+            <views:EditorAreaView DataContext="{Binding Workbench}" />
+          </Border>
+          <GridSplitter Grid.Row="1" Name="PanelSplitter" Classes="gap" ResizeDirection="Rows" IsVisible="{Binding BottomPanel.IsVisible}" />
+          <Border Grid.Row="2" Name="PanelArea" Classes="panel" Margin="0,0,0,6" IsVisible="{Binding BottomPanel.IsVisible}">
+            <DockPanel>
+              <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="10,6,6,0">
+                <ItemsControl Name="PanelTabs" ItemsSource="{Binding BottomPanel.Tabs}">
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="2" /></ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="shell:PanelTab">
+                      <Button Classes="paneltab" Classes.active="{Binding IsActive}"
+                              Command="{Binding $parent[Window].((vm:ShellViewModel)DataContext).BottomPanel.SelectCommand}" CommandParameter="{Binding}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                          <TextBlock Text="{Binding Title}" />
+                          <Border Classes="badge" IsVisible="{Binding HasBadge}"><TextBlock Text="{Binding BadgeText}" /></Border>
+                        </StackPanel>
+                      </Button>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2">
+                  <Button Classes="quiet" Command="{Binding BottomPanel.ToggleMaximizedCommand}" ToolTip.Tip="Maximise or restore the panel">
+                    <shell:Icon Data="{StaticResource Icon.ChevronUp}" Size="15" />
+                  </Button>
+                  <Button Name="PanelClose" Classes="quiet" Command="{Binding BottomPanel.HideCommand}" ToolTip.Tip="Hide the panel (Ctrl+J)">
+                    <shell:Icon Data="{StaticResource Icon.X}" Size="15" />
+                  </Button>
+                </StackPanel>
+              </Grid>
+              <ContentControl Name="PanelContent" Content="{Binding BottomPanel.ActiveView}" Margin="0,4,0,0" />
+            </DockPanel>
+          </Border>
+        </Grid>
         <GridSplitter Grid.Column="4" Classes="gap" ResizeDirection="Columns" IsVisible="{Binding AssistantVisible}" />
 
         <!-- The assistant -->
@@ -145,6 +179,17 @@
                        Foreground="{DynamicResource Brush.Text.Secondary}" VerticalAlignment="Center" />
           </StackPanel>
         </Button>
+        <StackPanel Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,10,0" Spacing="2">
+          <Button Name="ProblemsStatus" Classes="status" Command="{Binding ShowProblemsCommand}" ToolTip.Tip="{Binding ProblemsTip}" AutomationProperties.Name="Problems">
+            <StackPanel Orientation="Horizontal" Spacing="5">
+              <shell:Icon Data="{StaticResource Icon.CircleX}" Size="13" />
+              <TextBlock Name="ErrorCount" Text="{Binding Language.Problems.Errors}" VerticalAlignment="Center" />
+              <shell:Icon Data="{StaticResource Icon.TriangleAlert}" Size="13" Margin="4,0,0,0" />
+              <TextBlock Name="WarningCount" Text="{Binding Language.Problems.Warnings}" VerticalAlignment="Center" />
+            </StackPanel>
+          </Button>
+          <TextBlock Name="LanguageStatus" Text="{Binding Language.StatusText}" Classes="status" />
+        </StackPanel>
         <TextBlock Grid.Column="2" Name="CaretStatus" Text="{Binding CaretText}" Classes="status" />
         <TextBlock Grid.Column="3" Name="DocumentStatus" Text="{Binding DocumentText}" Classes="status" />
         <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="6" Margin="0,0,14,0" VerticalAlignment="Center">

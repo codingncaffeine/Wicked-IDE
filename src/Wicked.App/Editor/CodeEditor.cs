@@ -17,7 +17,7 @@ namespace Wicked.App.Editor;
 /// thread), asks its <see cref="TextView"/> for the frame to show (lookups only), and draws that frame on the render
 /// thread. Highlighting and text shaping happen on their own threads and arrive as posted redraws.
 /// </summary>
-public sealed class CodeEditor : Control
+public sealed partial class CodeEditor : Control
 {
     private static readonly TimeSpan Blink = TimeSpan.FromMilliseconds(530);
     private static (string Text, bool WholeLines) _lastCopy;
@@ -407,6 +407,13 @@ public sealed class CodeEditor : Control
 
     protected override void OnKeyDown(KeyEventArgs e)
     {
+        // An open suggestion list or hover takes its keys first (arrows, Enter, Tab, Escape).
+        if (KeyPreview?.Invoke(e) == true)
+        {
+            e.Handled = true;
+            return;
+        }
+
         // A snippet being filled in takes Tab, Shift+Tab and Escape first; Tab may expand a typed prefix.
         if (e.Key == Key.Tab && e.KeyModifiers is KeyModifiers.None or KeyModifiers.Shift
             && (SnippetStep(forward: e.KeyModifiers == KeyModifiers.None) || (e.KeyModifiers == KeyModifiers.None && TryTabCompletion())))
@@ -438,9 +445,17 @@ public sealed class CodeEditor : Control
     {
         if (string.IsNullOrEmpty(e.Text) || e.Text.Any(char.IsControl)) return;
         _view.Preedit = null;
+        if (TypePreview?.Invoke(e.Text) == true)
+        {
+            e.Handled = true;
+            AfterCommand();
+            return;
+        }
+
         Edits.Type(Document, e.Text, Options);
         e.Handled = true;
         AfterCommand();
+        Typed?.Invoke(e.Text);
     }
 
     internal void SetPreedit(string? text)
@@ -584,10 +599,22 @@ public sealed class CodeEditor : Control
             _drag = Drag.Lines;
             SelectLines(line, line, e.KeyModifiers.HasFlag(KeyModifiers.Shift));
         }
+        else if (x < _view.GutterWidth && _view.ShowGlyphMargin && x < TextView.GlyphMarginWidth && GlyphMarginClicked is { } glyph)
+        {
+            glyph(_view.LineAt(y));
+            e.Handled = true;
+            return;
+        }
         else
         {
             var (offset, upstream) = _view.PositionAt(x, y);
             var mods = e.KeyModifiers;
+            if (ClickPreview?.Invoke(offset, mods) == true)
+            {
+                e.Handled = true;
+                return;
+            }
+
             if (mods.HasFlag(KeyModifiers.Alt) && mods.HasFlag(KeyModifiers.Shift))
             {
                 _drag = Drag.Box;
@@ -656,6 +683,7 @@ public sealed class CodeEditor : Control
                 InvalidateVisual();
             }
 
+            PointerOverText?.Invoke(overGutter || overThumb || x >= (_view.ShowMinimap ? _view.MinimapLeft : Bounds.Width - 12) ? -1 : _view.OffsetAt(x, y), new Point(x, y), e.KeyModifiers);
             return;
         }
 
@@ -689,6 +717,7 @@ public sealed class CodeEditor : Control
     protected override void OnPointerExited(PointerEventArgs e)
     {
         base.OnPointerExited(e);
+        PointerOverText?.Invoke(-1, default, e.KeyModifiers);
         if (!_view.GutterHover) return;
         _view.GutterHover = false;
         InvalidateVisual();
@@ -709,6 +738,7 @@ public sealed class CodeEditor : Control
         var dy = (float)-e.Delta.Y * step;
         if (e.KeyModifiers.HasFlag(KeyModifiers.Shift)) (dx, dy) = (dy, dx);
         _view.ScrollBy(dx, dy);
+        Scrolled?.Invoke();
         e.Handled = true;
         InvalidateVisual();
     }

@@ -57,6 +57,11 @@ public partial class MainWindow : Window, IWorkbenchDialogs
             _shell = DataContext as ShellViewModel;
             if (_shell is null) return;
             _shell.PropertyChanged += OnShellChanged;
+            _shell.BottomPanel.PropertyChanged += (_, pe) =>
+            {
+                if (pe.PropertyName is nameof(BottomPanel.IsVisible) or nameof(BottomPanel.IsMaximized)) ApplyPanelRows();
+            };
+            ApplyPanelRows();
             _shell.PaletteRequested += OnPaletteRequested;
             _shell.Workbench.Dialogs = this;
             _shell.Clipboard = text => Clipboard?.SetTextAsync(text) ?? Task.CompletedTask;
@@ -94,6 +99,27 @@ public partial class MainWindow : Window, IWorkbenchDialogs
         columns[SideColumn + 1].Width = new GridLength(_shell.SidebarVisible ? 6 : 0);
         columns[AssistantColumn].Width = _shell.AssistantVisible ? _assistantWidth : new GridLength(0);
         columns[AssistantColumn - 1].Width = new GridLength(_shell.AssistantVisible ? 6 : 0);
+    }
+
+    /// <summary>The bottom panel's rows: hidden it takes none, shown it has the height it was left at, maximised all of it.</summary>
+    private void ApplyPanelRows()
+    {
+        if (_shell is null) return;
+        var panel = _shell.BottomPanel;
+        var rows = EditorColumn.RowDefinitions;
+        if (rows[2].Height.IsAbsolute && rows[2].Height.Value > 0 && !panel.IsMaximized) panel.Resized(rows[2].Height.Value);
+        if (!panel.IsVisible)
+        {
+            rows[0].Height = GridLength.Star;
+            rows[1].Height = new GridLength(0);
+            rows[2].Height = new GridLength(0);
+            return;
+        }
+
+        rows[0].Height = panel.IsMaximized ? new GridLength(0) : GridLength.Star;
+        rows[1].Height = new GridLength(panel.IsMaximized ? 0 : 6);
+        rows[2].Height = panel.IsMaximized ? GridLength.Star : new GridLength(panel.Height);
+        rows[2].MinHeight = BottomPanel.MinHeight;
     }
 
     // ── Keys ─────────────────────────────────────────────────────────────────────────────────────

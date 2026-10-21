@@ -131,6 +131,14 @@ public sealed record InlayHintParams(TextDocumentIdentifier TextDocument, Range 
 
 public sealed record WorkspaceFolder(string Uri, string Name);
 
+/// <summary>Another use of a symbol: <c>Kind</c> 1 text, 2 read, 3 write.</summary>
+public sealed record DocumentHighlight(Range Range, int? Kind = null);
+
+public sealed record SemanticTokensLegend(IReadOnlyList<string> TokenTypes, IReadOnlyList<string> TokenModifiers);
+
+/// <summary>A function or method in a call hierarchy; <c>Raw</c> is sent back as is for its callers or callees.</summary>
+public sealed record CallHierarchyItem(string Name, int Kind, string? Detail, string Uri, Range Range, Range SelectionRange, JsonElement Raw);
+
 public sealed record ServerInfo(string Name, string? Version = null);
 
 /// <summary>What <c>initialize</c> answered: the capabilities kept as JSON (they are a deep union), plus the server's name.</summary>
@@ -203,6 +211,28 @@ public static class LspShapes
             return new DocumentSymbol(name, kind, Read<Range>(e.GetProperty("range")), Read<Range>(e.GetProperty("selectionRange")), detail, children);
         }
     }
+
+    /// <summary><c>SymbolInformation[] | WorkspaceSymbol[] | null</c>; a workspace symbol without a range points at its file's start.</summary>
+    public static IReadOnlyList<WorkspaceSymbol> WorkspaceSymbols(JsonElement result)
+    {
+        if (result.ValueKind != JsonValueKind.Array) return [];
+        return [.. result.EnumerateArray().Select(e =>
+        {
+            var location = e.GetProperty("location");
+            var range = location.TryGetProperty("range", out var r) ? Read<Range>(r) : new Range(new Position(0, 0), new Position(0, 0));
+            var container = e.TryGetProperty("containerName", out var c) && c.ValueKind == JsonValueKind.String ? c.GetString() : null;
+            return new WorkspaceSymbol(e.GetProperty("name").GetString()!, e.GetProperty("kind").GetInt32(), new Location(location.GetProperty("uri").GetString()!, range), container);
+        })];
+    }
+
+    public static CallHierarchyItem CallItem(JsonElement e) => new(
+        e.GetProperty("name").GetString()!,
+        e.GetProperty("kind").GetInt32(),
+        e.TryGetProperty("detail", out var d) && d.ValueKind == JsonValueKind.String ? d.GetString() : null,
+        e.GetProperty("uri").GetString()!,
+        Read<Range>(e.GetProperty("range")),
+        Read<Range>(e.GetProperty("selectionRange")),
+        e.Clone());
 
     /// <summary><c>changes</c> and the text edits of <c>documentChanges</c> by URI; create/rename/delete operations kept apart, in order.</summary>
     public static WorkspaceEdit? Edit(JsonElement result)
@@ -313,4 +343,7 @@ public static class LspShapes
 [JsonSerializable(typeof(List<TextEdit>))]
 [JsonSerializable(typeof(List<WorkspaceFolder>))]
 [JsonSerializable(typeof(string))]
+[JsonSerializable(typeof(List<DocumentHighlight>))]
+[JsonSerializable(typeof(SemanticTokensLegend))]
+[JsonSerializable(typeof(FormattingOptions))]
 public sealed partial class LspJson : JsonSerializerContext;
