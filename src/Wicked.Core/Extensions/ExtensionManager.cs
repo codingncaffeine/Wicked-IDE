@@ -89,7 +89,9 @@ public sealed class ExtensionManager : IAsyncDisposable
     // ── Start ──
 
     /// <summary>Reads the extensions folder, puts the declarations of the enabled extensions in force and activates the ones that start with the IDE.</summary>
-    public async Task LoadAsync(CancellationToken ct = default)
+    public Task LoadAsync(CancellationToken ct = default) => Task.Run(() => LoadCoreAsync(ct), ct);
+
+    private async Task LoadCoreAsync(CancellationToken ct)
     {
         await _lock.WaitAsync(ct).ConfigureAwait(false);
         try
@@ -464,7 +466,9 @@ public sealed class ExtensionManager : IAsyncDisposable
 
     // ── Enable, disable, uninstall ──
 
-    public async Task SetEnabledAsync(string id, bool enabled, CancellationToken ct = default)
+    public Task SetEnabledAsync(string id, bool enabled, CancellationToken ct = default) => Task.Run(() => SetEnabledCoreAsync(id, enabled, ct), ct);
+
+    private async Task SetEnabledCoreAsync(string id, bool enabled, CancellationToken ct)
     {
         await _lock.WaitAsync(ct).ConfigureAwait(false);
         try
@@ -506,7 +510,9 @@ public sealed class ExtensionManager : IAsyncDisposable
     }
 
     /// <summary>Stops an extension and deletes its folder.</summary>
-    public async Task UninstallAsync(string id, CancellationToken ct = default)
+    public Task UninstallAsync(string id, CancellationToken ct = default) => Task.Run(() => UninstallCoreAsync(id, ct), ct);
+
+    private async Task UninstallCoreAsync(string id, CancellationToken ct)
     {
         await _lock.WaitAsync(ct).ConfigureAwait(false);
         try
@@ -551,7 +557,10 @@ public sealed class ExtensionManager : IAsyncDisposable
         InstallAsync(stage => ExtensionInstaller.StageZip(zip, stage, ct), zip, confirm, ct);
 
     /// <summary>Installs the newest release of <c>owner/repo</c> on GitHub that carries an asset named <c>*.wicked.zip</c>, checked against its published sha256.</summary>
-    public async Task<InstalledExtension?> InstallFromGitHubAsync(string repository, Func<InstallRequest, Task<bool>> confirm, CancellationToken ct = default)
+    public Task<InstalledExtension?> InstallFromGitHubAsync(string repository, Func<InstallRequest, Task<bool>> confirm, CancellationToken ct = default) =>
+        Task.Run(() => InstallFromGitHubCoreAsync(repository, confirm, ct), ct);
+
+    private async Task<InstalledExtension?> InstallFromGitHubCoreAsync(string repository, Func<InstallRequest, Task<bool>> confirm, CancellationToken ct)
     {
         var staging = NewStaging();
         try
@@ -585,7 +594,10 @@ public sealed class ExtensionManager : IAsyncDisposable
     }
 
     /// <summary>Stages the files, reads the manifest, asks, and only then moves the extension into place and starts it.</summary>
-    private async Task<InstalledExtension?> InstallAsync(Action<string> stageInto, string source, Func<InstallRequest, Task<bool>> confirm, CancellationToken ct, bool verified = false)
+    private Task<InstalledExtension?> InstallAsync(Action<string> stageInto, string source, Func<InstallRequest, Task<bool>> confirm, CancellationToken ct, bool verified = false) =>
+        Task.Run(() => InstallCoreAsync(stageInto, source, confirm, ct, verified), ct);
+
+    private async Task<InstalledExtension?> InstallCoreAsync(Action<string> stageInto, string source, Func<InstallRequest, Task<bool>> confirm, CancellationToken ct, bool verified)
     {
         var staging = NewStaging();
         try
@@ -624,7 +636,7 @@ public sealed class ExtensionManager : IAsyncDisposable
                 _lock.Release();
             }
 
-            await LoadAsync(ct).ConfigureAwait(false);
+            await LoadCoreAsync(ct).ConfigureAwait(false);
             return Installed.FirstOrDefault(i => i.Id == manifest.FullId);
         }
         finally
