@@ -168,11 +168,21 @@ public sealed class ModelRuntime : IModelRuntime, IAsyncDisposable
         }
         catch (Exception ex) when (ex is RouterException or HttpRequestException)
         {
+            // A connection that broke mid-request is most often the router dying: say so, as a death a moment later would.
+            var router = Router;
+            for (var i = 0; i < 20 && router is { IsRunning: true }; i++) await Task.Delay(50, ct).ConfigureAwait(false);
+            if (router is { IsRunning: false })
+            {
+                var stopped = $"The engine stopped while loading this model.\n{TailOf(router)}";
+                SetLive(id, new Live(RouterModelStatus.Unloaded, null, stopped, null));
+                throw new ChatException(stopped, ex);
+            }
+
             await SyncQuietlyAsync(ct).ConfigureAwait(false);
             throw new ChatException($"The engine would not load {NameOf(id)}: {ex.Message}", ex);
         }
 
-        await WaitForAsync(id, s => s is RunState.Loaded or RunState.Sleeping or RunState.Failed, TimeSpan.FromMinutes(30), ct).ConfigureAwait(false);
+        await WaitForLoadAsync(id, ct).ConfigureAwait(false);
         var model = Models.First(m => m.Id == id);
         if (model.State == RunState.Failed) throw new ChatException(model.Error ?? $"{model.DisplayName} did not load.");
     }
@@ -752,6 +762,59 @@ public sealed class ModelRuntime : IModelRuntime, IAsyncDisposable
     private RunState StateOf(string id)
     {
         lock (_gate) return _models.FirstOrDefault(m => m.Id == id)?.State ?? RunState.Unloaded;
+    }
+
+    /// <summary>
+    /// Waits for a load to end. A router that dies meanwhile ends it at once with that failure kept on the model: the supervisor
+    /// restarts the router with the model unloaded, and a wait for "loaded or failed" would otherwise outlast the restart.
+    /// </summary>
+    private async Task WaitForLoadAsync(string id, CancellationToken ct)
+    {
+        var router = Router;
+        var died = new TaskCompletionSource<RouterExit>(TaskCreationOptions.RunContinuationsAsynchronously);
+        void OnExit(object? sender, RouterExit exit)
+        {
+            if (!exit.Intentional) died.TrySetResult(exit);
+        }
+
+        if (router is not null) router.Exited += OnExit;
+        using var stop = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        var wait = WaitForAsync(id, s => s is RunState.Loaded or RunState.Sleeping or RunState.Failed, TimeSpan.FromMinutes(30), stop.Token);
+        try
+        {
+            if (router is not null && !router.IsRunning) died.TrySetResult(new RouterExit(null, false, false, null, 0));
+            if (await Task.WhenAny(wait, died.Task).ConfigureAwait(false) == wait)
+            {
+                await wait.ConfigureAwait(false);
+                return;
+            }
+
+            await stop.CancelAsync().ConfigureAwait(false);
+            try
+            {
+                await wait.ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // Ended above.
+            }
+
+            var exit = died.Task.Result;
+            lock (_gate)
+            {
+                _live.TryGetValue(id, out var previous);
+                if (previous?.Error is null)
+                {
+                    _live[id] = new Live(RouterModelStatus.Unloaded, null, $"The engine stopped while loading this model (exit code {Code(exit.Code)}).\n{TailOf(router!)}", null);
+                }
+            }
+
+            Publish();
+        }
+        finally
+        {
+            if (router is not null) router.Exited -= OnExit;
+        }
     }
 
     /// <summary>Waits until the model's state satisfies <paramref name="done"/>; events wake it, and every few seconds it reads the list itself in case one was missed.</summary>

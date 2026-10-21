@@ -238,13 +238,16 @@ public sealed class ModelRuntimeTests
     public async Task ChangedRunsOnAWorkerSoASlowListenerNeverHoldsUpTheCaller()
     {
         await using var rig = await RuntimeRig.StartAsync();
-        rig.Runtime.Changed += (_, _) => Thread.Sleep(400);
+        // The listener blocks until the load is over: a load that waited on it would only end when the hold times out.
+        using var hold = new ManualResetEventSlim();
+        rig.Runtime.Changed += (_, _) => hold.Wait(TimeSpan.FromSeconds(20));
         var watch = Stopwatch.StartNew();
 
         await rig.Runtime.LoadAsync(RuntimeRig.ChatId, Ct);
+        hold.Set();
 
         Assert.Equal(RunState.Loaded, rig.Model(RuntimeRig.ChatId).State);
-        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(1.5), $"the load waited on a listener: {watch.Elapsed}");
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(15), $"the load waited on a listener: {watch.Elapsed}");
     }
 
     [Fact]

@@ -208,7 +208,9 @@ public sealed class ChatEngineTests
         });
 
         Assert.Contains("model engine", ex.Message, StringComparison.Ordinal); // "stopped in the middle" or "closed the connection", by how the socket went
-        Assert.Equal<ChatChunk>([new ContentDelta("start")], seen);
+        // What arrived is a prefix of what the engine sent: a process killed right after writing can reset the socket before
+        // its last chunk is read.
+        Assert.True(seen.Count == 0 || seen.SequenceEqual([new ContentDelta("start")]), string.Join(", ", seen));
 
         // The supervisor brings the router back, and the next chat loads the model again and works.
         await RuntimeRig.WaitUntilAsync(() => rig.Logged("start").Count == 2);
