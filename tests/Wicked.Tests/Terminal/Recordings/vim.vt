@@ -1,0 +1,48 @@
+[?1049h[22;0;0t[>4;2m[?1h=[?2004h[?1004h[1;24r[?12h[?12l[22;2t[22;1t[27m[23m[29m[m[H[2J[?25l[24;1H"sample.txt" 64L, 1665B[2;1H▽[6n[2;1H  [3;1HPzz\[0%m[6n[3;1H           [1;1H[>c]10;?]11;?[14t[16t[1;1Hline one
+line two[2;9H[K[3;1H        indented tab[3;21H[K[4;1Hunicode: café[4;15H漢字
+filler line 1 of the file
+filler line 2 of the file
+filler line 3 of the file
+filler line 4 of the file
+filler line 5 of the file
+filler line 6 of the file
+filler line 7 of the file
+filler line 8 of the file
+filler line 9 of the file
+filler line 10 of the file
+filler line 11 of the file
+filler line 12 of the file
+filler line 13 of the file
+filler line 14 of the file
+filler line 15 of the file
+filler line 16 of the file
+filler line 17 of the file
+filler line 18 of the file
+filler line 19 of the file[24;63H1,1[11CTop[?25h[1;1H[?4m[?25l[24;63H2[2;1H[?25h[?25l[24;63H3,1-8[3;8H[?25h[?25l[24;63H4,1  [4;1H[?25h[?25l[4;23r[23;1H
+[1;24r[23;1Hfiller line 20 of the file[24;1H[K[24;63H4,1[11CTop[?25h[4;1H[?25l[1;1Hfiller line 38 of the file
+filler line 39 of the file
+filler line 40 of the file[4;13H41 of the file[5;13H42 of the file[6;13H43 of the file[7;14H4 of the file[8;13H45 of the file[9;13H46 of the file[10;13H47 of the file[11;13H48 of the file[12;13H49 of the file[13;13H5[14;13H5[15;13H5[16;13H5[17;13H5[18;13H5[19;13H5[20;13H5[21;13H5[22;13H5[23;13H6[?25h[?25l[24;63H63,1[10CBot[23;1H[?25h[?25l
+[1m-- INSERT --[m[24;63H[K[24;63H64,1[10C97%[24;1H[K[1;23r[23;1H
+[1;24r[24;63H64,0-1[8CBot[?25h[23;1H[?25l[24;63H[K[24;1H:set nu[1;1H[93m 42 [mfiller line 39 of the file
+[93m 43 [mfiller line 40 of the file
+[93m 44 [mfiller line 41 of the file
+[93m 45 [mfiller line 42 of the file
+[93m 46 [mfiller line 43 of the file
+[93m 47 [mfiller line 44 of the file
+[93m 48 [mfiller line 45 of the file
+[93m 49 [mfiller line 46 of the file
+[93m 50 [mfiller line 47 of the file
+[93m 51 [mfiller line 48 of the file
+[93m 52 [mfiller line 49 of the file
+[93m 53 [mfiller line 50 of the file
+[93m 54 [mfiller line 51 of the file
+[93m 55 [mfiller line 52 of the file
+[93m 56 [mfiller line 53 of the file
+[93m 57 [mfiller line 54 of the file
+[93m 58 [mfiller line 55 of the file
+[93m 59 [mfiller line 56 of the file
+[93m 60 [mfiller line 57 of the file
+[93m 61 [mfiller line 58 of the file
+[93m 62 [mfiller line 59 of the file
+[93m 63 [mfiller line 60 of the file
+[93m 64 [m[24;63H64,0-1[8CBot[?25h[23;5H[?25l[24;53H^D[23;5H[24;53H  [23;5H[?25h
