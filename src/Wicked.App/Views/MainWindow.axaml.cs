@@ -174,7 +174,8 @@ public partial class MainWindow : Window, IWorkbenchDialogs
             var open = _shell.SettingsOpen;
             Avalonia.Threading.Dispatcher.UIThread.Post(() =>
             {
-                if (open) this.GetVisualDescendants().OfType<NumericUpDown>().FirstOrDefault(n => n.Name == "FontSizeBox")?.Focus();
+                // The search over every setting has it, as in VS Code's Settings editor.
+                if (open) this.GetVisualDescendants().OfType<TextBox>().FirstOrDefault(n => n.Name == "SettingsSearch")?.Focus();
                 else _shell.Workbench.ActiveTab?.Editor?.Focus();
             }, Avalonia.Threading.DispatcherPriority.Loaded);
         }

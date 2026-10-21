@@ -32,7 +32,11 @@ public sealed partial class SettingsViewModel : ObservableObject
         Server = new ServerViewModel(shell);
         shell.PropertyChanged += (_, e) =>
         {
-            if (e.PropertyName == nameof(ShellViewModel.Settings)) Load(shell.Settings);
+            if (e.PropertyName == nameof(ShellViewModel.Settings))
+            {
+                Load(shell.Settings);
+                ReloadRows(shell.Settings);
+            }
             if (e.PropertyName == nameof(ShellViewModel.SettingsOpen) && shell.SettingsOpen)
             {
                 _ = Runtime.RefreshAsync();
