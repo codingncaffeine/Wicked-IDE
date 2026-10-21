@@ -385,12 +385,12 @@
                     </Button>
                   </Grid>
                   <TextBlock Text="{Binding Description}" Classes="muted" TextWrapping="Wrap" />
-                  <ToggleSwitch Name="SettingToggle" IsVisible="{Binding IsToggle}" IsChecked="{Binding ToggleValue}" OnContent="" OffContent="" />
-                  <NumericUpDown Name="SettingNumber" IsVisible="{Binding IsNumber}" Value="{Binding NumberValue}" Minimum="{Binding Minimum}" Maximum="{Binding Maximum}"
+                  <ToggleSwitch Name="SettingToggle" AutomationProperties.Name="{Binding Heading}" IsVisible="{Binding IsToggle}" IsChecked="{Binding ToggleValue}" OnContent="" OffContent="" />
+                  <NumericUpDown Name="SettingNumber" AutomationProperties.Name="{Binding Heading}" IsVisible="{Binding IsNumber}" Value="{Binding NumberValue}" Minimum="{Binding Minimum}" Maximum="{Binding Maximum}"
                                  Increment="{Binding Increment}" FormatString="{Binding NumberFormat}" Width="160" HorizontalAlignment="Left" />
-                  <TextBox Name="SettingText" IsVisible="{Binding IsText}" Text="{Binding TextValue, UpdateSourceTrigger=LostFocus}" MaxWidth="420" HorizontalAlignment="Stretch" />
-                  <TextBox Name="SettingSecret" IsVisible="{Binding IsSecret}" Text="{Binding TextValue, UpdateSourceTrigger=LostFocus}" PasswordChar="●" MaxWidth="420" HorizontalAlignment="Stretch" />
-                  <ComboBox Name="SettingChoice" IsVisible="{Binding IsChoice}" ItemsSource="{Binding Values}" SelectedItem="{Binding ChoiceValue}" Width="240" />
+                  <TextBox Name="SettingText" AutomationProperties.Name="{Binding Heading}" IsVisible="{Binding IsText}" Text="{Binding TextValue, UpdateSourceTrigger=LostFocus}" MaxWidth="420" HorizontalAlignment="Stretch" />
+                  <TextBox Name="SettingSecret" AutomationProperties.Name="{Binding Heading}" IsVisible="{Binding IsSecret}" Text="{Binding TextValue, UpdateSourceTrigger=LostFocus}" PasswordChar="●" MaxWidth="420" HorizontalAlignment="Stretch" />
+                  <ComboBox Name="SettingChoice" AutomationProperties.Name="{Binding Heading}" IsVisible="{Binding IsChoice}" ItemsSource="{Binding Values}" SelectedItem="{Binding ChoiceValue}" Width="240" />
                   <Button Name="SettingJson" IsVisible="{Binding IsJson}" Classes="secondary" Content="Edit in settings.json" HorizontalAlignment="Left"
                           Command="{Binding $parent[UserControl].((vm:SettingsViewModel)DataContext).OpenJsonCommand}" />
                   <TextBlock Text="{Binding Key}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" FontFamily="monospace" />

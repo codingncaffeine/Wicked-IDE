@@ -345,7 +345,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         OnPropertyChanged(nameof(Settings));
         LayoutSettingsChanged();
         var services = await EditorServices.Ready;
-        ApplyTheme(settings.ColorTheme, services);
+        ApplyTheme(EffectiveTheme(settings), services);
         services.Apply(settings);
         Language.ApplySettings(settings); // again, now the code colours are known: the semantic colours follow them
         foreach (var tab in Workbench.AllTabs) tab.Editor?.ApplySettings(settings);

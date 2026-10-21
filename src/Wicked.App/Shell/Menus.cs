@@ -96,6 +96,9 @@ public static class MenuBuilder
         }
 
         var item = new MenuItem { Header = header, IsEnabled = enabled, Tag = label };
+        // The header is a grid (the words and the keys): a screen reader is given the words, and the keys as the item's accelerator.
+        Avalonia.Automation.AutomationProperties.SetName(item, label.Replace("_", "", StringComparison.Ordinal));
+        if (keys.Length > 0) Avalonia.Automation.AutomationProperties.SetAcceleratorKey(item, keys);
         item.Click += (_, _) => _ = run();
         return item;
     }

@@ -172,6 +172,19 @@ public sealed record WickedSettings
     [JsonPropertyName("workbench.codeColorTheme")]
     public string CodeColorTheme { get; init; } = "";
 
+    /// <summary>The theme follows the desktop's light or dark choice (the two themes below), as VS Code's window.autoDetectColorScheme.</summary>
+    [Setting("The window follows the desktop's light or dark choice, with the Preferred Dark and Preferred Light themes.")]
+    [JsonPropertyName("window.autoDetectColorScheme")]
+    public bool AutoDetectColorScheme { get; init; }
+
+    [Setting("The theme used when the desktop asks for dark and the window follows it.")]
+    [JsonPropertyName("workbench.preferredDarkColorTheme")]
+    public string PreferredDarkColorTheme { get; init; } = "Wicked Dark";
+
+    [Setting("The theme used when the desktop asks for light and the window follows it.")]
+    [JsonPropertyName("workbench.preferredLightColorTheme")]
+    public string PreferredLightColorTheme { get; init; } = "Wicked Light";
+
     [Setting("The folder and the files open when Wicked last closed open again when it starts.")]
     [JsonPropertyName("window.restoreWindows")]
     public bool RestoreSession { get; init; } = true;

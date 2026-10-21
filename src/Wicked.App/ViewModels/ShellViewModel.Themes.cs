@@ -1,6 +1,7 @@
 using Wicked.App.Editor;
 using Wicked.App.Terminal;
 using Wicked.App.Themes;
+using Wicked.Core.Settings;
 
 namespace Wicked.App.ViewModels;
 
@@ -71,6 +72,37 @@ public sealed partial class ShellViewModel
     /// <summary>F6 / Shift+F6: the keyboard to the next part of the window (side bar, editor, panel, assistant), as VS Code moves it.</summary>
     public event Action<int>? FocusPartRequested;
 
+    private ISystemColorScheme? _scheme;
+
+    /// <summary>The desktop's light or dark choice (the platform's; a test sets its own).</summary>
+    public ISystemColorScheme SystemScheme
+    {
+        get => _scheme ??= Follow(new PlatformColorScheme());
+        set => _scheme = Follow(value);
+    }
+
+    private ISystemColorScheme Follow(ISystemColorScheme scheme)
+    {
+        scheme.Changed += () =>
+        {
+            if (Settings.AutoDetectColorScheme) _ = ApplySettingsAsync(Settings);
+        };
+        return scheme;
+    }
+
+    /// <summary>
+    /// The theme in force: the settings' own, or with window.autoDetectColorScheme the preferred dark or light one for what
+    /// the desktop asks (as VS Code; when the desktop does not say, the settings' own).
+    /// </summary>
+    public string EffectiveTheme(WickedSettings s) =>
+        s.AutoDetectColorScheme && SystemScheme.PrefersDark is { } dark ? (dark ? s.PreferredDarkColorTheme : s.PreferredLightColorTheme) : s.ColorTheme;
+
+    /// <summary>A theme chosen in the picker: while the window follows the desktop, it becomes the preferred one for the desktop's choice.</summary>
+    private WickedSettings Choose(WickedSettings s, string theme) =>
+        s.AutoDetectColorScheme && SystemScheme.PrefersDark is { } dark
+            ? dark ? s with { PreferredDarkColorTheme = theme } : s with { PreferredLightColorTheme = theme }
+            : s with { ColorTheme = theme };
+
     /// <summary>The theme the settings name, when it is not the one in force (a whole repaint is not free).</summary>
     private void ApplyTheme(string name, EditorServices services)
     {
@@ -82,7 +114,7 @@ public sealed partial class ShellViewModel
     /// <summary>Ctrl+K Ctrl+T: the themes, each shown as the selection moves, kept on Enter, the one before back on Escape.</summary>
     private void PickTheme()
     {
-        var before = Settings.ColorTheme;
+        var before = EffectiveTheme(Settings);
         async Task Preview(string name)
         {
             var services = await EditorServices.Ready;
@@ -95,7 +127,7 @@ public sealed partial class ShellViewModel
 
         var all = Themes.All;
         var items = all.Select(t => new QuickItem(t.Name, t.Path is null ? (t.IsDark ? "dark" : "light") + (t.Name == before ? " · current" : "") : "from config/themes", "",
-            () => UpdateSettingsAsync(s => s with { ColorTheme = t.Name }),
+            () => UpdateSettingsAsync(s => Choose(s, t.Name)),
             () => _ = Preview(t.Name))).ToList();
         items.Add(new QuickItem("Import a VS Code color theme…", "a theme .json file", "", ImportThemeAsync));
         var current = Math.Max(0, all.ToList().FindIndex(t => t.Name == before));

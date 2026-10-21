@@ -17,6 +17,13 @@ public static class AccessibleNames
         if (Interlocked.Exchange(ref _registered, 1) == 1) return;
         Control.LoadedEvent.AddClassHandler<Button>((button, _) => Name(button));
         Control.LoadedEvent.AddClassHandler<ToggleButton>((button, _) => Name(button));
+        // A number box's arrows are parts of its template, with no words of their own.
+        Control.LoadedEvent.AddClassHandler<RepeatButton>((button, _) =>
+        {
+            if (!string.IsNullOrEmpty(AutomationProperties.GetName(button))) return;
+            if (button.Name == "PART_IncreaseButton") AutomationProperties.SetName(button, "Increase");
+            else if (button.Name == "PART_DecreaseButton") AutomationProperties.SetName(button, "Decrease");
+        });
     }
 
     private static void Name(ContentControl control)
