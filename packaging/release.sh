@@ -8,13 +8,14 @@
 #                                   must list the version (build-release.sh refuses otherwise)
 #
 # Before it: tools/gate.sh, then tools/push.sh. Needs gh (logged in), podman or docker, xvfb-run, dbus-run-session,
-# makepkg and an SSH key for aur.archlinux.org. Linux artifacts only for now (the Windows zip comes later).
+# makepkg and an SSH key for aur.archlinux.org. The Windows zip is built here too; CI has run the suite on Windows.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 VER=$(grep -oPm1 '(?<=<VersionPrefix>)[^<]+' Directory.Build.props)
 TAG="v$VER"
 TARBALL="packaging/out/WickedIDE-$VER-linux-x64.tar.gz"
 DEB="packaging/out/wicked-ide_${VER}_amd64.deb"
+ZIP="packaging/out/WickedIDE-$VER-win-x64.zip"
 NOTES="packaging/RELEASE-NOTES-$VER.md"
 AUR=scratch/aur-wicked-ide-bin
 SMOKE=(xvfb-run -a dbus-run-session --config-file=packaging/isolated-bus.conf -- packaging/smoke-test.sh)
@@ -44,6 +45,7 @@ done
 
 say "artifacts"
 packaging/build-release.sh
+packaging/build-windows.sh
 
 # One at a time: two Xvfb servers started together (or one in a host-network container) can race for a display.
 say "smoke: the tarball and the .deb, on a private screen and bus"
@@ -64,7 +66,7 @@ git tag -a "$TAG" -m "Wicked IDE $VER"
 git push -q origin "$TAG"
 
 say "GitHub release"
-gh release create "$TAG" --title "Wicked IDE $VER" --notes-file "$NOTES" "$TARBALL" "$DEB"
+gh release create "$TAG" --title "Wicked IDE $VER" --notes-file "$NOTES" "$TARBALL" "$DEB" "$ZIP"
 gh release view "$TAG" --json url -q .url
 
 say "AUR: wicked-ide-bin $VER-1"
@@ -88,4 +90,4 @@ git commit -q -m "AUR: the $VER tarball's checksum" || true
 tools/push.sh
 
 say "released $TAG"
-sha256sum "$TARBALL" "$DEB"
+sha256sum "$TARBALL" "$DEB" "$ZIP"

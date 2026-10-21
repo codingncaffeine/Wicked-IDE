@@ -23,7 +23,7 @@
     <Company>Wicked IDE</Company>
     <Authors>codingncaffeine</Authors>
     <Copyright>Copyright (C) 2026 Wicked IDE contributors</Copyright>
-    <VersionPrefix>0.0.1</VersionPrefix>
+    <VersionPrefix>0.0.3</VersionPrefix>
   </PropertyGroup>
 
   <!-- Central package versions: bump here and nowhere else. -->

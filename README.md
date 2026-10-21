@@ -4,10 +4,19 @@ A code editor built around local AI models. Wicked finds the models that fit you
 date, and puts them to work in a full editor: completions as you type, a chat that knows your project, and edits you
 review before they land. Everything runs on your machine.
 
-> **Status: early development.** The window, the daemon and the project's tooling are in place; the editor, the model
-> manager and the assistant are being built now. There is no release yet.
+> **Status: early preview.** Expect rough edges, and please report them on the issue tracker.
 
-## What it will do
+## Download
+
+From the [releases page](https://github.com/codingncaffeine/Wicked-IDE/releases/latest):
+
+- **Linux:** the `.tar.gz` (unpack anywhere, run `./wicked`), the `.deb` for Debian and Ubuntu, or `wicked-ide-bin`
+  from the AUR.
+- **Windows 10/11 (64-bit):** the `.zip`; unzip anywhere and run `wicked.exe`.
+
+.NET ships inside every download. Models and the engine that runs them are downloaded when you choose to install one.
+
+## What it does
 
 - **Models that fit, kept current.** Two or three recommendations for your hardware, one-click installs, verified
   downloads that resume, and a notice in the footer when a newer upload or a better model for your PC is out.
