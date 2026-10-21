@@ -237,6 +237,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             new("workbench.action.quickOpenNavigateNext", "View", "Switch Editor", "Ctrl+Tab", () => Sync(() => bench.ActiveGroup.Cycle(1))),
             new("workbench.action.toggleSidebarVisibility", "View", "Toggle Side Bar", "Ctrl+B", () => Sync(ToggleSidebar)),
             new("workbench.action.togglePanel", "View", "Toggle Panel", "Ctrl+J", () => Sync(() => BottomPanel.Toggle())),
+            new("wicked.newProject", "File", "New Project…", "Ctrl+Shift+N", () => NewProject.OpenAsync()),
             new("workbench.actions.view.problems", "View", "Show Problems", null, () => Sync(() => BottomPanel.Toggle(PanelIds.Problems))),
             new("workbench.action.output.toggleOutput", "View", "Show Output", "Ctrl+Shift+U", () => Sync(() => BottomPanel.Toggle(PanelIds.Output))),
             new("workbench.action.toggleMaximizedPanel", "View", "Maximise Panel", null, () => Sync(() => BottomPanel.IsMaximized = !BottomPanel.IsMaximized)),
@@ -704,6 +705,22 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
 
     [RelayCommand]
     private void ToggleAssistant() => AssistantVisible = !AssistantVisible;
+
+    /// <summary>File > New Project: a template, a name and a location (Ctrl+Shift+N, the welcome page, the empty explorer).</summary>
+    public Projects.NewProjectViewModel NewProject => _newProject ??= new Projects.NewProjectViewModel(this);
+
+    private Projects.NewProjectViewModel? _newProject;
+
+    [RelayCommand]
+    private Task StartNewProject() => NewProject.OpenAsync();
+
+    public string? LastProjectLocation => _session.ProjectLocation;
+
+    public void RememberProjectLocation(string location)
+    {
+        _session = _session with { ProjectLocation = location };
+        _ = SaveSessionAsync();
+    }
 
     /// <summary>The title bar's panel button (Ctrl+J): Problems, Output (a build's output), Terminal, Debug Console.</summary>
     [RelayCommand]

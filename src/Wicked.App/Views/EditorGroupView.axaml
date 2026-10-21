@@ -55,6 +55,20 @@
         <TextBlock Text="Wicked" FontSize="28" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,6,0,0" />
         <TextBlock Classes="secondary" TextAlignment="Center" TextWrapping="Wrap"
                    Text="Local models that stay up to date, and a real editor around them." />
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="8" Margin="0,14,0,0">
+          <Button Name="WelcomeNewProject" Classes="primary" Click="OnWelcomeNewProject" Padding="14,6" ToolTip.Tip="A new project from a template (Ctrl+Shift+N)">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <shell:Icon Data="{StaticResource Icon.FolderPlus}" Size="15" />
+              <TextBlock Text="New Project…" />
+            </StackPanel>
+          </Button>
+          <Button Name="WelcomeOpenFolder" Classes="secondary" Click="OnWelcomeOpenFolder" Padding="14,6" ToolTip.Tip="Open a folder (Ctrl+K Ctrl+O)">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <shell:Icon Data="{StaticResource Icon.FolderOpen}" Size="15" />
+              <TextBlock Text="Open Folder…" />
+            </StackPanel>
+          </Button>
+        </StackPanel>
         <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto,Auto" Margin="0,18,0,0" Width="300" RowSpacing="8">
           <TextBlock Classes="secondary" Text="Show all commands" VerticalAlignment="Center" />
           <Border Grid.Column="1" Classes="kbd"><TextBlock Text="Ctrl+Shift+P" /></Border>

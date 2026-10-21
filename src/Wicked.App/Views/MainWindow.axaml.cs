@@ -44,6 +44,7 @@ public partial class MainWindow : Window, IWorkbenchDialogs
             if (_shell.Models.RunSettings is not null) _shell.Models.RunSettings = null;
             else if (_shell.Chat.PromptEditor is not null) _shell.Chat.PromptEditor = null;
             else if (_shell.WhatsNew.IsOpen) _shell.WhatsNew.IsOpen = false;
+            else if (_shell.NewProject.IsOpen) _shell.NewProject.CloseCommand.Execute(null);
             else if (_shell.Notifications.IsOpen) _shell.Notifications.IsOpen = false;
             else if (_shell.SettingsOpen) _shell.SettingsOpen = false;
             else return;

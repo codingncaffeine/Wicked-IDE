@@ -30,6 +30,9 @@ public sealed record SessionState
 
     public double PanelHeight { get; init; }
 
+    /// <summary>The folder the last new project was made in (New Project offers it again).</summary>
+    public string? ProjectLocation { get; init; }
+
     public SessionState WithRecent(string folder) => this with
     {
         RecentFolders = [folder, .. RecentFolders.Where(f => f != folder).Take(19)],

@@ -157,6 +157,11 @@ public partial class ExplorerView : UserControl
         if (await dialogs.PickFolderAsync() is { } folder) await bench.OpenFolderAsync(folder);
     }
 
+    private void OnNewProject(object? sender, RoutedEventArgs e)
+    {
+        if (TopLevel.GetTopLevel(this)?.DataContext is Wicked.App.ViewModels.ShellViewModel shell) shell.StartNewProjectCommand.Execute(null);
+    }
+
     private void OnNewFile(object? sender, RoutedEventArgs e)
     {
         if (Bench is { } bench && TargetFolder is { } folder) _ = bench.NewFileAsync(folder);

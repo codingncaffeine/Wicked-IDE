@@ -6,6 +6,7 @@
         xmlns:chat="using:Wicked.App.Chat"
         xmlns:search="using:Wicked.App.Search"
         xmlns:git="using:Wicked.App.Git"
+        xmlns:proj="using:Wicked.App.Projects"
         xmlns:tasks="using:Wicked.App.Tasks"
         xmlns:dbg="using:Wicked.App.Debug"
         xmlns:ext="using:Wicked.App.Extensions"
@@ -301,6 +302,10 @@
 
       <Border Name="NotificationsLayer" Grid.RowSpan="3" Background="#99000000" IsVisible="{Binding Notifications.IsOpen}">
         <views:NotificationsView DataContext="{Binding Notifications}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+      </Border>
+
+      <Border Name="NewProjectLayer" Grid.RowSpan="3" Background="#99000000" IsVisible="{Binding NewProject.IsOpen}">
+        <proj:NewProjectView DataContext="{Binding NewProject}" HorizontalAlignment="Center" VerticalAlignment="Center" />
       </Border>
 
       <Border Name="WhatsNewLayer" Grid.RowSpan="3" Background="#99000000" IsVisible="{Binding WhatsNew.IsOpen}">

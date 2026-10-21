@@ -14,6 +14,12 @@
           <TextBlock Text="Open Folder" />
         </StackPanel>
       </Button>
+      <Button Name="NewProjectButton" Classes="quiet" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Click="OnNewProject">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <shell:Icon Data="{StaticResource Icon.FolderPlus}" Size="15" />
+          <TextBlock Text="New Project…" />
+        </StackPanel>
+      </Button>
     </StackPanel>
 
     <DockPanel IsVisible="{Binding ExplorerRoot, Converter={x:Static ObjectConverters.IsNotNull}}">

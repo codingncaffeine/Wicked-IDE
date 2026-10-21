@@ -1,0 +1,61 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:p="using:Wicked.App.Projects"
+             xmlns:shell="using:Wicked.App.Shell"
+             x:Class="Wicked.App.Projects.NewProjectView"
+             x:DataType="p:NewProjectViewModel">
+  <!-- New Project, as Visual Studio and Rider lay it out: the templates on the left, the name and location on the right. -->
+  <Border Classes="dialog" Width="760" Height="480" Padding="20,16">
+    <DockPanel>
+      <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="0,0,0,12">
+        <TextBlock Text="New project" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
+        <Button Grid.Column="1" Name="CloseNewProject" Classes="quiet" Command="{Binding CloseCommand}" ToolTip.Tip="Close (Escape)" AutomationProperties.Name="Close new project">
+          <shell:Icon Data="{StaticResource Icon.X}" Size="15" />
+        </Button>
+      </Grid>
+
+      <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,12,0,0">
+        <Button Classes="secondary" Content="Cancel" Command="{Binding CloseCommand}" Padding="14,6" />
+        <Button Name="CreateProject" Classes="primary" Command="{Binding CreateCommand}" IsEnabled="{Binding CanCreate}" Padding="14,6">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <TextBlock Text="Create" IsVisible="{Binding !Busy}" />
+            <TextBlock Text="Creating…" IsVisible="{Binding Busy}" />
+          </StackPanel>
+        </Button>
+      </StackPanel>
+
+      <Grid ColumnDefinitions="300,*" ColumnSpacing="20">
+        <ListBox Name="TemplateList" ItemsSource="{Binding Templates}" SelectedItem="{Binding Selected}" Classes="results">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="p:TemplateRow">
+              <Grid ColumnDefinitions="*,Auto" IsEnabled="{Binding Available}" Opacity="{Binding Available, Converter={x:Static p:NewProjectView.AvailableOpacity}}">
+                <StackPanel Spacing="1">
+                  <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Text="{Binding Language}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" />
+                </StackPanel>
+                <TextBlock Grid.Column="1" Text="{Binding Note}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" VerticalAlignment="Center" />
+              </Grid>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+
+        <StackPanel Grid.Column="1" Spacing="10">
+          <TextBlock Text="{Binding Selected.Description, FallbackValue=''}" Classes="secondary" TextWrapping="Wrap" MinHeight="36" />
+          <TextBlock Classes="heading" Text="NAME" />
+          <TextBox Name="ProjectNameBox" Text="{Binding ProjectName}" AutomationProperties.Name="Project name" />
+          <TextBlock Text="{Binding NameProblem}" Foreground="{DynamicResource Brush.Warning}" FontSize="{DynamicResource Font.Size.Small}"
+                     IsVisible="{Binding NameProblem.Length}" TextWrapping="Wrap" />
+          <TextBlock Classes="heading" Text="LOCATION" />
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+            <TextBox Name="ProjectLocationBox" Text="{Binding Location}" AutomationProperties.Name="Project location" />
+            <Button Grid.Column="1" Classes="secondary" Content="Browse…" Command="{Binding BrowseCommand}" />
+          </Grid>
+          <CheckBox Name="CreateGitBox" IsChecked="{Binding CreateGit}" Content="Create a git repository" />
+          <TextBlock Name="ProjectTarget" Text="{Binding TargetText}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" TextWrapping="Wrap" />
+          <TextBlock Name="ProjectError" Text="{Binding Error}" Foreground="{DynamicResource Brush.Danger}" TextWrapping="Wrap"
+                     IsVisible="{Binding Error.Length}" />
+        </StackPanel>
+      </Grid>
+    </DockPanel>
+  </Border>
+</UserControl>
