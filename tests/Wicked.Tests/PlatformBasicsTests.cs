@@ -154,3 +154,29 @@ public sealed class InputMethodTests
         });
     }
 }
+
+/// <summary>Polish the real-window walks found (Phase 25).</summary>
+public sealed class JourneyPolishTests
+{
+    [Trait("Tier", "Window")]
+    [Fact]
+    public async Task TheOutputPanelNamesTheChannelItShowsEvenANewOne()
+    {
+        using var profile = new TempProfile();
+        var root = Path.Combine(profile.Root, "project");
+        Directory.CreateDirectory(root);
+        File.WriteAllText(Path.Combine(root, "a.txt"), "a\n");
+        await Ui.Run(() =>
+        {
+            var (window, shell) = WorkbenchWindowTests.OpenWorkbench(profile, root);
+            // As a task does: a channel nobody wrote to yet, shown at once.
+            shell.Output.Write("Task - build", "compiling");
+            Assert.True(shell.Navigate("output/Task - build"));
+            Assert.True(Ui.PumpUntil(() => window.GetVisualDescendants().OfType<ComboBox>().Any(c => c.Name == "OutputChannel" && c.IsEffectivelyVisible), 5), "no Output panel");
+            var picker = window.GetVisualDescendants().OfType<ComboBox>().Single(c => c.Name == "OutputChannel");
+            Assert.True(Ui.PumpUntil(() => (picker.SelectedItem as OutputChannel)?.Name == "Task - build", 5), $"the box says {(picker.SelectedItem as OutputChannel)?.Name ?? picker.PlaceholderText}");
+            window.Close();
+            return 0;
+        });
+    }
+}

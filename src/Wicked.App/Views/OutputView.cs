@@ -42,6 +42,11 @@ public sealed class OutputView : DockPanel
         SetDock(bar, Dock.Top);
         Children.Add(bar);
         Children.Add(_host);
+        // A channel can be shown before it joins the list (it is added a moment later): it is chosen once it is there.
+        log.Channels.CollectionChanged += (_, _) =>
+        {
+            if (_log.Shown is { } shown && !ReferenceEquals(_picker.SelectedItem, shown) && _log.Channels.Contains(shown)) _picker.SelectedItem = shown;
+        };
         log.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(OutputLog.Shown)) _ = ShowAsync();
