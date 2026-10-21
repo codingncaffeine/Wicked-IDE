@@ -18,6 +18,7 @@ command -v taskset > /dev/null || { echo "gate: needs taskset"; exit 2; }
 # One gate at a time on this machine, from any worktree: two on the same two CPUs each take twice as long.
 exec 9> "${XDG_RUNTIME_DIR:-/tmp}/wicked-gate.lock"
 flock -n 9 || { echo "gate: another gate is running"; exit 2; }
+# Children never get the lock (9>&-): the compiler server dotnet leaves running would hold it for every later gate.
 mkdir -p scratch/gate
 
 echo "── paths that would break the Windows job"
@@ -27,7 +28,7 @@ echo "── window tests placed in a tier"
 tools/test-tiers.sh || { echo "GATE FAILED: test tiers"; exit 1; }
 
 echo "── build, warnings as errors"
-if ! dotnet build Wicked.slnx -c Release -warnaserror --nologo -v q > scratch/gate/build.log 2>&1; then
+if ! dotnet build Wicked.slnx -c Release -warnaserror --nologo -v q > scratch/gate/build.log 2>&1 9>&-; then
     grep -E "error" scratch/gate/build.log | sort -u | head -20
     echo "GATE FAILED: the build"
     exit 1
@@ -36,7 +37,7 @@ fi
 rc=0
 for i in $(seq 1 "$N"); do
     log="scratch/gate/run-$i.log"
-    taskset -c 0,1 dotnet test tests/Wicked.Tests -c Release --no-build "${tier[@]}" > "$log" 2>&1
+    taskset -c 0,1 dotnet test tests/Wicked.Tests -c Release --no-build "${tier[@]}" > "$log" 2>&1 9>&-
     line=$(grep -E "^(Passed|Failed)!" "$log" | tail -1 | cut -c1-100)
     echo "run $i of $N: ${line:-no result, see $log}"
     if ! grep -qE "^Passed!" "$log"; then
