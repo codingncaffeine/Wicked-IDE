@@ -84,7 +84,8 @@ public sealed class ServerSettingsWindowTests
                     return true;
                 };
                 var start = shell.StartAsync();
-                Assert.True(Ui.PumpUntil(() => start.IsCompleted, 10));
+                // The start includes a real daemon brought up in this process: on a loaded machine that took over 10 s.
+                Assert.True(Ui.PumpUntil(() => start.IsCompleted, 30), "Wicked did not finish starting");
 
                 Input.Chord(window, Key.OemComma, RawInputModifiers.Control);
                 Assert.True(shell.SettingsOpen);

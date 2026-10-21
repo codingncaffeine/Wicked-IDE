@@ -349,7 +349,10 @@ public sealed class GatewayTests
         var entries = rig.Daemon.Log.Since(0);
 
         Assert.Equal(3, entries.Count);
-        var ok = entries[0];
+        // Entries are in the order the requests finished, which under load need not be the order they were sent.
+        var ok = entries.Single(e => e.Status == 200 && !e.Streamed);
+        var unknown = entries.Single(e => e.Status == 404);
+        var streamed = entries.Single(e => e.Streamed);
         Assert.Equal("POST", ok.Method);
         Assert.Equal("/v1/chat/completions", ok.Route);
         Assert.Equal(GatewayRig.CoderRun, ok.Model);
@@ -358,11 +361,9 @@ public sealed class GatewayTests
         Assert.Equal(3, ok.CompletionTokens);
         Assert.True(ok.Milliseconds >= 0);
         Assert.False(ok.Streamed);
-        Assert.Equal(404, entries[1].Status);
-        Assert.Equal("nope", entries[1].Model);
-        Assert.Equal("unknown model", entries[1].Error);
-        Assert.True(entries[2].Streamed);
-        Assert.Equal(3, entries[2].CompletionTokens);
+        Assert.Equal("nope", unknown.Model);
+        Assert.Equal("unknown model", unknown.Error);
+        Assert.Equal(3, streamed.CompletionTokens);
         // The same entries are what the window's log view reads over the daemon's socket.
         using var control = rig.Control();
         var over = await control.GetAsync("v1/wicked/log", Wicked.Contracts.WickedJson.Default.ApiLogEntryArray, Ct);
