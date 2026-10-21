@@ -363,6 +363,7 @@ public sealed partial class CodeEditor : Control
             AutoSurround = settings.AutoClosingBrackets,
         });
         _view.FollowPalette = settings.CodeColorTheme.Length > 0;
+        _view.Theme = _services.EditorTheme;
         _view.BracketColors = settings.BracketPairColorization;
         TabCompletion = settings.TabCompletion is "on" or "onlySnippets";
         _settingsWrap = WrapFrom(settings);

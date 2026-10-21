@@ -69,6 +69,43 @@ public sealed class SyntaxService : IDisposable
         }
     }
 
+    private string? _custom;
+
+    /// <summary>
+    /// A VS Code theme's JSON (with its tokenColors) to colour code by instead of a bundled one — an imported window
+    /// theme's own code colours. Null goes back to <see cref="Theme"/>.
+    /// </summary>
+    public string? CustomTheme
+    {
+        get => _custom;
+        set
+        {
+            if (value == _custom) return;
+            _custom = value;
+            _themeChanged = true;
+            _wake.Set();
+        }
+    }
+
+    /// <summary>The raw theme to load: the custom JSON when it reads, else the bundled one.</summary>
+    internal static TextMateSharp.Themes.IRawTheme Load(ThemeName name, string? custom)
+    {
+        if (custom is not null)
+        {
+            try
+            {
+                using var reader = new StreamReader(new MemoryStream(System.Text.Encoding.UTF8.GetBytes(custom)));
+                return TextMateSharp.Internal.Themes.Reader.ThemeReader.ReadThemeSync(reader);
+            }
+            catch (Exception ex) when (ex is IOException or System.Text.Json.JsonException or InvalidOperationException or ArgumentException)
+            {
+                Log.Warn($"The theme's code colours could not be read: {ex.Message}");
+            }
+        }
+
+        return Languages.Registry.LoadTheme(name);
+    }
+
     /// <summary>The bundled code colour themes, for the theme picker.</summary>
     public static IReadOnlyList<ThemeName> Themes { get; } = Enum.GetValues<ThemeName>();
 
@@ -90,7 +127,7 @@ public sealed class SyntaxService : IDisposable
         try
         {
             _registry = new Registry(Languages.Registry);
-            _registry.SetTheme(Languages.Registry.LoadTheme(_theme));
+            _registry.SetTheme(Load(_theme, _custom));
             _colors = ColorTable.From(_registry.GetTheme());
         }
         catch (Exception ex)
@@ -104,7 +141,7 @@ public sealed class SyntaxService : IDisposable
             if (_themeChanged)
             {
                 _themeChanged = false;
-                _registry.SetTheme(Languages.Registry.LoadTheme(_theme));
+                _registry.SetTheme(Load(_theme, _custom));
                 _colors = ColorTable.From(_registry.GetTheme());
                 List<SyntaxSession> all;
                 lock (_gate) all = [.. _sessions];

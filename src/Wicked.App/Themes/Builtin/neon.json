@@ -1,0 +1,20 @@
+{
+  "name": "Neon",
+  "type": "dark",
+  "wicked.codeTheme": "Dracula",
+  "colors": {
+    "wicked.Brush.Ground": "#07070D", "wicked.Brush.Surface": "#0E0E18", "wicked.Brush.Editor": "#0B0B14",
+    "wicked.Brush.Raised": "#171728", "wicked.Brush.Hover": "#1E1E34", "wicked.Brush.Pressed": "#272742",
+    "wicked.Brush.Border.Subtle": "#1A1A2C", "wicked.Brush.Border": "#2C2C48", "wicked.Brush.Border.Focus": "#2EF2E5",
+    "wicked.Brush.Text": "#ECEBFF", "wicked.Brush.Text.Secondary": "#B3B1D9", "wicked.Brush.Text.Muted": "#8381AD",
+    "wicked.Brush.Text.OnAccent": "#07070D", "wicked.Brush.Accent": "#FF3EA5", "wicked.Brush.Accent.Hover": "#FF6BBB",
+    "wicked.Brush.Accent.Subtle": "#33FF3EA5", "wicked.Brush.Success": "#3DF5A0", "wicked.Brush.Warning": "#FFE45E",
+    "wicked.Brush.Danger": "#FF5370", "wicked.Brush.Match": "#4D2EF2E5", "wicked.Brush.Inserted": "#403DF5A0",
+    "wicked.Brush.Caption.Close": "#FF5370",
+    "editor.background": "#0B0B14", "editor.foreground": "#E6E5FF", "editor.lineHighlightBackground": "#14142A",
+    "editor.selectionBackground": "#55FF3EA5", "editorCursor.foreground": "#2EF2E5",
+    "editorLineNumber.foreground": "#3F3E66", "editorLineNumber.activeForeground": "#2EF2E5",
+    "terminal.background": "#0B0B14", "terminal.foreground": "#E6E5FF",
+    "terminal.ansiMagenta": "#FF3EA5", "terminal.ansiCyan": "#2EF2E5", "terminal.ansiBrightMagenta": "#FF6BBB", "terminal.ansiBrightCyan": "#7DF9F0"
+  }
+}

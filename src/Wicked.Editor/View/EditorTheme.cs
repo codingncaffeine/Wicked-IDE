@@ -108,6 +108,37 @@ public sealed record EditorTheme
 
     public static readonly EditorTheme WickedDark = new();
 
+    /// <summary>The editor's defaults on a light surface: the marks a light theme leaves to them must read on white.</summary>
+    public static readonly EditorTheme Light = new()
+    {
+        Background = 0xFFFFFFFF,
+        Foreground = 0xFF1F2329,
+        CurrentLine = 0xFFF3F4F7,
+        Selection = 0x4D6A57E3,
+        SelectionUnfocused = 0x26000000,
+        Caret = 0xFF6A57E3,
+        LineNumber = 0xFF9AA0AC,
+        LineNumberActive = 0xFF30343C,
+        IndentGuide = 0xFFE4E6EB,
+        IndentGuideActive = 0xFFC2C6CE,
+        BracketMatch = 0x996A57E3,
+        Whitespace = 0x66737A88,
+        BracketColors = [0xFF0431FA, 0xFF319331, 0xFF7B3814],
+        FindMatch = 0x55F2B84B,
+        FindMatchCurrent = 0xAAF2B84B,
+        ScrollbarThumb = 0x26000000,
+        ScrollbarThumbActive = 0x40000000,
+        ErrorColor = 0xFFE51400,
+        WarningColor = 0xFFBF8803,
+        InfoColor = 0xFF1A85FF,
+        HintColor = 0xB3555555,
+        WordHighlight = 0x40A0A8B8,
+        WordHighlightWrite = 0x55A0A8B8,
+        InlayForeground = 0xFF7A7A7A,
+        InlayBackground = 0x1A7A7A7A,
+        GhostText = 0x80000000,
+    };
+
     /// <summary>
     /// This theme with the editor surface a code palette defines (background, text, selection, current line, line
     /// numbers, caret), so a light palette reads on its own light background. Colours the palette leaves out stay.

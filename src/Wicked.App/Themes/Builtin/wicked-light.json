@@ -1,0 +1,23 @@
+{
+  "name": "Wicked Light",
+  "type": "light",
+  "wicked.codeTheme": "LightPlus",
+  "colors": {
+    "wicked.Brush.Ground": "#E7E8ED", "wicked.Brush.Surface": "#F5F6F8", "wicked.Brush.Editor": "#FFFFFF",
+    "wicked.Brush.Raised": "#FFFFFF", "wicked.Brush.Hover": "#E6E8EE", "wicked.Brush.Pressed": "#DADDE6",
+    "wicked.Brush.Border.Subtle": "#E1E3E9", "wicked.Brush.Border": "#C9CDD6", "wicked.Brush.Border.Focus": "#6A57E3",
+    "wicked.Brush.Text": "#1B1D23", "wicked.Brush.Text.Secondary": "#4A505E", "wicked.Brush.Text.Muted": "#6A7180",
+    "wicked.Brush.Text.OnAccent": "#FFFFFF", "wicked.Brush.Accent": "#6A57E3", "wicked.Brush.Accent.Hover": "#5844D2",
+    "wicked.Brush.Accent.Subtle": "#1F6A57E3", "wicked.Brush.Success": "#17834F", "wicked.Brush.Warning": "#9A6408",
+    "wicked.Brush.Danger": "#C5303E", "wicked.Brush.Match": "#55F2B84B", "wicked.Brush.Inserted": "#402EA043",
+    "wicked.Brush.Caption.Close": "#C5303E",
+    "editor.background": "#FFFFFF", "editor.foreground": "#1F2329", "editor.lineHighlightBackground": "#F3F4F7",
+    "editor.selectionBackground": "#4D6A57E3", "editorCursor.foreground": "#6A57E3",
+    "editorLineNumber.foreground": "#9AA0AC", "editorLineNumber.activeForeground": "#30343C",
+    "terminal.background": "#FFFFFF", "terminal.foreground": "#1F2329",
+    "terminal.ansiBlack": "#000000", "terminal.ansiRed": "#CD3131", "terminal.ansiGreen": "#107C10", "terminal.ansiYellow": "#949800",
+    "terminal.ansiBlue": "#0451A5", "terminal.ansiMagenta": "#BC05BC", "terminal.ansiCyan": "#0598BC", "terminal.ansiWhite": "#555555",
+    "terminal.ansiBrightBlack": "#666666", "terminal.ansiBrightRed": "#CD3131", "terminal.ansiBrightGreen": "#14CE14", "terminal.ansiBrightYellow": "#B5BA00",
+    "terminal.ansiBrightBlue": "#0451A5", "terminal.ansiBrightMagenta": "#BC05BC", "terminal.ansiBrightCyan": "#0598BC", "terminal.ansiBrightWhite": "#A5A5A5"
+  }
+}

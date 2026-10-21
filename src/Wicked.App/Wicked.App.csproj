@@ -34,6 +34,7 @@
 
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" />
+    <EmbeddedResource Include="Themes\Builtin\*.json" LogicalName="Wicked.App.Themes.Builtin.%(Filename).json" />
     <!-- The editor's JetBrains Mono (SIL OFL 1.1), also set in the chat's code blocks. -->
     <AvaloniaResource Include="..\Wicked.Editor\Fonts\*.ttf" Link="Assets\Fonts\%(Filename)%(Extension)" />
   </ItemGroup>

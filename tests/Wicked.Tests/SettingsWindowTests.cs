@@ -87,7 +87,7 @@ public sealed class SettingsWindowTests
             var syntax = EditorServices.Ready.Result.Syntax;
             var before = syntax.Theme;
 
-            shell.Commands.First(c => c.Id == "workbench.action.selectTheme").Run();
+            shell.Commands.First(c => c.Id == "wicked.selectCodeColours").Run();
             Assert.True(Ui.PumpUntil(() => shell.QuickInput.Items.Count > 5, 5));
             shell.QuickInput.Selected = shell.QuickInput.Items.ToList().FindIndex(i => i.Label == "Dracula");
             Assert.True(Ui.PumpUntil(() => syntax.Theme == TextMateSharp.Grammars.ThemeName.Dracula, 5), "no live preview");

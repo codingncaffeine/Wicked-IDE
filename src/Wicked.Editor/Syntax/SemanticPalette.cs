@@ -58,10 +58,10 @@ public sealed class SemanticPalette
     public ThemeName Name { get; }
 
     /// <summary>The palette for a code theme. Reads the theme from the bundled set: call off the UI thread.</summary>
-    public static SemanticPalette For(ThemeName name)
+    public static SemanticPalette For(ThemeName name, string? custom = null)
     {
         var registry = new Registry(Languages.Registry);
-        registry.SetTheme(Languages.Registry.LoadTheme(name));
+        registry.SetTheme(SyntaxService.Load(name, custom));
         return new SemanticPalette(name, registry.GetTheme());
     }
 

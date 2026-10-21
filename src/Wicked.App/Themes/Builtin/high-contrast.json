@@ -1,0 +1,19 @@
+{
+  "name": "High Contrast",
+  "type": "hc",
+  "wicked.codeTheme": "HighContrastDark",
+  "colors": {
+    "wicked.Brush.Ground": "#000000", "wicked.Brush.Surface": "#000000", "wicked.Brush.Editor": "#000000",
+    "wicked.Brush.Raised": "#0A0A0A", "wicked.Brush.Hover": "#1F1F1F", "wicked.Brush.Pressed": "#333333",
+    "wicked.Brush.Border.Subtle": "#6FC3DF", "wicked.Brush.Border": "#6FC3DF", "wicked.Brush.Border.Focus": "#F38518",
+    "wicked.Brush.Text": "#FFFFFF", "wicked.Brush.Text.Secondary": "#FFFFFF", "wicked.Brush.Text.Muted": "#D0D0D0",
+    "wicked.Brush.Text.OnAccent": "#000000", "wicked.Brush.Accent": "#F38518", "wicked.Brush.Accent.Hover": "#FFA54F",
+    "wicked.Brush.Accent.Subtle": "#40F38518", "wicked.Brush.Success": "#89D185", "wicked.Brush.Warning": "#FFD700",
+    "wicked.Brush.Danger": "#FF6B6B", "wicked.Brush.Match": "#80F38518", "wicked.Brush.Inserted": "#6089D185",
+    "wicked.Brush.Caption.Close": "#FF6B6B",
+    "editor.background": "#000000", "editor.foreground": "#FFFFFF", "editor.lineHighlightBackground": "#0F0F0F",
+    "editor.selectionBackground": "#80F38518", "editorCursor.foreground": "#FFFFFF",
+    "editorLineNumber.foreground": "#B0B0B0", "editorLineNumber.activeForeground": "#FFFFFF",
+    "terminal.background": "#000000", "terminal.foreground": "#FFFFFF"
+  }
+}

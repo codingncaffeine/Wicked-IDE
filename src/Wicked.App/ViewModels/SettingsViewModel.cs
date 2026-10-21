@@ -25,7 +25,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     public SettingsViewModel(ShellViewModel shell)
     {
         _shell = shell;
-        CodeThemes = [new("", "Wicked Dark (the theme's own)"), .. SyntaxService.Themes.Select(t => new SettingChoice(t.ToString(), ShellViewModel.Friendly(t.ToString())))];
+        CodeThemes = [new("", "The window theme's own"), .. SyntaxService.Themes.Select(t => new SettingChoice(t.ToString(), ShellViewModel.Friendly(t.ToString())))];
         DownloadLimits = [new("0", "Unlimited"), .. new[] { 1, 2, 5, 10, 25, 50, 100 }.Select(n => new SettingChoice(n.ToString(CultureInfo.InvariantCulture), n + " MB/s"))];
         Runtime = new RuntimeViewModel(shell.Models, shell.UpdateSettingsAsync);
         LanguageServers = new LanguageServersViewModel(shell);
@@ -48,6 +48,20 @@ public sealed partial class SettingsViewModel : ObservableObject
     public void RequestSection(string section) => SectionRequested?.Invoke(section);
 
     public IReadOnlyList<SettingChoice> CodeThemes { get; }
+
+    /// <summary>The window themes: the six built in and the user's (config/themes).</summary>
+    public IReadOnlyList<SettingChoice> WindowThemes => [.. _shell.Themes.All.Select(t => new SettingChoice(t.Name, t.Name))];
+
+    [ObservableProperty]
+    private SettingChoice? _windowTheme;
+
+    partial void OnWindowThemeChanged(SettingChoice? value)
+    {
+        if (value is not null) Change(s => s with { ColorTheme = value.Value });
+    }
+
+    [RelayCommand]
+    private Task ImportTheme() => _shell.Commands.First(c => c.Id == "workbench.action.importTheme").Run();
 
     /// <summary>Settings → Runtime: the engine, its devices, the backend choice, updates and rollback.</summary>
     public RuntimeViewModel Runtime { get; }
@@ -194,6 +208,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         TabSize = s.TabSize;
         InsertSpaces = s.InsertSpaces;
         AutoClosingBrackets = s.AutoClosingBrackets;
+        OnPropertyChanged(nameof(WindowThemes));
+        WindowTheme = WindowThemes.FirstOrDefault(t => string.Equals(t.Value, s.ColorTheme, StringComparison.OrdinalIgnoreCase)) ?? WindowThemes.FirstOrDefault();
         CodeTheme = CodeThemes.FirstOrDefault(c => string.Equals(c.Value, s.CodeColorTheme, StringComparison.OrdinalIgnoreCase)) ?? CodeThemes[0];
         AutoSave = AutoSaveModes.FirstOrDefault(c => c.Value == s.AutoSave) ?? AutoSaveModes[0];
         AutoSaveDelay = s.AutoSaveDelay;

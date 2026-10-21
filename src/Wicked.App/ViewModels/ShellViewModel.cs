@@ -246,7 +246,9 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             new("editor.action.fontZoomReset", "View", "Reset Zoom", "Ctrl+D0", () => UpdateSettingsAsync(st => st with { FontSize = new WickedSettings().FontSize })),
             new("workbench.action.openSettings", "Preferences", "Open Settings", "Ctrl+OemComma", () => Sync(() => SettingsOpen = true)),
             new("workbench.action.openSettingsJson", "Preferences", "Open Settings (JSON)", null, OpenSettingsJsonAsync),
-            new("workbench.action.selectTheme", "Preferences", "Code Colours", "Ctrl+K Ctrl+T", () => Sync(PickCodeColours)),
+            new("workbench.action.selectTheme", "Preferences", "Color Theme", "Ctrl+K Ctrl+T", () => Sync(PickTheme)),
+            new("wicked.selectCodeColours", "Preferences", "Code Colours", null, () => Sync(PickCodeColours)),
+            new("workbench.action.importTheme", "Preferences", "Import a VS Code Color Theme...", null, ImportThemeAsync),
             new("editor.foldAll", "View", "Fold All", "Ctrl+K Ctrl+D0", () => Sync(() => Workbench.ActiveTab?.Editor?.FoldAll())),
             new("editor.unfoldAll", "View", "Unfold All", "Ctrl+K Ctrl+J", () => Sync(() => Workbench.ActiveTab?.Editor?.UnfoldAll())),
             new("editor.action.toggleWordWrap", "View", "Toggle Word Wrap", "Alt+Z", () => Sync(() => Workbench.ActiveTab?.Editor?.ToggleWordWrap())),
@@ -288,6 +290,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         Chat.ApplySettings(settings);
         OnPropertyChanged(nameof(Settings));
         var services = await EditorServices.Ready;
+        ApplyTheme(settings.ColorTheme, services);
         services.Apply(settings);
         foreach (var tab in Workbench.AllTabs) tab.Editor?.ApplySettings(settings);
     }
@@ -401,7 +404,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         await Workbench.OpenAsync(path);
     }
 
-    /// <summary>Ctrl+K Ctrl+T: the code colour palettes, each previewed as the selection moves, kept on Enter, undone on Escape.</summary>
+    /// <summary>Code colours: the code colour palettes, each previewed as the selection moves, kept on Enter, undone on Escape.</summary>
     private void PickCodeColours()
     {
         var before = Settings;
@@ -493,6 +496,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     public async Task StartAsync()
     {
         var (settings, problem) = await SettingsFile.ReadAsync(Paths.SettingsFile, CancellationToken.None);
+        await Themes.LoadUserThemesAsync();
         await ApplySettingsAsync(settings);
         await ReloadKeybindingsAsync();
         await Snippets.LoadAsync();

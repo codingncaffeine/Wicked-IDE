@@ -35,12 +35,23 @@ public sealed class EditorServices : IDisposable
         return services;
     }));
 
+    /// <summary>The editor's surface colours, from the window theme (the theme service sets them).</summary>
+    public Wicked.Editor.View.EditorTheme EditorTheme { get; set; } = Wicked.Editor.View.EditorTheme.WickedDark;
+
+    /// <summary>The window theme's own code colours: a bundled palette, or an imported theme's tokenColors.</summary>
+    public ThemeName WindowCodeTheme { get; set; } = ThemeName.DarkPlus;
+
+    public string? WindowCodeThemeJson { get; set; }
+
     /// <summary>Applies the editor-wide settings: the font size, line height and ligatures, and the code colours.</summary>
     public void Apply(WickedSettings settings)
     {
         var wanted = new EditorFontSettings((float)Math.Clamp(settings.FontSize, 6, 72), (float)Math.Clamp(settings.LineHeight, 1, 3), settings.FontLigatures);
         if (wanted != Fonts.Settings) Layout.Fonts = Fonts.With(wanted);
-        Syntax.Theme = CodeTheme(settings.CodeColorTheme);
+        // Code colours chosen apart from the window theme win (D28); empty follows the theme.
+        var own = settings.CodeColorTheme.Length > 0;
+        Syntax.Theme = own ? CodeTheme(settings.CodeColorTheme) : WindowCodeTheme;
+        Syntax.CustomTheme = own ? null : WindowCodeThemeJson;
     }
 
     /// <summary>The code colour theme a setting names; empty (the window theme's own) is Dark+, which Wicked Dark is built around.</summary>
