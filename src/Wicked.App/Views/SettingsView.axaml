@@ -19,6 +19,7 @@
         <Button Classes="quiet" Content="Files" Click="OnJump" Tag="files" />
         <Button Classes="quiet" Content="Session" Click="OnJump" Tag="session" />
         <Button Name="JumpLanguages" Classes="quiet" Content="Languages" Click="OnJump" Tag="languages" />
+        <Button Name="JumpTerminal" Classes="quiet" Content="Terminal" Click="OnJump" Tag="terminal" />
         <Button Name="JumpModels" Classes="quiet" Content="Models" Click="OnJump" Tag="models" />
         <Button Name="JumpRuntime" Classes="quiet" Content="Runtime" Click="OnJump" Tag="runtime" />
         <Button Name="JumpServer" Classes="quiet" Content="Server" Click="OnJump" Tag="server" />
@@ -51,7 +52,11 @@
 
           <StackPanel Spacing="10">
             <TextBlock Name="SectionAppearance" Classes="heading" Text="APPEARANCE" />
-            <Grid ColumnDefinitions="220,*" RowDefinitions="Auto,Auto" RowSpacing="10" Classes="settings">
+            <Grid ColumnDefinitions="220,*" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="10" Classes="settings">
+              <TextBlock Grid.Row="2" Text="Title bar" />
+              <ComboBox Grid.Row="2" Grid.Column="1" Name="TitleBarBox" ItemsSource="{Binding TitleBarStyles}" SelectedItem="{Binding TitleBarStyle}" Width="280" />
+              <TextBlock Grid.Row="3" Text="Caret" />
+              <ComboBox Grid.Row="3" Grid.Column="1" Name="CaretBox" ItemsSource="{Binding CaretStyles}" SelectedItem="{Binding CaretStyle}" Width="180" />
               <TextBlock Text="Theme" />
               <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
                 <ComboBox Name="WindowThemeBox" ItemsSource="{Binding WindowThemes}" SelectedItem="{Binding WindowTheme}" Width="280" />
@@ -113,6 +118,22 @@
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ItemsControl>
+          </StackPanel>
+
+          <StackPanel Spacing="10">
+            <TextBlock Name="SectionTerminal" Classes="heading" Text="TERMINAL" />
+            <Grid ColumnDefinitions="220,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto" RowSpacing="10" Classes="settings">
+              <TextBlock Text="Font size" />
+              <NumericUpDown Grid.Column="1" Value="{Binding TerminalFontSize}" Minimum="6" Maximum="48" Increment="1" FormatString="0" Width="120" HorizontalAlignment="Left" />
+              <TextBlock Grid.Row="1" Text="Scrollback lines" />
+              <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding TerminalScrollback}" Minimum="100" Maximum="1000000" Increment="1000" FormatString="0" Width="160" HorizontalAlignment="Left" />
+              <TextBlock Grid.Row="2" Text="Cursor" />
+              <ComboBox Grid.Row="2" Grid.Column="1" ItemsSource="{Binding TerminalCursorStyles}" SelectedItem="{Binding TerminalCursorStyle}" Width="180" />
+              <TextBlock Grid.Row="3" Text="Copy on selection" />
+              <ToggleSwitch Grid.Row="3" Grid.Column="1" IsChecked="{Binding TerminalCopyOnSelection}" OnContent="" OffContent="" />
+              <TextBlock Grid.Row="4" Text="Shell integration" />
+              <ToggleSwitch Grid.Row="4" Grid.Column="1" IsChecked="{Binding TerminalShellIntegration}" OnContent="" OffContent="" />
+            </Grid>
           </StackPanel>
 
           <StackPanel Spacing="10">

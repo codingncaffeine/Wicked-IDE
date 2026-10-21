@@ -82,7 +82,9 @@ public sealed partial class CodeEditor : Control
 
         _syntax = services.Syntax.Open(document.Text, document.Version, language, snapshot => Dispatcher.UIThread.Post(() =>
         {
-            if (snapshot.Version > (_view.Syntax?.Version ?? -1) || snapshot.ValidLines != _view.Syntax?.ValidLines) _view.Syntax = snapshot;
+            // A new colour theme highlights the same version again with the same lines: its colour table is what is new.
+            var recoloured = snapshot.Version >= (_view.Syntax?.Version ?? -1) && !ReferenceEquals(snapshot.Colors, _view.Syntax?.Colors);
+            if (snapshot.Version > (_view.Syntax?.Version ?? -1) || snapshot.ValidLines != _view.Syntax?.ValidLines || recoloured) _view.Syntax = snapshot;
             // Strings and comments known: brackets inside them stop counting.
             if (snapshot.ValidLines == document.Text.LineCount && snapshot.Version == document.Version) RequestFeatures();
             InvalidateVisual();

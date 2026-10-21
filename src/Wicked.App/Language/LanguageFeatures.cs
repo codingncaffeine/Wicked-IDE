@@ -67,7 +67,8 @@ public sealed partial class LanguageFeatures : ObservableObject, IAsyncDisposabl
     public void ApplySettings(WickedSettings settings)
     {
         var serversChanged = !Equals(settings.Servers, _settings.Servers) || settings.LanguageServers != _settings.LanguageServers;
-        var recolour = settings.CodeColorTheme != _settings.CodeColorTheme || settings.SemanticHighlighting != _settings.SemanticHighlighting;
+        // Called after the editor services take the settings' code colours (and again by a theme preview).
+        var recolour = PaletteIsStale || settings.SemanticHighlighting != _settings.SemanticHighlighting;
         _settings = settings;
         if (recolour)
         {

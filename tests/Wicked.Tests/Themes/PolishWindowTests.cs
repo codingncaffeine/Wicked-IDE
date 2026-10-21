@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.VisualTree;
 using Wicked.App.Shell;
@@ -71,6 +72,146 @@ public sealed class PolishWindowTests
             Input.Chord(window, Key.F6, RawInputModifiers.Shift);
             Assert.True(Ui.PumpUntil(() => tab.Editor.IsFocused, 5), "Shift+F6 did not reach the editor");
             window.Close();
+            return 0;
+        });
+    }
+
+    /// <summary>The colour the editor paints the token at <paramref name="column"/> of <paramref name="line"/> in.</summary>
+    private static uint ColourAt(Wicked.Editor.Syntax.SyntaxSnapshot s, int line, int column)
+    {
+        var tokens = s[line] ?? throw new InvalidOperationException($"line {line} has no tokens");
+        var index = 0;
+        while (index + 1 < tokens.Count && tokens.Start(index + 1) <= column) index++;
+        return s.Colors[tokens.Foreground(index)];
+    }
+
+    /// <summary>The colour a code theme on its own gives the token (an independent highlighter, settled).</summary>
+    private static uint ExpectedColour(TextMateSharp.Grammars.ThemeName theme, string text, string file, int line, int column)
+    {
+        using var service = new Wicked.Editor.Syntax.SyntaxService(theme);
+        var doc = new Wicked.Editor.Model.Document(text);
+        Wicked.Editor.Syntax.SyntaxSnapshot? latest = null;
+        service.Open(doc.Text, doc.Version, Wicked.Editor.Syntax.Languages.ForFile(file), s => Volatile.Write(ref latest, s));
+        var until = DateTime.UtcNow.AddSeconds(20);
+        while (Volatile.Read(ref latest) is not { } s || s.ValidLines != doc.Text.LineCount)
+        {
+            if (DateTime.UtcNow > until) throw new TimeoutException("the reference highlighting did not settle");
+            Thread.Sleep(20);
+        }
+
+        return ColourAt(latest!, line, column);
+    }
+
+    [Fact]
+    public async Task PickingAWindowThemeRecoloursTheCodeAlreadyOpen()
+    {
+        const string Text = "public sealed class Totals\n{\n    // every line\n}\n";
+        var darkPlus = ExpectedColour(TextMateSharp.Grammars.ThemeName.DarkPlus, Text, "a.cs", 0, 0);
+        var dracula = ExpectedColour(TextMateSharp.Grammars.ThemeName.Dracula, Text, "a.cs", 0, 0);
+        Assert.NotEqual(darkPlus, dracula);
+        using var profile = new TempProfile();
+        var root = Path.Combine(profile.Root, "project");
+        Directory.CreateDirectory(root);
+        File.WriteAllText(Path.Combine(root, "a.cs"), Text);
+        await Ui.Run(() =>
+        {
+            var (window, shell) = WorkbenchWindowTests.OpenWorkbench(profile, root);
+            try
+            {
+                var view = WorkbenchWindowTests.OpenByClicks(window, shell, "a.cs").Editor!.View;
+                Assert.True(Ui.PumpUntil(() => view.Syntax is { } s && s.ValidLines == view.Document.Text.LineCount, 20), "the file was not highlighted");
+                Assert.Equal(darkPlus, ColourAt(view.Syntax!, 0, 0));
+
+                // The user's path: Settings, the theme box, Neon (whose code colours are Dracula's).
+                shell.SettingsOpen = true;
+                Ui.Pump(0.3);
+                var box = window.GetVisualDescendants().OfType<ComboBox>().First(c => c.Name == "WindowThemeBox");
+                box.SelectedItem = box.Items.OfType<Wicked.App.ViewModels.SettingChoice>().First(c => c.Value == "Neon");
+                Assert.True(Ui.PumpUntil(() => ColourAt(view.Syntax!, 0, 0) == dracula, 20), $"the keyword is still {ColourAt(view.Syntax!, 0, 0):X8}, Dracula's is {dracula:X8}");
+            }
+            finally
+            {
+                var services = Wicked.App.Editor.EditorServices.Ready.Result;
+                shell.Themes.Apply(shell.Themes.Builtins[0], services);
+                services.Apply(new Wicked.Core.Settings.WickedSettings());
+                window.Close();
+            }
+
+            return 0;
+        });
+    }
+
+    [Fact]
+    public async Task TheComposerRowFitsTheAssistantWithEveryChipShowing()
+    {
+        using var profile = new TempProfile();
+        var root = Path.Combine(profile.Root, "project");
+        Directory.CreateDirectory(root);
+        File.WriteAllText(Path.Combine(root, "a-file-with-a-long-name.cs"), "class A { }\n");
+        await Ui.Run(() =>
+        {
+            var (window, shell) = WorkbenchWindowTests.OpenWorkbench(profile, root);
+            try
+            {
+                WorkbenchWindowTests.OpenByClicks(window, shell, "a-file-with-a-long-name.cs");
+                var agent = window.GetVisualDescendants().OfType<ToggleButton>().First(b => b.Name == "AgentToggle");
+                var file = window.GetVisualDescendants().OfType<ToggleButton>().First(b => b.Name == "FileChip");
+                Assert.True(Ui.PumpUntil(() => agent.IsEffectivelyVisible && file.IsEffectivelyVisible, 5), "the agent toggle and the file chip did not show");
+                Ui.Pump(0.3);
+                var row = (Grid)agent.GetVisualParent()!;
+                foreach (var chip in row.Children.Where(c => c.IsVisible && c.Name != "PromptChip"))
+                {
+                    Assert.True(chip.Bounds.Width >= chip.DesiredSize.Width - 0.5, $"{chip.Name} is squeezed: {chip.Bounds.Width:0.#} of {chip.DesiredSize.Width:0.#}");
+                    Assert.True(chip.Bounds.Right <= row.Bounds.Width + 0.5, $"{chip.Name} runs past the row: {chip.Bounds.Right:0.#} of {row.Bounds.Width:0.#}");
+                }
+
+                var text = agent.GetVisualDescendants().OfType<TextBlock>().Single();
+                Assert.Equal("Agent", text.Text);
+                Assert.True(text.Bounds.Width >= text.DesiredSize.Width - 0.5, $"the label is cut: {text.Bounds.Width:0.#} of {text.DesiredSize.Width:0.#}");
+            }
+            finally
+            {
+                window.Close();
+            }
+
+            return 0;
+        });
+    }
+
+    [Fact]
+    public async Task TheTitleBarSettingSwapsWickedsBarForTheDesktopsFrameAndBack()
+    {
+        using var profile = new TempProfile();
+        var root = Path.Combine(profile.Root, "project");
+        Directory.CreateDirectory(root);
+        File.WriteAllText(Path.Combine(root, "a.txt"), "text\n");
+        await Ui.Run(() =>
+        {
+            var (window, shell) = WorkbenchWindowTests.OpenWorkbench(profile, root);
+            try
+            {
+                var captions = window.FindControl<Control>("TitleBar")!.GetVisualDescendants().OfType<Button>().Where(b => b.Classes.Contains("caption")).ToList();
+                Assert.Equal(3, captions.Count);
+                Assert.True(window.ExtendClientAreaToDecorationsHint);
+                Assert.All(captions, b => Assert.True(b.IsVisible));
+
+                shell.SettingsOpen = true;
+                Ui.Pump(0.3);
+                var box = window.GetVisualDescendants().OfType<ComboBox>().First(c => c.Name == "TitleBarBox");
+                box.SelectedIndex = 1;
+                Assert.True(Ui.PumpUntil(() => shell.Settings.TitleBarStyle == "native" && window.WindowDecorations == WindowDecorations.Full, 5), $"style {shell.Settings.TitleBarStyle}, decorations {window.WindowDecorations}");
+                Assert.False(window.ExtendClientAreaToDecorationsHint);
+                Assert.All(captions, b => Assert.False(b.IsVisible));
+
+                box.SelectedIndex = 0;
+                Assert.True(Ui.PumpUntil(() => shell.Settings.TitleBarStyle == "custom" && window.ExtendClientAreaToDecorationsHint, 5), "custom did not come back");
+                Assert.All(captions, b => Assert.True(b.IsVisible));
+            }
+            finally
+            {
+                window.Close();
+            }
+
             return 0;
         });
     }

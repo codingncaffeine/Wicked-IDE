@@ -67,6 +67,10 @@ public sealed record WickedSettings
     [JsonPropertyName("files.insertFinalNewline")]
     public bool InsertFinalNewline { get; init; }
 
+    /// <summary>The title bar: "custom" (Wicked draws it, with the command centre) or "native" (the desktop's frame).</summary>
+    [JsonPropertyName("window.titleBarStyle")]
+    public string TitleBarStyle { get; init; } = "custom";
+
     /// <summary>The caret: "blink" (the default) or "solid" (a steady caret, also what reduced motion asks for).</summary>
     [JsonPropertyName("editor.cursorBlinking")]
     public string CursorBlinking { get; init; } = "blink";

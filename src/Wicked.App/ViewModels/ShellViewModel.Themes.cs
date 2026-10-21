@@ -87,6 +87,7 @@ public sealed partial class ShellViewModel
             Themes.Apply(Themes.Find(name), services);
             _themeApplied = name;
             services.Apply(Settings);
+            Language.ApplySettings(Settings);
             foreach (var tab in Workbench.AllTabs) tab.Editor?.ApplySettings(Settings);
         }
 

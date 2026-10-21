@@ -55,6 +55,47 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private SettingChoice? _windowTheme;
 
+    public IReadOnlyList<SettingChoice> TitleBarStyles { get; } = [new("custom", "Wicked's (with the command centre)"), new("native", "The desktop's own")];
+
+    public IReadOnlyList<SettingChoice> CaretStyles { get; } = [new("blink", "Blinking"), new("solid", "Steady")];
+
+    public IReadOnlyList<SettingChoice> TerminalCursorStyles { get; } = [new("block", "Block"), new("bar", "Bar"), new("underline", "Underline")];
+
+    [ObservableProperty]
+    private SettingChoice? _titleBarStyle;
+
+    [ObservableProperty]
+    private SettingChoice? _caretStyle;
+
+    [ObservableProperty]
+    private double _terminalFontSize;
+
+    [ObservableProperty]
+    private double _terminalScrollback;
+
+    [ObservableProperty]
+    private SettingChoice? _terminalCursorStyle;
+
+    [ObservableProperty]
+    private bool _terminalCopyOnSelection;
+
+    [ObservableProperty]
+    private bool _terminalShellIntegration;
+
+    partial void OnTitleBarStyleChanged(SettingChoice? value) => Change(s => s with { TitleBarStyle = value?.Value ?? "custom" });
+
+    partial void OnCaretStyleChanged(SettingChoice? value) => Change(s => s with { CursorBlinking = value?.Value ?? "blink" });
+
+    partial void OnTerminalFontSizeChanged(double value) => Change(s => s with { TerminalFontSize = Math.Round(value) });
+
+    partial void OnTerminalScrollbackChanged(double value) => Change(s => s with { TerminalScrollback = (int)Math.Round(value) });
+
+    partial void OnTerminalCursorStyleChanged(SettingChoice? value) => Change(s => s with { TerminalCursorStyle = value?.Value ?? "block" });
+
+    partial void OnTerminalCopyOnSelectionChanged(bool value) => Change(s => s with { TerminalCopyOnSelection = value });
+
+    partial void OnTerminalShellIntegrationChanged(bool value) => Change(s => s with { TerminalShellIntegration = value });
+
     partial void OnWindowThemeChanged(SettingChoice? value)
     {
         if (value is not null) Change(s => s with { ColorTheme = value.Value });
@@ -208,6 +249,13 @@ public sealed partial class SettingsViewModel : ObservableObject
         TabSize = s.TabSize;
         InsertSpaces = s.InsertSpaces;
         AutoClosingBrackets = s.AutoClosingBrackets;
+        TitleBarStyle = TitleBarStyles.FirstOrDefault(c => c.Value == s.TitleBarStyle) ?? TitleBarStyles[0];
+        CaretStyle = CaretStyles.FirstOrDefault(c => c.Value == s.CursorBlinking) ?? CaretStyles[0];
+        TerminalFontSize = s.TerminalFontSize;
+        TerminalScrollback = s.TerminalScrollback;
+        TerminalCursorStyle = TerminalCursorStyles.FirstOrDefault(c => c.Value == s.TerminalCursorStyle) ?? TerminalCursorStyles[0];
+        TerminalCopyOnSelection = s.TerminalCopyOnSelection;
+        TerminalShellIntegration = s.TerminalShellIntegration;
         OnPropertyChanged(nameof(WindowThemes));
         WindowTheme = WindowThemes.FirstOrDefault(t => string.Equals(t.Value, s.ColorTheme, StringComparison.OrdinalIgnoreCase)) ?? WindowThemes.FirstOrDefault();
         CodeTheme = CodeThemes.FirstOrDefault(c => string.Equals(c.Value, s.CodeColorTheme, StringComparison.OrdinalIgnoreCase)) ?? CodeThemes[0];

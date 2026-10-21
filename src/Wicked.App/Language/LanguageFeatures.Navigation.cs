@@ -37,17 +37,23 @@ public sealed partial class LanguageFeatures
     }
 
     private Task<Wicked.Editor.Syntax.SemanticPalette>? _palette;
-    private string? _paletteFor;
+    private (TextMateSharp.Grammars.ThemeName Theme, string? Custom) _paletteFor;
+
+    /// <summary>The code colours the editors use: the setting's own palette, or the window theme's (and its token colours).</summary>
+    private static (TextMateSharp.Grammars.ThemeName Theme, string? Custom) CodeColours() =>
+        EditorServices.Ready.IsCompletedSuccessfully ? (EditorServices.Ready.Result.Syntax.Theme, EditorServices.Ready.Result.Syntax.CustomTheme) : (TextMateSharp.Grammars.ThemeName.DarkPlus, null);
+
+    /// <summary>The code colours changed since the semantic colours were worked out (a palette already in use only).</summary>
+    private bool PaletteIsStale => _palette is not null && CodeColours() != _paletteFor;
 
     /// <summary>The semantic token colours of the code theme in force, read once per theme on a worker.</summary>
     internal Task<Wicked.Editor.Syntax.SemanticPalette> SemanticPaletteAsync()
     {
-        var name = _settings.CodeColorTheme;
-        if (_palette is null || _paletteFor != name)
+        var wanted = CodeColours();
+        if (_palette is null || _paletteFor != wanted)
         {
-            _paletteFor = name;
-            var theme = EditorServices.CodeTheme(name);
-            _palette = Task.Run(() => Wicked.Editor.Syntax.SemanticPalette.For(theme));
+            _paletteFor = wanted;
+            _palette = Task.Run(() => Wicked.Editor.Syntax.SemanticPalette.For(wanted.Theme, wanted.Custom));
         }
 
         return _palette;

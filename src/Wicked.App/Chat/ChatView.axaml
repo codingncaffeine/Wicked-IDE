@@ -47,12 +47,21 @@
           </ItemsControl.ItemTemplate>
         </ItemsControl>
 
+        <!-- The context going with the question, above what is typed (as Cursor and Copilot show it). -->
+        <ToggleButton Name="FileChip" Classes="chipbutton" HorizontalAlignment="Left" IsChecked="{Binding IncludeActiveFile}" IsVisible="{Binding HasActiveFile}"
+                      ToolTip.Tip="The open file goes with the question (click to leave it out). Mention more with @file:path, @folder:path, @problems, @git or @selection." AutomationProperties.Name="Include the open file">
+          <StackPanel Orientation="Horizontal" Spacing="5">
+            <shell:Icon Data="{StaticResource Icon.FileText}" Size="12" />
+            <TextBlock Text="{Binding ActiveFileName}" FontSize="{DynamicResource Font.Size.Small}" MaxWidth="260" TextTrimming="CharacterEllipsis" />
+          </StackPanel>
+        </ToggleButton>
+
         <TextBox Name="Composer" Classes="composer" Text="{Binding Draft}" PlaceholderText="{Binding ComposerHint}"
                  AcceptsReturn="True" TextWrapping="Wrap" MaxHeight="170" MinHeight="22" IsEnabled="{Binding HasSelectedModel}" />
         <TextBlock Name="ComposerNote" Text="{Binding ComposerNote}" Foreground="{DynamicResource Brush.Warning}" TextWrapping="Wrap"
                    FontSize="{DynamicResource Font.Size.Small}" IsVisible="{Binding ComposerNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
 
-        <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto" ColumnSpacing="6">
+        <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto" ColumnSpacing="6">
           <!-- The model chip: switches the model, mid-conversation too. -->
           <Button Name="ModelChip" Classes="chipbutton" ToolTip.Tip="Model for this chat" AutomationProperties.Name="Model">
             <StackPanel Orientation="Horizontal" Spacing="5">
@@ -91,11 +100,12 @@
           </Button>
 
           <!-- The system prompt this chat keeps. -->
-          <Button Grid.Column="1" Name="PromptChip" Classes="chipbutton" ToolTip.Tip="System prompt for this chat" AutomationProperties.Name="System prompt">
-            <StackPanel Orientation="Horizontal" Spacing="5">
+          <Button Grid.Column="1" Name="PromptChip" Classes="chipbutton" HorizontalAlignment="Left" ToolTip.Tip="System prompt for this chat" AutomationProperties.Name="System prompt">
+            <!-- A grid, not a stack: the label trims when the row is narrow (this chip is the one that gives way). -->
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="5">
               <shell:Icon Data="{StaticResource Icon.SlidersHorizontal}" Size="12" />
-              <TextBlock Name="PromptChipText" Text="{Binding PromptLabel}" FontSize="{DynamicResource Font.Size.Small}" MaxWidth="110" TextTrimming="CharacterEllipsis" />
-            </StackPanel>
+              <TextBlock Grid.Column="1" Name="PromptChipText" Text="{Binding PromptLabel}" FontSize="{DynamicResource Font.Size.Small}" MaxWidth="110" TextTrimming="CharacterEllipsis" />
+            </Grid>
             <Button.Flyout>
               <Flyout Placement="TopEdgeAlignedLeft" ShowMode="Standard">
                 <StackPanel Width="250" Spacing="2">
@@ -123,14 +133,7 @@
           </Button>
 
           <!-- Pictures: only for a model that can see. -->
-          <ToggleButton Grid.Column="2" Name="FileChip" Classes="chipbutton" HorizontalAlignment="Right" IsChecked="{Binding IncludeActiveFile}" IsVisible="{Binding HasActiveFile}"
-                        ToolTip.Tip="The open file goes with the question (click to leave it out). Mention more with @file:path, @folder:path, @problems, @git or @selection." AutomationProperties.Name="Include the open file">
-            <StackPanel Orientation="Horizontal" Spacing="5">
-              <shell:Icon Data="{StaticResource Icon.FileText}" Size="12" />
-              <TextBlock Text="{Binding ActiveFileName}" FontSize="{DynamicResource Font.Size.Small}" MaxWidth="110" TextTrimming="CharacterEllipsis" />
-            </StackPanel>
-          </ToggleButton>
-          <ToggleButton Grid.Column="2" Name="AgentToggle" Classes="chipbutton" HorizontalAlignment="Left" IsChecked="{Binding AgentMode}" IsVisible="{Binding CanUseAgent}"
+          <ToggleButton Grid.Column="2" Name="AgentToggle" Classes="chipbutton" IsChecked="{Binding AgentMode}" IsVisible="{Binding CanUseAgent}"
                         ToolTip.Tip="Agent: the model may read, search, edit and run commands in the project, asking before it changes anything" AutomationProperties.Name="Agent mode">
             <StackPanel Orientation="Horizontal" Spacing="5">
               <shell:Icon Data="{StaticResource Icon.Wrench}" Size="12" />

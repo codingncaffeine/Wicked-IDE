@@ -71,6 +71,7 @@ public partial class MainWindow : Window, IWorkbenchDialogs
             _shell.Workbench.Dialogs = this;
             _shell.Clipboard = text => Clipboard?.SetTextAsync(text) ?? Task.CompletedTask;
             ApplyColumns();
+            ApplyChrome(_shell.Settings.TitleBarStyle == "native");
         };
     }
 
@@ -88,6 +89,7 @@ public partial class MainWindow : Window, IWorkbenchDialogs
         }
 
         if (e.PropertyName is nameof(ShellViewModel.SidebarVisible) or nameof(ShellViewModel.AssistantVisible)) ApplyColumns();
+        if (e.PropertyName == nameof(ShellViewModel.Settings) && _shell is not null) ApplyChrome(_shell.Settings.TitleBarStyle == "native");
 
         // The assistant opens with the cursor in its composer (Ctrl+L, as in Cursor).
         if (e.PropertyName == nameof(ShellViewModel.AssistantVisible) && _shell is { AssistantVisible: true }) AssistantChat.FocusComposer();
@@ -105,6 +107,21 @@ public partial class MainWindow : Window, IWorkbenchDialogs
         columns[AssistantColumn].Width = _shell.AssistantVisible ? _assistantWidth : new GridLength(0);
         columns[AssistantColumn - 1].Width = new GridLength(_shell.AssistantVisible ? 6 : 0);
     }
+
+    /// <summary>
+    /// window.titleBarStyle: the desktop's own frame (its title bar and buttons; Wicked's bar stays as a toolbar with the
+    /// command centre, without the caption buttons), or Wicked's drawn one.
+    /// </summary>
+    private void ApplyChrome(bool native)
+    {
+        if (native == _nativeChrome) return;
+        _nativeChrome = native;
+        ExtendClientAreaToDecorationsHint = !native;
+        WindowDecorations = native ? WindowDecorations.Full : WindowDecorations.None;
+        foreach (var button in TitleBar.GetVisualDescendants().OfType<Button>().Where(b => b.Classes.Contains("caption"))) button.IsVisible = !native;
+    }
+
+    private bool _nativeChrome;
 
     /// <summary>The bottom panel's rows: hidden it takes none, shown it has the height it was left at, maximised all of it.</summary>
     private void ApplyPanelRows()
