@@ -108,6 +108,9 @@ public sealed record EditorFrame
     /// <summary>The number shown beside a document line, when it is not the line's own (a diff side's filler rows show none).</summary>
     public Func<int, int?>? LineNumber { get; init; }
 
+    /// <summary>editor.lineNumbers off: the gutter keeps its fold arrows but draws no numbers.</summary>
+    public bool HideLineNumbers { get; init; }
+
     /// <summary>The glyph margin's width at the gutter's left (0 when it is off).</summary>
     public float GlyphMargin { get; init; }
 

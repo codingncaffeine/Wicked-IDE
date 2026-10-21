@@ -66,8 +66,21 @@ public sealed partial class Workbench : ObservableObject, IDisposable
     /// <summary>The user's snippets (the shell loads them).</summary>
     public SnippetLibrary? Snippets { get; set; }
 
-    /// <summary>The settings in force; the shell sets them at start and whenever they change.</summary>
-    public Wicked.Core.Settings.WickedSettings Settings { get; set; } = new();
+    /// <summary>The settings in force; the shell sets them at start and whenever they change (<see cref="SettingsChanged"/>).</summary>
+    public Wicked.Core.Settings.WickedSettings Settings
+    {
+        get => _settings;
+        set
+        {
+            _settings = value;
+            SettingsChanged?.Invoke();
+        }
+    }
+
+    private Wicked.Core.Settings.WickedSettings _settings = new();
+
+    /// <summary>The settings changed (the groups' breadcrumbs follow breadcrumbs.enabled).</summary>
+    public event Action? SettingsChanged;
 
     public ObservableCollection<EditorGroup> Groups { get; } = [];
 

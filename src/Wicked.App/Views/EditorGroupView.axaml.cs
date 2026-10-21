@@ -36,6 +36,7 @@ public partial class EditorGroupView : UserControl
                 {
                     if (e.PropertyName == nameof(Wicked.App.Workbench.Workbench.Root)) ShowRecent();
                 };
+                _group.Workbench.SettingsChanged += () => ShowCrumbs(_group?.Active);
             }
             _ = ShowActiveAsync();
         };
@@ -108,7 +109,7 @@ public partial class EditorGroupView : UserControl
     {
         var root = _group?.Workbench.Root;
         var path = tab?.Path;
-        Crumbs.IsVisible = path is not null;
+        Crumbs.IsVisible = path is not null && _group?.Workbench.Settings.Breadcrumbs != false;
         if (path is null) return;
         var relative = root is not null && path.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.Ordinal) ? Path.GetRelativePath(root, path) : path;
         var parts = relative.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries);

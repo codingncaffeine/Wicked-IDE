@@ -495,6 +495,7 @@ public sealed partial class CodeEditor : Control
         _settingsWrap = WrapFrom(settings);
         _view.WordWrap = _wrapOverride ?? _settingsWrap;
         _view.ShowMinimap = settings.Minimap;
+        _view.LineNumbers = settings.LineNumbers switch { "off" => LineNumbersMode.Off, "relative" => LineNumbersMode.Relative, _ => LineNumbersMode.On };
         _view.ShowIndentGuides = settings.IndentGuides;
         _view.RenderWhitespace = Enum.TryParse<Wicked.Editor.Features.WhitespaceMode>(settings.RenderWhitespace, ignoreCase: true, out var mode) ? mode : Wicked.Editor.Features.WhitespaceMode.Selection;
         RequestFeatures();

@@ -403,6 +403,16 @@ public sealed class TextView
     /// <summary>The number to show beside a line (1-based, or null for none); unset, every line shows its own.</summary>
     public Func<int, int?>? LineNumber { get; set; }
 
+    /// <summary>editor.lineNumbers when no <see cref="LineNumber"/> map is set: every line's own, none, or relative to the caret.</summary>
+    public LineNumbersMode LineNumbers { get; set; } = LineNumbersMode.On;
+
+    private Func<int, int?>? NumbersForMode()
+    {
+        if (LineNumbers != LineNumbersMode.Relative) return null;
+        var caretLine = Document.Text.LineOf(Document.Primary.Active);
+        return line => line == caretLine ? line + 1 : Math.Abs(line - caretLine);
+    }
+
     /// <summary>Room left of the line numbers for breakpoints and other glyphs (VS Code's glyph margin).</summary>
     public bool ShowGlyphMargin { get; set; }
 
@@ -445,6 +455,8 @@ public sealed class TextView
     {
         get
         {
+            // With numbers off the gutter keeps the fold arrows' room only.
+            if (LineNumbers == LineNumbersMode.Off && LineNumber is null) return MathF.Round(22 + GlyphMargin);
             var digits = Math.Max(3, (int)Math.Floor(Math.Log10(Math.Max(1, Document.Text.LineCount))) + 1);
             return MathF.Round(digits * Fonts.CharAdvance + 34 + GlyphMargin);
         }
@@ -630,7 +642,8 @@ public sealed class TextView
             GutterMarks = glyphs,
             Overview = OverviewMarks(),
             GlyphMargin = GlyphMargin,
-            LineNumber = LineNumber,
+            LineNumber = LineNumber ?? NumbersForMode(),
+            HideLineNumbers = LineNumber is null && LineNumbers == LineNumbersMode.Off,
             CaretsVisible = CaretsVisible && Focused,
             Focused = Focused,
             VerticalThumb = vThumb,
@@ -1168,4 +1181,12 @@ public sealed class TextView
 
         return text;
     }
+}
+
+/// <summary>editor.lineNumbers, as VS Code names its values.</summary>
+public enum LineNumbersMode
+{
+    On,
+    Off,
+    Relative,
 }

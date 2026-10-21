@@ -99,3 +99,9 @@ editor.action.insertCursorAtEndOfEachLineSelected	editor	Shift+Alt+I
 cursorUndo	editor	Ctrl+U
 editor.action.smartSelect.expand	editor	Shift+Alt+Right
 editor.action.smartSelect.shrink	editor	Shift+Alt+Left
+editor.action.toggleMinimap	workbench	
+editor.action.toggleRenderWhitespace	workbench	
+wicked.toggleLineNumbers	workbench	
+breadcrumbs.toggle	workbench	
+workbench.action.editor.nextChange	workbench	Alt+F5
+workbench.action.editor.previousChange	workbench	Shift+Alt+F5

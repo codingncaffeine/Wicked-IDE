@@ -48,6 +48,13 @@ public sealed record WickedSettings
     [JsonPropertyName("editor.minimap.enabled")]
     public bool Minimap { get; init; } = true;
 
+    /// <summary>on, off or relative, as VS Code names them (relative: the caret's line shows its own number, the rest their distance).</summary>
+    [JsonPropertyName("editor.lineNumbers")]
+    public string LineNumbers { get; init; } = "on";
+
+    [JsonPropertyName("breadcrumbs.enabled")]
+    public bool Breadcrumbs { get; init; } = true;
+
     [JsonPropertyName("editor.guides.indentation")]
     public bool IndentGuides { get; init; } = true;
 

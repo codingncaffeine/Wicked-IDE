@@ -146,9 +146,14 @@ public static class EditorPainter
             if (line.Sub > 0) continue; // a wrapped line's number and fold arrow go on its first row only
             paint.Color = new SKColor(line.Current ? theme.LineNumberActive : theme.LineNumber);
             var number = frame.LineNumber is { } map ? map(line.Line) : line.Line + 1;
-            if (number is null) continue;
-            var label = number.Value.ToString(CultureInfo.InvariantCulture);
-            canvas.DrawText(label, frame.GutterWidth - 22, line.Y + frame.Fonts.Baseline, SKTextAlign.Right, numbers, paint);
+            if (number is null) continue; // a row with no line of its own (a diff's filler) has no number and no arrow
+            if (!frame.HideLineNumbers)
+            {
+                var label = number.Value.ToString(CultureInfo.InvariantCulture);
+                canvas.DrawText(label, frame.GutterWidth - 22, line.Y + frame.Fonts.Baseline, SKTextAlign.Right, numbers, paint);
+            }
+
+            // The fold arrow stays when the numbers are off (editor.lineNumbers off).
             if (line.Fold == FoldMark.Folded || (line.Fold == FoldMark.Open && frame.GutterHover)) DrawFoldArrow(canvas, paint, frame, line);
         }
 
