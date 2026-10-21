@@ -2,6 +2,8 @@
 
   <PropertyGroup>
     <RootNamespace>Wicked.Core</RootNamespace>
+    <!-- The pty and ConPTY bindings pass buffers by pointer. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,6 +15,11 @@
   <ItemGroup>
     <EmbeddedResource Include="..\..\catalog\catalog.json" LogicalName="catalog.json" />
     <EmbeddedResource Include="..\..\catalog\catalog.json.sig" LogicalName="catalog.json.sig" />
+  </ItemGroup>
+
+  <!-- The scripts that make shells report their prompts and commands (see Terminal/ShellIntegration.cs). -->
+  <ItemGroup>
+    <EmbeddedResource Include="Terminal\ShellIntegration\**\*" Exclude="Terminal\ShellIntegration\**\*.cs" LogicalName="shell-integration/%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup>

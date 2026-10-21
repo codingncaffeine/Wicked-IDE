@@ -19,6 +19,11 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <!-- Real programs' terminal output, recorded once, that the emulator replays (see Terminal/RecordedOutputTests.cs). -->
+  <ItemGroup>
+    <None Include="Terminal\Recordings\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Wicked.Core\Wicked.Core.csproj" />

@@ -1,0 +1,6 @@
+if [[ -f "$WICKED_USER_ZDOTDIR/.zprofile" ]]; then
+    WICKED_ZDOTDIR="$ZDOTDIR"
+    ZDOTDIR="$WICKED_USER_ZDOTDIR"
+    . "$WICKED_USER_ZDOTDIR/.zprofile"
+    ZDOTDIR="$WICKED_ZDOTDIR"
+fi

@@ -66,6 +66,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         WireLanguage();
         WireSourceControl();
         WireAssistant();
+        WireTerminal();
         Commands = BuildCommands();
         QuickInput = new QuickInputViewModel(this);
         Models = new ModelsViewModel(paths, Notices);
@@ -239,6 +240,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             new("editor.action.toggleWordWrap", "View", "Toggle Word Wrap", "Alt+Z", () => Sync(() => Workbench.ActiveTab?.Editor?.ToggleWordWrap())),
             new("editor.action.insertSnippet", "Snippets", "Insert Snippet", null, () => Sync(PickSnippet)),
             .. LanguageCommands(),
+            .. TerminalCommands(),
             new("workbench.action.openSnippets", "Snippets", "Configure Snippets", null, ConfigureSnippetsAsync),
             new("workbench.action.openGlobalKeybindingsFile", "Preferences", "Open Keyboard Shortcuts (JSON)", null, OpenKeybindingsJsonAsync),
             .. SourceControl.Commands,
@@ -269,6 +271,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         Workbench.Settings = settings;
         Models.Configure(settings);
         Language.ApplySettings(settings);
+        Terminal?.ApplySettings(settings);
         Chat.ApplySettings(settings);
         OnPropertyChanged(nameof(Settings));
         var services = await EditorServices.Ready;
@@ -781,6 +784,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         SourceControl.Dispose();
         Workbench.Dispose();
         _ = Language.DisposeAsync().AsTask();
+        Terminal.Dispose();
         ApiLog.Dispose();
         _ = Models.DisposeAsync().AsTask();
         _stop.Cancel();

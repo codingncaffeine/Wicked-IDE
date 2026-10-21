@@ -36,6 +36,31 @@
   <SolidColorBrush x:Key="Brush.Match" Color="#40F2B84B" />
   <SolidColorBrush x:Key="Brush.Inserted" Color="#402EA043" />
 
+  <!-- Terminal: the 16 ANSI colours (VS Code's dark set), and the surface the text sits on -->
+  <SolidColorBrush x:Key="Brush.Terminal.Background" Color="#111216" />
+  <SolidColorBrush x:Key="Brush.Terminal.Foreground" Color="#D4D4D4" />
+  <SolidColorBrush x:Key="Brush.Terminal.Cursor" Color="#A194FA" />
+  <SolidColorBrush x:Key="Brush.Terminal.Selection" Color="#598B7BF7" />
+  <SolidColorBrush x:Key="Brush.Terminal.Selection.Inactive" Color="#332C3038" />
+  <SolidColorBrush x:Key="Brush.Terminal.FindMatch" Color="#66F2B84B" />
+  <SolidColorBrush x:Key="Brush.Terminal.FindMatch.Current" Color="#B3F2B84B" />
+  <SolidColorBrush x:Key="Brush.Terminal.Ansi0" Color="#000000" />
+  <SolidColorBrush x:Key="Brush.Terminal.Ansi1" Color="#CD3131" />
+  <SolidColorBrush x:Key="Brush.Terminal.Ansi2" Color="#0DBC79" />
+  <SolidColorBrush x:Key="Brush.Terminal.Ansi3" Color="#E5E510" />
+  <SolidColorBrush x:Key="Brush.Terminal.Ansi4" Color="#2472C8" />
+  <SolidColorBrush x:Key="Brush.Terminal.Ansi5" Color="#BC3FBC" />
+  <SolidColorBrush x:Key="Brush.Terminal.Ansi6" Color="#11A8CD" />
+  <SolidColorBrush x:Key="Brush.Terminal.Ansi7" Color="#E5E5E5" />
+  <SolidColorBrush x:Key="Brush.Terminal.Ansi8" Color="#666666" />
+  <SolidColorBrush x:Key="Brush.Terminal.Ansi9" Color="#F14C4C" />
+  <SolidColorBrush x:Key="Brush.Terminal.Ansi10" Color="#23D18B" />
+  <SolidColorBrush x:Key="Brush.Terminal.Ansi11" Color="#F5F543" />
+  <SolidColorBrush x:Key="Brush.Terminal.Ansi12" Color="#3B8EEA" />
+  <SolidColorBrush x:Key="Brush.Terminal.Ansi13" Color="#D670D6" />
+  <SolidColorBrush x:Key="Brush.Terminal.Ansi14" Color="#29B8DB" />
+  <SolidColorBrush x:Key="Brush.Terminal.Ansi15" Color="#FFFFFF" />
+
   <!-- Caption -->
   <SolidColorBrush x:Key="Brush.Caption.Close" Color="#E5484D" />
 
