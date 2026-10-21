@@ -514,7 +514,21 @@ public sealed class TextView
         Width = width;
         Height = height;
         ScrollTo(ScrollX, ScrollY);
+        // A reveal asked for before the view had a size (a file opened at a line) happens now that it has one.
+        if (height > 0 && _pendingReveal is { } pending)
+        {
+            _pendingReveal = null;
+            Reveal(pending.Offset, pending.Upstream, pending.Center);
+        }
     }
+
+    private (int Offset, bool Upstream, bool Center)? _pendingReveal;
+
+    /// <summary>
+    /// A jump's reveal (go to definition, a problem, a search result, -g on the command line), as VS Code's: a place already in
+    /// sight stays where it is; one out of sight comes to the middle of the view.
+    /// </summary>
+    public void RevealCentered(int offset) => Reveal(offset, upstream: false, center: true);
 
     public void ScrollTo(float x, float y)
     {
@@ -525,8 +539,16 @@ public sealed class TextView
     public void ScrollBy(float dx, float dy) => ScrollTo(ScrollX + dx, ScrollY + dy);
 
     /// <summary>Scrolls just enough to bring <paramref name="offset"/> into sight, with a little margin.</summary>
-    public void Reveal(int offset, bool upstream = false)
+    public void Reveal(int offset, bool upstream = false, bool center = false)
     {
+        // Not sized yet (just opened): every line would count as out of sight, so the reveal waits for a size; a jump's
+        // centred reveal is not undone by the caret's plain one that follows it.
+        if (Height <= 0)
+        {
+            if (_pendingReveal is not { Center: true }) _pendingReveal = (offset, upstream, center);
+            return;
+        }
+
         var rope = Document.Text;
         var (line, column) = rope.Position(Math.Clamp(offset, 0, rope.Length));
         // A caret that lands in folded text opens the fold, as in VS Code.
@@ -534,7 +556,9 @@ public sealed class TextView
         var (row, x) = Place(line, column, upstream);
         var top = row * LineHeight;
         var y = ScrollY;
-        if (top < y) y = top;
+        var outOfSight = top < y || top + LineHeight > y + Height;
+        if (center && outOfSight) y = top + LineHeight / 2 - Height / 2;
+        else if (top < y) y = top;
         else if (top + LineHeight > y + Height) y = top + LineHeight - Height;
 
         var sx = ScrollX;

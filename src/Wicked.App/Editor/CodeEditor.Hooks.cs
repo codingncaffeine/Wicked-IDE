@@ -136,7 +136,7 @@ public sealed partial class CodeEditor
     public void Select(int start, int end)
     {
         Document.SetSelections([new Wicked.Editor.Model.Selection(start, end)]);
-        _view.Reveal(start);
+        _view.RevealCentered(start);
         RevealCaret();
     }
 }

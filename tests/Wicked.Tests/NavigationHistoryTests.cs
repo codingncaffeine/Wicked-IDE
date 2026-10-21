@@ -91,3 +91,38 @@ public sealed class NavigationHistoryTests
         Assert.False(again.CanGoBack);
     }
 }
+
+/// <summary>A jump (open at a line, go to definition) as VS Code reveals it: no scroll when the place is in sight, centred when not.</summary>
+public sealed class JumpRevealTests
+{
+    [Trait("Tier", "Window")]
+    [Fact]
+    public async Task AJumpLeavesAPlaceInSightAloneAndCentresOneOutOfSight()
+    {
+        using var profile = new TempProfile();
+        var root = Path.Combine(profile.Root, "project");
+        Directory.CreateDirectory(root);
+        File.WriteAllText(Path.Combine(root, "short.txt"), string.Join('\n', Enumerable.Range(0, 10).Select(i => $"line {i}")));
+        File.WriteAllText(Path.Combine(root, "long.txt"), string.Join('\n', Enumerable.Range(0, 600).Select(i => $"line {i}")));
+        await Ui.Run(() =>
+        {
+            var (window, shell) = OpenWorkbench(profile, root);
+
+            // A short file opened at line 6 (its editor not laid out yet): everything fits, so nothing scrolls.
+            var open = shell.OpenAtAsync(Path.Combine(root, "short.txt"), 5, 0);
+            Assert.True(Ui.PumpUntil(() => open.IsCompleted && shell.Workbench.ActiveTab?.Editor?.View.Height > 0, 5));
+            Ui.Pump(0.2);
+            Assert.Equal(0, shell.Workbench.ActiveTab!.Editor!.View.ScrollY);
+
+            // A long file opened at line 300: the line is in the middle of the view, not at its top or bottom edge.
+            open = shell.OpenAtAsync(Path.Combine(root, "long.txt"), 299, 0);
+            Assert.True(Ui.PumpUntil(() => open.IsCompleted && shell.Workbench.ActiveTab?.Editor?.View.Height > 0, 5));
+            Ui.Pump(0.2);
+            var view = shell.Workbench.ActiveTab!.Editor!.View;
+            var y = 299 * view.LineHeight - view.ScrollY;
+            Assert.InRange(y, view.Height / 2 - 2 * view.LineHeight, view.Height / 2 + view.LineHeight);
+            window.Close();
+            return 0;
+        });
+    }
+}
