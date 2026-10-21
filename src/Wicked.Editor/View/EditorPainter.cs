@@ -1,5 +1,6 @@
 using System.Globalization;
 using SkiaSharp;
+using Wicked.Editor.Features;
 using Wicked.Editor.Layout;
 using Wicked.Editor.Syntax;
 
@@ -33,12 +34,27 @@ public static class EditorPainter
             if (line.Current) Fill(canvas, paint, new SKRect(frame.GutterWidth, line.Y, frame.Width, line.Y + lineHeight), theme.CurrentLine);
         }
 
+        foreach (var (y, style) in frame.LineFills) Fill(canvas, paint, new SKRect(frame.GutterWidth, y, frame.Width, y + lineHeight), LineColor(theme, style));
+
         // The text area: selections, text and carets, clipped so nothing scrolls under the gutter.
         canvas.Save();
         canvas.ClipRect(new SKRect(frame.GutterWidth, 0, frame.Width, frame.Height));
         foreach (var (x, top, bottom, active) in frame.Guides) Fill(canvas, paint, new SKRect(x, top, x + 1, bottom), active ? theme.IndentGuideActive : theme.IndentGuide);
         foreach (var rect in frame.Matches) FillRound(canvas, paint, rect, theme.FindMatch, 3);
         foreach (var rect in frame.CurrentMatch) FillRound(canvas, paint, rect, theme.FindMatchCurrent, 3);
+        foreach (var (rect, style) in frame.RangeMarks)
+        {
+            var fill = style switch
+            {
+                RangeStyle.Highlight => theme.WordHighlight,
+                RangeStyle.HighlightWrite => theme.WordHighlightWrite,
+                RangeStyle.Inserted => theme.DiffInserted,
+                RangeStyle.Removed => theme.DiffRemoved,
+                _ => 0u,
+            };
+            if (fill != 0) FillRound(canvas, paint, rect, fill, 2);
+        }
+
         var selection = frame.Focused ? theme.Selection : theme.SelectionUnfocused;
         foreach (var rect in frame.Selections) FillRound(canvas, paint, rect, selection, 3);
 
@@ -81,6 +97,8 @@ public static class EditorPainter
                 for (var dot = 0; dot < 3; dot++) canvas.DrawCircle(badge.Left + badge.Width * (dot + 1) / 4, badge.MidY, 1.2f, paint);
             }
         }
+
+        DrawRangeMarks(canvas, paint, frame);
 
         foreach (var box in frame.BracketBoxes)
         {
@@ -127,6 +145,8 @@ public static class EditorPainter
             if (line.Fold == FoldMark.Folded || (line.Fold == FoldMark.Open && frame.GutterHover)) DrawFoldArrow(canvas, paint, frame, line);
         }
 
+        foreach (var (y, glyph) in frame.GutterMarks) DrawGlyph(canvas, paint, frame, y, glyph);
+
         if (frame.Preedit is { } preedit)
         {
             // The composition covers what is under it and is underlined, as every input method expects.
@@ -140,6 +160,8 @@ public static class EditorPainter
         }
 
         if (frame.Minimap is { } minimap) DrawMinimap(canvas, paint, frame, minimap);
+
+        foreach (var (y, color) in frame.Overview) Fill(canvas, paint, new SKRect(frame.Width - 10, y - 1, frame.Width - 2, y + 2), color);
 
         var thumb = frame.ThumbActive ? theme.ScrollbarThumbActive : theme.ScrollbarThumb;
         if (!frame.VerticalThumb.IsEmpty) FillRound(canvas, paint, frame.VerticalThumb, thumb, 4);
@@ -176,6 +198,145 @@ public static class EditorPainter
 
         canvas.Restore();
         Fill(canvas, paint, minimap.Slider, frame.ThumbActive ? frame.Theme.ScrollbarThumbActive : frame.Theme.ScrollbarThumb);
+    }
+
+    private static uint LineColor(EditorTheme theme, LineStyle style) => style switch
+    {
+        LineStyle.Inserted => theme.DiffInsertedLine,
+        LineStyle.Removed => theme.DiffRemovedLine,
+        LineStyle.ConflictCurrent => theme.ConflictCurrent,
+        LineStyle.ConflictIncoming => theme.ConflictIncoming,
+        LineStyle.ConflictBase => theme.ConflictBase,
+        _ => theme.StoppedLine,
+    };
+
+    /// <summary>The marks drawn over text: wavy underlines for problems, dots for hints, a strike, a fade, a link's underline.</summary>
+    private static void DrawRangeMarks(SKCanvas canvas, SKPaint paint, EditorFrame frame)
+    {
+        var theme = frame.Theme;
+        foreach (var (rect, style) in frame.RangeMarks)
+        {
+            switch (style)
+            {
+                case RangeStyle.Error or RangeStyle.Warning or RangeStyle.Info:
+                    var color = style == RangeStyle.Error ? theme.ErrorColor : style == RangeStyle.Warning ? theme.WarningColor : theme.InfoColor;
+                    DrawSquiggle(canvas, paint, rect.Left, rect.Right, rect.Bottom - 2.5f, color);
+                    break;
+                case RangeStyle.Hint:
+                    paint.Color = new SKColor(theme.HintColor);
+                    for (var dot = 0; dot < 3; dot++) canvas.DrawCircle(rect.Left + 1.5f + dot * 3, rect.Bottom - 1.5f, 0.8f, paint);
+                    break;
+                case RangeStyle.Unnecessary:
+                    // Faded: the background laid over the text at half strength.
+                    Fill(canvas, paint, rect, (theme.Background & 0x00FFFFFF) | 0x80000000);
+                    break;
+                case RangeStyle.Deprecated:
+                    Fill(canvas, paint, new SKRect(rect.Left, rect.MidY, rect.Right, rect.MidY + 1), theme.Foreground);
+                    break;
+                case RangeStyle.Link:
+                    Fill(canvas, paint, new SKRect(rect.Left, rect.Bottom - 2, rect.Right, rect.Bottom - 1), theme.Link);
+                    break;
+            }
+        }
+    }
+
+    /// <summary>A wave two pixels high under a stretch of text, as every editor marks a problem.</summary>
+    private static void DrawSquiggle(SKCanvas canvas, SKPaint paint, float left, float right, float y, uint color)
+    {
+        if (right - left < 4) right = left + 4;
+        using var path = new SKPath();
+        path.MoveTo(left, y + 1);
+        var up = true;
+        for (var x = left + 2; x <= right; x += 2)
+        {
+            path.LineTo(x, up ? y - 1 : y + 1);
+            up = !up;
+        }
+
+        paint.Color = new SKColor(color);
+        paint.Style = SKPaintStyle.Stroke;
+        paint.StrokeWidth = 1;
+        canvas.DrawPath(path, paint);
+        paint.Style = SKPaintStyle.Fill;
+    }
+
+    /// <summary>A gutter glyph: breakpoints and the debugger's arrow in the glyph margin, source-control marks beside the numbers.</summary>
+    private static void DrawGlyph(SKCanvas canvas, SKPaint paint, EditorFrame frame, float y, GutterGlyph glyph)
+    {
+        var theme = frame.Theme;
+        var h = frame.Fonts.LineHeight;
+        var cx = frame.GlyphMargin > 0 ? frame.GlyphMargin / 2 + 2 : 6;
+        var cy = y + h / 2;
+        var bar = frame.GutterWidth - 19;
+        switch (glyph)
+        {
+            case GutterGlyph.Added or GutterGlyph.Modified:
+                Fill(canvas, paint, new SKRect(bar, y, bar + 3, y + h), glyph == GutterGlyph.Added ? theme.GutterAdded : theme.GutterModified);
+                break;
+            case GutterGlyph.Deleted:
+                using (var wedge = new SKPath())
+                {
+                    wedge.MoveTo(bar, y - 4);
+                    wedge.LineTo(bar + 5, y);
+                    wedge.LineTo(bar, y + 4);
+                    wedge.Close();
+                    paint.Color = new SKColor(theme.GutterDeleted);
+                    canvas.DrawPath(wedge, paint);
+                }
+
+                break;
+            case GutterGlyph.Breakpoint or GutterGlyph.BreakpointDisabled:
+                paint.Color = new SKColor(glyph == GutterGlyph.Breakpoint ? theme.Breakpoint : theme.BreakpointDisabled);
+                canvas.DrawCircle(cx, cy, 4.5f, paint);
+                break;
+            case GutterGlyph.BreakpointUnverified:
+                paint.Color = new SKColor(theme.BreakpointDisabled);
+                paint.Style = SKPaintStyle.Stroke;
+                paint.StrokeWidth = 1.5f;
+                canvas.DrawCircle(cx, cy, 4, paint);
+                paint.Style = SKPaintStyle.Fill;
+                break;
+            case GutterGlyph.BreakpointConditional:
+                paint.Color = new SKColor(theme.Breakpoint);
+                canvas.DrawCircle(cx, cy, 4.5f, paint);
+                Fill(canvas, paint, new SKRect(cx - 2.5f, cy - 2, cx + 2.5f, cy - 1), theme.Background);
+                Fill(canvas, paint, new SKRect(cx - 2.5f, cy + 1, cx + 2.5f, cy + 2), theme.Background);
+                break;
+            case GutterGlyph.Logpoint:
+                paint.Color = new SKColor(theme.Breakpoint);
+                using (var diamond = new SKPath())
+                {
+                    diamond.MoveTo(cx, cy - 5);
+                    diamond.LineTo(cx + 5, cy);
+                    diamond.LineTo(cx, cy + 5);
+                    diamond.LineTo(cx - 5, cy);
+                    diamond.Close();
+                    canvas.DrawPath(diamond, paint);
+                }
+
+                break;
+            case GutterGlyph.Stopped:
+                paint.Color = new SKColor(theme.StoppedGlyph);
+                using (var arrow = new SKPath())
+                {
+                    arrow.MoveTo(cx - 5, cy - 3);
+                    arrow.LineTo(cx, cy - 3);
+                    arrow.LineTo(cx, cy - 6);
+                    arrow.LineTo(cx + 6, cy);
+                    arrow.LineTo(cx, cy + 6);
+                    arrow.LineTo(cx, cy + 3);
+                    arrow.LineTo(cx - 5, cy + 3);
+                    arrow.Close();
+                    canvas.DrawPath(arrow, paint);
+                }
+
+                break;
+            case GutterGlyph.Lightbulb:
+                paint.Color = new SKColor(theme.Lightbulb);
+                canvas.DrawCircle(cx, cy - 1.5f, 3.5f, paint);
+                Fill(canvas, paint, new SKRect(cx - 1.8f, cy + 2.5f, cx + 1.8f, cy + 4.5f), theme.Lightbulb);
+                break;
+        }
     }
 
     /// <summary>The fold column's arrow: down for an open range, right for a folded one.</summary>

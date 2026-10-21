@@ -99,14 +99,16 @@ internal sealed class LineShaper : IDisposable
             var color = tokens is { Count: > 0 } && colors is not null ? colors[tokens.Foreground(t)] : defaultColor;
             var style = tokens is { Count: > 0 } ? tokens.Style(t) : TokenStyle.None;
             var at = start;
-            while (o < overrides.Count && overrides.Column(o) < start) o++;
-            while (o < overrides.Count && overrides.Column(o) < end)
+            while (o < overrides.Count && overrides.End(o) <= start) o++;
+            // Overrides are sorted and do not overlap; one may run across several tokens (a name the grammar split).
+            for (var k = o; k < overrides.Count && overrides.Column(k) < end; k++)
             {
-                var column = overrides.Column(o);
-                if (column > at) list.Add((at, column, color, style));
-                list.Add((column, column + 1, overrides.Color(o), style));
-                at = column + 1;
-                o++;
+                var from = Math.Max(overrides.Column(k), at);
+                var to = Math.Min(overrides.End(k), end);
+                if (to <= from) continue;
+                if (from > at) list.Add((at, from, color, style));
+                list.Add((from, to, overrides.Color(k), style));
+                at = to;
             }
 
             if (at < end) list.Add((at, end, color, style));

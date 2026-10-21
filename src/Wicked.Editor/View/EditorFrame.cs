@@ -93,6 +93,21 @@ public sealed record EditorFrame
 
     public IReadOnlyList<SKRect> CurrentMatch { get; init; } = [];
 
+    /// <summary>Decorated text in sight (squiggles, highlights, diff ranges): a rectangle per row it covers.</summary>
+    public IReadOnlyList<(SKRect Rect, Wicked.Editor.Features.RangeStyle Style)> RangeMarks { get; init; } = [];
+
+    /// <summary>Rows with a background of their own (diff lines, conflict sides, the debugger's line).</summary>
+    public IReadOnlyList<(float Y, Wicked.Editor.Features.LineStyle Style)> LineFills { get; init; } = [];
+
+    /// <summary>Gutter glyphs by row: breakpoints in the glyph margin, source-control bars beside the numbers.</summary>
+    public IReadOnlyList<(float Y, Wicked.Editor.Features.GutterGlyph Glyph)> GutterMarks { get; init; } = [];
+
+    /// <summary>Ticks in the vertical scrollbar's track: where the problems, changes and matches are in the whole text.</summary>
+    public IReadOnlyList<(float Y, uint Color)> Overview { get; init; } = [];
+
+    /// <summary>The glyph margin's width at the gutter's left (0 when it is off).</summary>
+    public float GlyphMargin { get; init; }
+
     public required bool CaretsVisible { get; init; }
 
     public required bool Focused { get; init; }

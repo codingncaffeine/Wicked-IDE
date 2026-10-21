@@ -40,6 +40,63 @@ public sealed record EditorTheme
 
     public uint FindMatchCurrent { get; init; } = 0x99F2B84B;
 
+    /// <summary>Diagnostics (VS Code's editorError/Warning/Info foregrounds), and a hint's dots.</summary>
+    public uint ErrorColor { get; init; } = 0xFFF14C4C;
+
+    public uint WarningColor { get; init; } = 0xFFCCA700;
+
+    public uint InfoColor { get; init; } = 0xFF3794FF;
+
+    public uint HintColor { get; init; } = 0xB3EEEEEE;
+
+    /// <summary>Other uses of the symbol at the caret, and the places it is written.</summary>
+    public uint WordHighlight { get; init; } = 0x40575E6E;
+
+    public uint WordHighlightWrite { get; init; } = 0x55606A80;
+
+    /// <summary>Diff backgrounds: whole lines, and the characters that changed within them.</summary>
+    public uint DiffInsertedLine { get; init; } = 0x1F2EA043;
+
+    public uint DiffRemovedLine { get; init; } = 0x1FF85149;
+
+    public uint DiffInserted { get; init; } = 0x402EA043;
+
+    public uint DiffRemoved { get; init; } = 0x40F85149;
+
+    /// <summary>A merge conflict's sides (VS Code's merge colours), and its base.</summary>
+    public uint ConflictCurrent { get; init; } = 0x3340C8AE;
+
+    public uint ConflictIncoming { get; init; } = 0x3340A6FF;
+
+    public uint ConflictBase { get; init; } = 0x33A0A0A0;
+
+    /// <summary>The line the debugger stopped on.</summary>
+    public uint StoppedLine { get; init; } = 0x33FFCC00;
+
+    public uint StoppedGlyph { get; init; } = 0xFFFFCC00;
+
+    /// <summary>Source-control marks beside the line numbers.</summary>
+    public uint GutterAdded { get; init; } = 0xFF2EA043;
+
+    public uint GutterModified { get; init; } = 0xFF0078D4;
+
+    public uint GutterDeleted { get; init; } = 0xFFF85149;
+
+    public uint Breakpoint { get; init; } = 0xFFE51400;
+
+    public uint BreakpointDisabled { get; init; } = 0xFF848484;
+
+    public uint Lightbulb { get; init; } = 0xFFFFCC00;
+
+    /// <summary>Inlay hints: text and pill, and ghost text a completion suggests.</summary>
+    public uint InlayForeground { get; init; } = 0xFF969696;
+
+    public uint InlayBackground { get; init; } = 0x1A969696;
+
+    public uint GhostText { get; init; } = 0x80FFFFFF;
+
+    public uint Link { get; init; } = 0xFF4E94CE;
+
     public uint ScrollbarThumb { get; init; } = 0x26FFFFFF;
 
     public uint ScrollbarThumbActive { get; init; } = 0x40FFFFFF;
@@ -68,6 +125,17 @@ public sealed record EditorTheme
             LineNumber = Pick("editorLineNumber.foreground", LineNumber),
             LineNumberActive = Pick("editorLineNumber.activeForeground", LineNumberActive),
             IndentGuide = Pick("editorIndentGuide.background", IndentGuide),
+            ErrorColor = Pick("editorError.foreground", ErrorColor),
+            WarningColor = Pick("editorWarning.foreground", WarningColor),
+            InfoColor = Pick("editorInfo.foreground", InfoColor),
+            GutterAdded = Pick("editorGutter.addedBackground", GutterAdded),
+            GutterModified = Pick("editorGutter.modifiedBackground", GutterModified),
+            GutterDeleted = Pick("editorGutter.deletedBackground", GutterDeleted),
+            InlayForeground = Pick("editorInlayHint.foreground", InlayForeground),
+            InlayBackground = Pick("editorInlayHint.background", InlayBackground),
+            GhostText = Pick("editorGhostText.foreground", GhostText),
+            WordHighlight = Pick("editor.wordHighlightBackground", WordHighlight),
+            WordHighlightWrite = Pick("editor.wordHighlightStrongBackground", WordHighlightWrite),
         };
     }
 }

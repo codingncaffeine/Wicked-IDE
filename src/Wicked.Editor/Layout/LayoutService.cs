@@ -10,22 +10,28 @@ namespace Wicked.Editor.Layout;
 /// same, wherever they are.
 /// </summary>
 /// <summary>
-/// Single characters drawn in a colour of their own over their token's (brackets coloured by depth), sorted by column.
-/// Compared by content: two lines with the same brackets at the same depths share a cache entry.
+/// Stretches drawn in a colour of their own over their token's: single characters (brackets coloured by depth) and the
+/// names a language server's semantic tokens colour, sorted by column and never overlapping. Compared by content: two
+/// lines with the same overrides share a cache entry.
 /// </summary>
-public readonly struct ColorOverrides(int[]? columns, uint[]? colors) : IEquatable<ColorOverrides>
+public readonly struct ColorOverrides(int[]? columns, uint[]? colors, int[]? ends = null) : IEquatable<ColorOverrides>
 {
     private readonly int[] _columns = columns ?? [];
     private readonly uint[] _colors = colors ?? [];
+    // Each override covers [column, end); without ends, one character (a bracket).
+    private readonly int[]? _ends = ends;
 
     public int Count => _columns?.Length ?? 0;
 
     public int Column(int i) => _columns[i];
 
+    public int End(int i) => _ends is { } e ? e[i] : _columns[i] + 1;
+
     public uint Color(int i) => _colors[i];
 
     public bool Equals(ColorOverrides other) =>
-        (_columns ?? []).AsSpan().SequenceEqual(other._columns ?? []) && (_colors ?? []).AsSpan().SequenceEqual(other._colors ?? []);
+        (_columns ?? []).AsSpan().SequenceEqual(other._columns ?? []) && (_colors ?? []).AsSpan().SequenceEqual(other._colors ?? [])
+        && (_ends ?? []).AsSpan().SequenceEqual(other._ends ?? []);
 
     public override bool Equals(object? obj) => obj is ColorOverrides other && Equals(other);
 
@@ -35,6 +41,7 @@ public readonly struct ColorOverrides(int[]? columns, uint[]? colors) : IEquatab
         for (var i = 0; i < Count; i++)
         {
             hash.Add(_columns[i]);
+            hash.Add(End(i));
             hash.Add(_colors[i]);
         }
 

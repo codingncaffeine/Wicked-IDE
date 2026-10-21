@@ -65,6 +65,28 @@ public sealed class Document
     /// <summary>True when the text differs from what was last saved (undoing back to it makes it clean again).</summary>
     public bool IsDirty => _state != _savedState;
 
+    /// <summary>The user's edits are refused (an Output log, the old side of a diff); <see cref="Write"/> still changes the text.</summary>
+    public bool IsReadOnly { get; set; }
+
+    /// <summary>Whether edits are kept for undo (a log written to all day keeps none).</summary>
+    public bool KeepsHistory { get; set; } = true;
+
+    private bool _writing;
+
+    /// <summary>Changes the text whether or not the document is read-only: the owner's own writes (a log line appended).</summary>
+    public bool Write(IEnumerable<TextChange> changes, IReadOnlyList<Selection> selectionsAfter)
+    {
+        _writing = true;
+        try
+        {
+            return Apply(changes, selectionsAfter);
+        }
+        finally
+        {
+            _writing = false;
+        }
+    }
+
     public bool CanUndo => _undo.Count > 0;
 
     public bool CanRedo => _redo.Count > 0;
@@ -105,6 +127,7 @@ public sealed class Document
     public bool Apply(IEnumerable<TextChange> changes, IReadOnlyList<Selection> selectionsAfter, EditKind kind = EditKind.Other, int primary = -1)
     {
         var set = ChangeSet.Normalise(changes);
+        if (IsReadOnly && !_writing) return false;
         if (set.IsEmpty)
         {
             SetSelections(selectionsAfter, primary);
@@ -123,6 +146,13 @@ public sealed class Document
         var now = _time.GetUtcNow();
         var step = new Step(set, inverse);
         _redo.Clear();
+        if (!KeepsHistory)
+        {
+            _undo.Clear();
+            DirtyChanged?.Invoke();
+            return true;
+        }
+
         if (kind != EditKind.Other && _undo.TryPeek(out var last) && last.Kind == kind && now - last.Time < GroupPause
             && last.SelectionsAfter.SequenceEqual(selectionsBefore) && !set.Any(c => c.Inserted.Contains('\n')))
         {
@@ -150,7 +180,7 @@ public sealed class Document
 
     public bool Undo()
     {
-        if (!_undo.TryPop(out var entry)) return false;
+        if (IsReadOnly || !_undo.TryPop(out var entry)) return false;
         for (var i = entry.Steps.Count - 1; i >= 0; i--) Commit(entry.Steps[i].Inverse);
         _state = entry.StateBefore;
         _redo.Push(entry);
@@ -161,7 +191,7 @@ public sealed class Document
 
     public bool Redo()
     {
-        if (!_redo.TryPop(out var entry)) return false;
+        if (IsReadOnly || !_redo.TryPop(out var entry)) return false;
         foreach (var step in entry.Steps) Commit(step.Forward);
         _state = entry.State;
         _undo.Push(entry);

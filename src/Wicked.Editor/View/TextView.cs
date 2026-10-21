@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using SkiaSharp;
 using Wicked.Editor.Features;
 using Wicked.Editor.Layout;
@@ -191,6 +192,15 @@ public sealed class TextView
 
     private void OnDocumentChanged(DocumentChange change)
     {
+        Decorations = Decorations.Map(change);
+        if (_semantic is not null)
+        {
+            if (_sinceSemantic.Count >= RecentChangeLimit) _semantic = null;
+            else _sinceSemantic.Add(ChangeSet.Invert(change.Before, change.Changes));
+        }
+
+        _recentChanges.Enqueue(change);
+        while (_recentChanges.Count > RecentChangeLimit) _recentChanges.Dequeue();
         if (_wrap is { } w)
         {
             if (w.LineCount == change.Before.LineCount) w.Apply(change);
@@ -359,6 +369,44 @@ public sealed class TextView
 
     public WhitespaceMode RenderWhitespace { get; set; } = WhitespaceMode.Selection;
 
+    // ── Decorations ──────────────────────────────────────────────────────────────────────────────
+
+    private const int RecentChangeLimit = 256;
+    private readonly Queue<DocumentChange> _recentChanges = new();
+
+    /// <summary>Every provider's marks (diagnostics, source control, breakpoints, …), carried through each edit.</summary>
+    public DecorationLayers Decorations { get; private set; } = DecorationLayers.None;
+
+    /// <summary>A change to the marks the editor should draw (a repaint is due).</summary>
+    public event Action? DecorationsChanged;
+
+    /// <summary>
+    /// Replaces one provider's layer with marks worked out for the text at <paramref name="version"/>. A set for an older
+    /// version is carried through the edits made since, so a slow provider's marks still land on their text; one older
+    /// than the edits kept is dropped (the provider sends a fresher one after the next change).
+    /// </summary>
+    public bool SetDecorations(string layer, DecorationSet set, long version)
+    {
+        if (version > Document.Version) return false;
+        if (version < Document.Version)
+        {
+            var since = _recentChanges.Where(c => c.Version > version).ToList();
+            if (since.Count == 0 || since[0].Version != version + 1) return false;
+            foreach (var change in since) set = set.Map(change);
+        }
+
+        Decorations = Decorations.With(layer, set);
+        DecorationsChanged?.Invoke();
+        return true;
+    }
+
+    /// <summary>Room left of the line numbers for breakpoints and other glyphs (VS Code's glyph margin).</summary>
+    public bool ShowGlyphMargin { get; set; }
+
+    public const float GlyphMarginWidth = 18;
+
+    private float GlyphMargin => ShowGlyphMargin ? GlyphMarginWidth : 0;
+
     /// <summary>The find widget's matches (for the version they were found in), and which one it is on.</summary>
     public SearchResult Found { get; set; } = SearchResult.None;
 
@@ -395,7 +443,7 @@ public sealed class TextView
         get
         {
             var digits = Math.Max(3, (int)Math.Floor(Math.Log10(Math.Max(1, Document.Text.LineCount))) + 1);
-            return MathF.Round(digits * Fonts.CharAdvance + 34);
+            return MathF.Round(digits * Fonts.CharAdvance + 34 + GlyphMargin);
         }
     }
 
@@ -552,6 +600,7 @@ public sealed class TextView
         var guides = GuideGeometry(first, last);
         var whitespace = WhitespaceGeometry(lines);
         var (vThumb, hThumb) = Thumbs();
+        var (marks, lineFills, glyphs) = DecorationGeometry(first, last, lines);
         return new EditorFrame
         {
             Generation = LayoutService.NextFrameGeneration(),
@@ -573,6 +622,11 @@ public sealed class TextView
             Whitespace = whitespace,
             Minimap = ShowMinimap ? MinimapFrame() : null,
             CurrentMatch = current,
+            RangeMarks = marks,
+            LineFills = lineFills,
+            GutterMarks = glyphs,
+            Overview = OverviewMarks(),
+            GlyphMargin = GlyphMargin,
             CaretsVisible = CaretsVisible && Focused,
             Focused = Focused,
             VerticalThumb = vThumb,
@@ -800,6 +854,82 @@ public sealed class TextView
     /// A line's brackets coloured by depth (VS Code's bracket-pair colours), from the newest bracket index. One a few
     /// edits old still serves for a line whose brackets sit where they were: each is checked against the text.
     /// </summary>
+    // ── Semantic colours ─────────────────────────────────────────────────────────────────────────
+
+    private SemanticColors? _semantic;
+    private readonly List<ImmutableArray<TextChange>> _sinceSemantic = [];
+
+    /// <summary>A language server's colours for names (functions, parameters, types), for the text they were worked out on.</summary>
+    public SemanticColors? Semantic
+    {
+        get => _semantic;
+        set
+        {
+            _semantic = value;
+            _sinceSemantic.Clear();
+            if (value is null || value.Version == Document.Version) return;
+            // Worked out for an older text: carried through the edits since, when they are still kept.
+            var since = _recentChanges.Where(c => c.Version > value.Version).ToList();
+            if (since.Count == 0 || since[0].Version != value.Version + 1)
+            {
+                _semantic = null;
+                return;
+            }
+
+            foreach (var c in since) _sinceSemantic.Add(ChangeSet.Invert(c.Before, c.Changes));
+        }
+    }
+
+    /// <summary>The semantic stretches of a line, when the line's text is as it was when they were worked out.</summary>
+    private SemanticLine? SemanticFor(int line, string text)
+    {
+        if (_semantic is not { } s) return null;
+        var offset = Document.Text.LineStart(line);
+        // Back through the edits made since, newest first, to the same place in the text the colours are for.
+        for (var i = _sinceSemantic.Count - 1; i >= 0; i--) offset = ChangeSet.Map(offset, _sinceSemantic[i], stickAfter: false);
+        var old = s.Text.LineOf(Math.Clamp(offset, 0, s.Text.Length));
+        return s.Lines.TryGetValue(old, out var found) && string.Equals(found.Text, text, StringComparison.Ordinal) ? found : null;
+    }
+
+    /// <summary>A line's colour overrides: its semantic stretches with the brackets cut out of them in their depth colours.</summary>
+    private ColorOverrides LineOverrides(int line, string text)
+    {
+        var brackets = BracketOverrides(line, text);
+        if (SemanticFor(line, text) is not { } semantic || semantic.Starts.Length == 0) return brackets;
+        var starts = new List<int>();
+        var ends = new List<int>();
+        var colors = new List<uint>();
+        var b = 0;
+        void Add(int from, int to, uint color)
+        {
+            if (to <= from) return;
+            starts.Add(from);
+            ends.Add(to);
+            colors.Add(color);
+        }
+
+        for (var i = 0; i < semantic.Starts.Length; i++)
+        {
+            var at = semantic.Starts[i];
+            var end = Math.Min(semantic.Ends[i], text.Length);
+            while (b < brackets.Count && brackets.Column(b) < end)
+            {
+                var column = brackets.Column(b);
+                if (column >= at) Add(at, column, semantic.Colors[i]);
+                Add(column, column + 1, brackets.Color(b));
+                at = Math.Max(at, column + 1);
+                b++;
+            }
+
+            Add(at, end, semantic.Colors[i]);
+        }
+
+        for (; b < brackets.Count; b++) Add(brackets.Column(b), brackets.Column(b) + 1, brackets.Color(b));
+        // Sorted by start; a bracket before the first stretch was added after it.
+        var order = Enumerable.Range(0, starts.Count).OrderBy(i => starts[i]).ToArray();
+        return new ColorOverrides([.. order.Select(i => starts[i])], [.. order.Select(i => colors[i])], [.. order.Select(i => ends[i])]);
+    }
+
     private ColorOverrides BracketOverrides(int line, string text)
     {
         if (!BracketColors || Features is not { } features || features.LineCount != Document.Text.LineCount) return default;
@@ -862,6 +992,125 @@ public sealed class TextView
         return (all, current);
     }
 
+    /// <summary>
+    /// The decorations in sight as the frame draws them: range marks as rectangles over their text (a rectangle per row a
+    /// range crosses), line backgrounds and gutter glyphs per row shown.
+    /// </summary>
+    private (List<(SKRect, RangeStyle)> Marks, List<(float Y, LineStyle Style)> Lines, List<(float Y, GutterGlyph Glyph)> Glyphs) DecorationGeometry(int first, int last, List<FrameLine> rows)
+    {
+        var marks = new List<(SKRect, RangeStyle)>();
+        var lineFills = new List<(float, LineStyle)>();
+        var glyphs = new List<(float, GutterGlyph)>();
+        if (Decorations.Layers.IsEmpty) return (marks, lineFills, glyphs);
+        var rope = Document.Text;
+        var firstOffset = rope.LineStart(first);
+        var lastOffset = rope.LineStart(last) + rope.LineLength(last);
+        var spans = new List<SKRect>();
+        var lineStarts = new Dictionary<int, LineStyle>();
+        var gutter = new Dictionary<int, List<GutterGlyph>>();
+        foreach (var set in Decorations.Sets)
+        {
+            foreach (var r in set.RangesIn(firstOffset, lastOffset))
+            {
+                var start = Math.Clamp(r.Start, 0, rope.Length);
+                var end = Math.Clamp(r.End, start, rope.Length);
+                var startLine = rope.LineOf(Math.Max(start, firstOffset));
+                var endLine = rope.LineOf(Math.Min(end, lastOffset));
+                for (var line = startLine; line <= endLine; line++)
+                {
+                    if (IsHidden(line)) continue;
+                    var lineStart = rope.LineStart(line);
+                    var length = rope.LineLength(line);
+                    var from = Math.Max(start, lineStart) - lineStart;
+                    var to = Math.Min(end, lineStart + length) - lineStart;
+                    // An empty range (a diagnostic at a line's end, say) still marks a character's width.
+                    if (to <= from)
+                    {
+                        if (from < length) to = from + 1;
+                        else if (from > 0) from = to - 1;
+                    }
+
+                    spans.Clear();
+                    AddSpan(spans, line, from, to, 0, 0, Fonts.CharAdvance * (to <= from ? 1 : 0));
+                    foreach (var rect in spans) marks.Add((rect, r.Style));
+                }
+            }
+
+            foreach (var l in set.Lines) lineStarts[l.LineStart] = l.Style;
+            foreach (var g in set.Gutter)
+            {
+                if (!gutter.TryGetValue(g.LineStart, out var list)) gutter[g.LineStart] = list = [];
+                list.Add(g.Glyph);
+            }
+        }
+
+        foreach (var row in rows)
+        {
+            if (lineStarts.Count == 0 && gutter.Count == 0) break;
+            var key = rope.LineStart(row.Line);
+            if (lineStarts.TryGetValue(key, out var style)) lineFills.Add((row.Y, style));
+            if (row.Sub == 0 && gutter.TryGetValue(key, out var list))
+            {
+                foreach (var glyph in list) glyphs.Add((row.Y, glyph));
+            }
+        }
+
+        return (marks, lineFills, glyphs);
+    }
+
+    /// <summary>The scrollbar's overview ruler: problems, changes and find matches as ticks down the track.</summary>
+    private List<(float Y, uint Color)> OverviewMarks()
+    {
+        var result = new List<(float, uint)>();
+        var rows = VisualLineCount;
+        if (rows <= 0 || Height <= 0) return result;
+        var rope = Document.Text;
+        float RowY(int offset)
+        {
+            var line = rope.LineOf(Math.Clamp(offset, 0, rope.Length));
+            return VisualOf(line) / (float)Math.Max(1, rows) * Height;
+        }
+
+        var theme = EffectiveTheme;
+        foreach (var set in Decorations.Sets)
+        {
+            foreach (var r in set.Ranges)
+            {
+                var color = r.Style switch
+                {
+                    RangeStyle.Error => theme.ErrorColor,
+                    RangeStyle.Warning => theme.WarningColor,
+                    RangeStyle.Info => theme.InfoColor,
+                    _ => 0u,
+                };
+                if (color != 0) result.Add((RowY(r.Start), color));
+            }
+
+            foreach (var g in set.Gutter)
+            {
+                var color = g.Glyph switch
+                {
+                    GutterGlyph.Added => theme.GutterAdded,
+                    GutterGlyph.Modified => theme.GutterModified,
+                    GutterGlyph.Deleted => theme.GutterDeleted,
+                    GutterGlyph.Breakpoint or GutterGlyph.BreakpointConditional or GutterGlyph.Logpoint => theme.Breakpoint,
+                    _ => 0u,
+                };
+                if (color != 0) result.Add((RowY(g.LineStart), color));
+            }
+
+            if (result.Count > 4000) break; // a tick per pixel row is all the track can show
+        }
+
+        if (Found.Version == Document.Version)
+        {
+            var step = Math.Max(1, Found.Matches.Length / 2000);
+            for (var i = 0; i < Found.Matches.Length; i += step) result.Add((RowY(Found.Matches[i].Start), theme.FindMatchCurrent));
+        }
+
+        return result;
+    }
+
     private void AddIfMissing(List<LineKey> missing, int line)
     {
         var key = Key(line);
@@ -871,7 +1120,7 @@ public sealed class TextView
     private LineKey Key(int line)
     {
         var text = LineText(line);
-        return new(text, Syntax?[line], Syntax?.Colors, EffectiveTheme.Foreground, Options.TabSize, Fonts.Version, BracketOverrides(line, text));
+        return new(text, Syntax?[line], Syntax?.Colors, EffectiveTheme.Foreground, Options.TabSize, Fonts.Version, LineOverrides(line, text));
     }
 
     private bool TryShaped(int line, out ShapedLine shaped)
