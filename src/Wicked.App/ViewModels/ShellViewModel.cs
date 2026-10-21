@@ -286,6 +286,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             .. EditingCommands(),
             .. ViewCommands(),
             .. FileCommands(),
+            .. PreviewCommands(),
         ];
     }
 

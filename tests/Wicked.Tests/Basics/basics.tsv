@@ -125,3 +125,5 @@ workbench.action.quit	workbench	Ctrl+Q
 workbench.action.editor.changeLanguageMode	workbench	Ctrl+K M
 workbench.action.editor.changeEOL	workbench	
 workbench.action.editor.changeEncoding	workbench	
+markdown.showPreview	workbench	Ctrl+Shift+V
+markdown.showPreviewToSide	workbench	Ctrl+K V

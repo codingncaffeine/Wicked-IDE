@@ -389,6 +389,13 @@ public sealed partial class Workbench : ObservableObject, IDisposable
             return open;
         }
 
+        // An image opens in its preview, as in VS Code.
+        if (Wicked.App.Previews.ImagePreviewView.Extensions.Contains(Path.GetExtension(path)))
+        {
+            var imagePath = path;
+            return OpenView(Path.GetFileName(path), () => new Wicked.App.Previews.ImagePreviewView(imagePath), viewPath: path, group: group);
+        }
+
         LoadedText loaded;
         try
         {
@@ -438,17 +445,29 @@ public sealed partial class Workbench : ObservableObject, IDisposable
     }
 
     /// <summary>A tab showing a view of its own (a diff), or the open one with the same title brought forward.</summary>
-    public EditorTab OpenView(string label, Func<Avalonia.Controls.Control> make)
+    public EditorTab OpenView(string label, Func<Avalonia.Controls.Control> make, string? viewPath = null, EditorGroup? group = null)
     {
-        if (ActiveGroup.Tabs.FirstOrDefault(t => t.ViewFactory is not null && t.Label == label) is { } open)
+        group ??= ActiveGroup;
+        if (group.Tabs.FirstOrDefault(t => t.ViewFactory is not null && t.Label == label && t.ViewPath == viewPath) is { } open)
         {
-            ActiveGroup.Activate(open);
+            group.Activate(open);
             return open;
         }
 
-        var tab = new EditorTab(null, new Document(Rope.Empty), null, FileEncoding.Utf8, default) { Label = label, ViewFactory = make };
-        ActiveGroup.Add(tab);
+        var tab = new EditorTab(null, new Document(Rope.Empty), null, FileEncoding.Utf8, default) { Label = label, ViewFactory = make, ViewPath = viewPath };
+        group.Add(tab);
+        if (group != ActiveGroup) Focus(group);
         return tab;
+    }
+
+    /// <summary>The group to the right of the active one, made when there is none (for "to the side").</summary>
+    public EditorGroup SideGroup()
+    {
+        var at = Groups.IndexOf(ActiveGroup);
+        if (at + 1 < Groups.Count) return Groups[at + 1];
+        var side = new EditorGroup(this);
+        Groups.Add(side);
+        return side;
     }
 
     public void NewFile()

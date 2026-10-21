@@ -20,11 +20,13 @@ public sealed partial class FindViewModel : ObservableObject
     public FindViewModel(CodeEditor editor)
     {
         _editor = editor;
-        _afterEdit = new DispatcherTimer(TimeSpan.FromMilliseconds(120), DispatcherPriority.Background, (_, _) =>
+        // Made stopped: the (interval, priority, handler) constructor starts a timer at once.
+        _afterEdit = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(120) };
+        _afterEdit.Tick += (_, _) =>
         {
-            _afterEdit!.Stop();
+            _afterEdit.Stop();
             _ = SearchAsync(keepPosition: true);
-        });
+        };
         editor.Document.Changed += OnDocumentChanged;
     }
 

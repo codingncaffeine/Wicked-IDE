@@ -57,7 +57,10 @@ public sealed partial class EditorTab : ObservableObject
 
     public string Title => Path is null ? Label ?? UntitledName! : System.IO.Path.GetFileName(Path);
 
-    public string Tooltip => Path ?? UntitledName!;
+    public string Tooltip => Path ?? ViewPath ?? Label ?? UntitledName!;
+
+    /// <summary>The file a view tab shows (an image, a Markdown preview), for its tooltip and so it is not opened twice.</summary>
+    public string? ViewPath { get; init; }
 
     public bool IsDirty => Document.IsDirty;
 
