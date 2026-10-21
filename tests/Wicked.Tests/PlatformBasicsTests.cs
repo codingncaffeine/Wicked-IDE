@@ -109,3 +109,48 @@ public sealed class PlatformBasicsTests
         });
     }
 }
+
+/// <summary>Input methods (fcitx5, IBus, Windows' IME): what they compose shows at the caret and lands as typed text.</summary>
+public sealed class InputMethodTests
+{
+    [Trait("Tier", "Window")]
+    [Fact]
+    public async Task TheEditorShowsWhatAnInputMethodComposesAtTheCaretAndTakesWhatItCommits()
+    {
+        using var profile = new TempProfile();
+        var root = Path.Combine(profile.Root, "project");
+        Directory.CreateDirectory(root);
+        File.WriteAllText(Path.Combine(root, "a.txt"), "abc\n");
+        await Ui.Run(() =>
+        {
+            var (window, shell) = WorkbenchWindowTests.OpenWorkbench(profile, root);
+            var tab = WorkbenchWindowTests.OpenByClicks(window, shell, "a.txt");
+            var editor = tab.Editor!;
+            editor.Focus();
+            tab.Document.SetSelections([Wicked.Editor.Model.Selection.Caret(3)]);
+            Ui.Pump(0.1);
+
+            // The input method asks the focused control for its client, as Avalonia does on focus.
+            var request = new Avalonia.Input.TextInput.TextInputMethodClientRequestedEventArgs { RoutedEvent = Avalonia.Input.InputElement.TextInputMethodClientRequestedEvent };
+            editor.RaiseEvent(request);
+            var client = Assert.IsAssignableFrom<Avalonia.Input.TextInput.TextInputMethodClient>(request.Client);
+            Assert.True(client.SupportsPreedit);
+            Assert.Equal("abc", client.SurroundingText);
+
+            // The composing text is drawn at the caret, and the candidate window is placed there.
+            client.SetPreeditText("にほん");
+            Assert.Equal("にほん", editor.View.Preedit);
+            var caret = editor.View.PrimaryCaretRect;
+            Assert.Equal(caret.Left, client.CursorRectangle.Left, 1);
+            Assert.True(client.CursorRectangle.Left > 0);
+            Assert.Equal("abc\n", tab.Document.Text.ToString()); // nothing is in the file until it is committed
+
+            // Committed: the text lands as typed and the composition is gone.
+            Avalonia.Headless.HeadlessWindowExtensions.KeyTextInput(window, "日本");
+            Assert.Equal("abc日本\n", tab.Document.Text.ToString());
+            Assert.Null(editor.View.Preedit);
+            window.Close();
+            return 0;
+        });
+    }
+}
