@@ -736,6 +736,11 @@
   <Style Selector="Button.status.failed">
     <Setter Property="Foreground" Value="{DynamicResource Brush.Danger}" />
   </Style>
+  <!-- A tip never takes a click: popups are drawn inside the window, and near its edges a tip is pushed over the pointer,
+       where it swallowed the click meant for the button under it (the status bar, the chat's Send and Stop). -->
+  <Style Selector="ToolTip">
+    <Setter Property="IsHitTestVisible" Value="False" />
+  </Style>
   <!-- The status bar's tips open above the bar, as VS Code's do. Popups are drawn inside the window: a tip placed at the
        pointer by the bottom edge was pushed up over the pointer and took the click meant for the item under it. -->
   <Style Selector="Grid#StatusBar Button">

@@ -221,6 +221,18 @@ public sealed class MenuTests
             Ui.Pump(0.2);
             Input.Click(window, item);
             Assert.True(Ui.PumpUntil(() => shell.QuickInput.IsOpen, 5), "the click went to the tip, not the item");
+            shell.QuickInput.Close();
+            Ui.Pump(0.2);
+
+            // Wherever a tip lands, even right under the pointer (as at the pointer by the bottom edge), it never takes the click.
+            ToolTip.SetPlacement(item, PlacementMode.Pointer);
+            ToolTip.SetVerticalOffset(item, 20);
+            window.MouseMove(centre);
+            ToolTip.SetIsOpen(item, true);
+            Assert.True(Ui.PumpUntil(() => ToolTip.GetIsOpen(item), 5), "the tip never opened again");
+            Ui.Pump(0.2);
+            Input.Click(window, item);
+            Assert.True(Ui.PumpUntil(() => shell.QuickInput.IsOpen, 5), "a tip under the pointer took the click");
             window.Close();
             return 0;
         });
