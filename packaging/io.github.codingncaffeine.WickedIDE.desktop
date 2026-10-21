@@ -11,3 +11,9 @@ Keywords=code;editor;ide;ai;llm;local;llama;gguf;chat;
 MimeType=text/plain;inode/directory;
 StartupNotify=true
 StartupWMClass=wicked
+Actions=new-empty-window;
+
+[Desktop Action new-empty-window]
+Name=New Empty Window
+Exec=wicked --new-window
+Icon=io.github.codingncaffeine.WickedIDE

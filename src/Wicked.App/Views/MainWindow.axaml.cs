@@ -36,6 +36,21 @@ public partial class MainWindow : Window, IWorkbenchDialogs
         Opened += OnFirstOpened;
         Deactivated += (_, _) => _shell?.Workbench.WindowDeactivated();
         AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Bubble);
+        // Files and folders dropped on the window open (the assistant's box takes its own drops, for pictures).
+        DragDrop.SetAllowDrop(this, true);
+        AddHandler(DragDrop.DragOverEvent, (_, e) =>
+        {
+            if (e.Handled) return;
+            e.DragEffects = e.DataTransfer.Contains(DataFormat.File) ? DragDropEffects.Copy : DragDropEffects.None;
+        });
+        AddHandler(DragDrop.DropEvent, (_, e) =>
+        {
+            if (e.Handled || _shell is null) return;
+            var paths = e.DataTransfer.TryGetFiles()?.Select(f => f.TryGetLocalPath()).OfType<string>().ToList() ?? [];
+            if (paths.Count == 0) return;
+            e.Handled = true;
+            _ = _shell.OpenDroppedAsync(paths);
+        });
         // The mouse's side buttons go Back and Forward, as in VS Code and a browser.
         AddHandler(PointerPressedEvent, (_, e) =>
         {
@@ -84,6 +99,11 @@ public partial class MainWindow : Window, IWorkbenchDialogs
             _shell.PaletteRequested += OnPaletteRequested;
             _shell.FocusPartRequested += FocusPart;
             _shell.QuitRequested += Close;
+            _shell.ActivateRequested += () =>
+            {
+                if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;
+                Activate();
+            };
             _shell.SearchFocusRequested += () => Avalonia.Threading.Dispatcher.UIThread.Post(SearchPanel.FocusQuery, Avalonia.Threading.DispatcherPriority.Loaded);
             _shell.Workbench.Dialogs = this;
             _shell.Clipboard = text => Clipboard?.SetTextAsync(text) ?? Task.CompletedTask;

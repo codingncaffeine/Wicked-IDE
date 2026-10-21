@@ -40,7 +40,8 @@ workbench.action.debug.start	workbench	F5
 workbench.action.debug.run	workbench	Ctrl+F5
 workbench.action.tasks.runTask	workbench	
 workbench.action.tasks.build	workbench	Ctrl+Shift+B
-wicked.newProject	workbench	Ctrl+Shift+N
+wicked.newProject	workbench	
+workbench.action.newWindow	workbench	Ctrl+Shift+N
 workbench.action.openWalkthrough	workbench	
 workbench.action.keybindingsReference	workbench	Ctrl+K Ctrl+R
 workbench.action.openDocumentationUrl	workbench	

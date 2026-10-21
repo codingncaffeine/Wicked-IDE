@@ -32,7 +32,7 @@ public sealed partial class TemplateRow : ObservableObject
 }
 
 /// <summary>
-/// File > New Project (Ctrl+Shift+N, the welcome page, the empty explorer), as Visual Studio and Rider offer it: a template,
+/// File > New Project (the palette, the welcome page, the empty explorer), as Visual Studio and Rider offer it: a template,
 /// a name and a location; the language's own tool makes it on a worker, its output in the Output panel's "New Project"
 /// channel, then the folder opens with its main file. Wicked recognises the language of every file by itself afterwards.
 /// </summary>

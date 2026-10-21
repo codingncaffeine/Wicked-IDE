@@ -79,7 +79,7 @@ public sealed class NewProjectTests
 
     [Trait("Tier", "Smoke")]
     [Fact]
-    public async Task CtrlShiftNOpensTheDialogAndCreateOpensTheNewProjectWithItsMainFile()
+    public async Task TheWelcomePagesNewProjectOpensTheDialogAndCreateOpensTheNewProjectWithItsMainFile()
     {
         using var profile = new TempProfile();
         var location = Path.Combine(profile.Root, "work");
@@ -88,8 +88,9 @@ public sealed class NewProjectTests
             var (window, shell) = Ui.Start(profile.Paths);
             try
             {
-                Input.Chord(window, Key.N, RawInputModifiers.Control | RawInputModifiers.Shift);
-                Assert.True(Ui.PumpUntil(() => shell.NewProject.IsOpen && shell.NewProject.Templates.Count > 0, 10), "Ctrl+Shift+N did not open New Project");
+                // Ctrl+Shift+N is New Window (VS Code's key); New Project is the welcome page's button and the palette's.
+                Input.Click(window, window.GetVisualDescendants().OfType<Button>().First(b => b.Name == "WelcomeNewProject" && b.IsEffectivelyVisible));
+                Assert.True(Ui.PumpUntil(() => shell.NewProject.IsOpen && shell.NewProject.Templates.Count > 0, 10), "the welcome page's button did not open New Project");
 
                 // A template that needs no tool, so the test does not depend on the machine.
                 var list = window.GetVisualDescendants().OfType<ListBox>().Single(l => l.Name == "TemplateList");

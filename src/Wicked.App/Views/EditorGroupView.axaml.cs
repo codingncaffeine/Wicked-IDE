@@ -160,7 +160,7 @@ public partial class EditorGroupView : UserControl
         else if (e.InitialPressMouseButton == MouseButton.Left && source.FindAncestorOfType<Button>(includeSelf: true) is null) _group.Activate(tab);
     }
 
-    // The welcome page's two ways to start: the window's commands, so they behave as Ctrl+Shift+N and Ctrl+K Ctrl+O do.
+    // The welcome page's two ways to start: the window's commands, so they behave as the palette's New Project and Ctrl+K Ctrl+O do.
     private void OnWelcomeNewProject(object? sender, RoutedEventArgs e) => _ = Shell?.Commands.First(c => c.Id == "wicked.newProject").Run();
 
     private void OnWelcomeOpenFolder(object? sender, RoutedEventArgs e) => _ = Shell?.Commands.First(c => c.Id == "workbench.action.files.openFolder").Run();

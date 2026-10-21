@@ -152,3 +152,21 @@ public sealed partial class Workbench
         ActiveEditorChanged?.Invoke();
     }
 }
+
+public sealed partial class Workbench
+{
+    /// <summary>A file that does not exist yet, opened as an empty tab with its name (wicked new.md): the first save makes it.</summary>
+    public EditorTab OpenNew(string path)
+    {
+        if (AllTabs.FirstOrDefault(t => t.Path == path) is { } open)
+        {
+            ActiveGroup.Activate(open);
+            return open;
+        }
+
+        var tab = new EditorTab(path, new Wicked.Editor.Model.Document(Rope.Empty), Languages.ForFile(path), FileEncoding.Utf8, default);
+        Track(tab);
+        ActiveGroup.Add(tab);
+        return tab;
+    }
+}

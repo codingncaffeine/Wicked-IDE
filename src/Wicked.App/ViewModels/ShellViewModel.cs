@@ -237,7 +237,12 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             new("workbench.action.quickOpenNavigateNext", "View", "Switch Editor", "Ctrl+Tab", () => Sync(() => bench.ActiveGroup.Cycle(1))),
             new("workbench.action.toggleSidebarVisibility", "View", "Toggle Side Bar", "Ctrl+B", () => Sync(ToggleSidebar)),
             new("workbench.action.togglePanel", "View", "Toggle Panel", "Ctrl+J", () => Sync(() => BottomPanel.Toggle())),
-            new("wicked.newProject", "File", "New Project…", "Ctrl+Shift+N", () => NewProject.OpenAsync()),
+            new("wicked.newProject", "File", "New Project…", null, () => NewProject.OpenAsync()),
+            new("workbench.action.newWindow", "File", "New Window", "Ctrl+Shift+N", () =>
+            {
+                OpenNewWindow();
+                return Task.CompletedTask;
+            }),
             new("workbench.actions.view.problems", "View", "Show Problems", null, () => Sync(() => BottomPanel.Toggle(PanelIds.Problems))),
             new("workbench.action.output.toggleOutput", "View", "Show Output", "Ctrl+Shift+U", () => Sync(() => BottomPanel.Toggle(PanelIds.Output))),
             new("workbench.action.toggleMaximizedPanel", "View", "Maximise Panel", null, () => Sync(() => BottomPanel.IsMaximized = !BottomPanel.IsMaximized)),
@@ -522,7 +527,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     // ── Settings and session ─────────────────────────────────────────────────────────────────────
 
     /// <summary>Reads settings and the last session on a worker, then reopens the last folder and its files.</summary>
-    public async Task StartAsync()
+    public async Task StartAsync(LaunchRequest? launch = null)
     {
         var (settings, problem) = await SettingsFile.ReadAsync(Paths.SettingsFile, CancellationToken.None);
         await Themes.LoadUserThemesAsync();
@@ -538,12 +543,18 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         ShowRecent();
         _ = Models.StartAsync(AllowNetwork);
         _ = Chat.StartAsync(_session.ChatConversation);
-        if (!Settings.RestoreSession || _session.LastFolder is not { } folder || !Directory.Exists(folder)) return;
-        await Workbench.OpenFolderAsync(folder);
-        if (_session.OpenFiles.TryGetValue(folder, out var files))
+        // A launch naming a folder, or asking for a window of its own, starts from it rather than from the last session.
+        var restore = launch is null || (launch.Folders.Count == 0 && !launch.NewWindow);
+        if (restore && Settings.RestoreSession && _session.LastFolder is { } folder && Directory.Exists(folder))
         {
-            foreach (var file in files.Where(File.Exists)) await Workbench.OpenAsync(file);
+            await Workbench.OpenFolderAsync(folder);
+            if (_session.OpenFiles.TryGetValue(folder, out var files))
+            {
+                foreach (var file in files.Where(File.Exists)) await Workbench.OpenAsync(file);
+            }
         }
+
+        if (launch is { IsEmpty: false }) StartedTabs = await OpenLaunchAsync(launch);
     }
 
     /// <summary>Remembers the open folder and files (on a worker).</summary>
@@ -714,7 +725,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private void ToggleAssistant() => AssistantVisible = !AssistantVisible;
 
-    /// <summary>File > New Project: a template, a name and a location (Ctrl+Shift+N, the welcome page, the empty explorer).</summary>
+    /// <summary>File > New Project: a template, a name and a location (the palette, the welcome page, the empty explorer).</summary>
     public Projects.NewProjectViewModel NewProject => _newProject ??= new Projects.NewProjectViewModel(this);
 
     private Projects.NewProjectViewModel? _newProject;
