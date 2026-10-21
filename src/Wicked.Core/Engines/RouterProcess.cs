@@ -34,6 +34,27 @@ public sealed class RouterProcess : IRouterHandle
 {
     private static readonly TimeSpan HealthyAfter = TimeSpan.FromSeconds(60);
 
+    /// <summary>
+    /// The router's tether on Unix: a POSIX shell that starts the router and holds the pipe Wicked keeps open on its standard
+    /// input. However Wicked ends (closed, crashed, killed), the pipe closes, the reader sees its end and the router gets
+    /// SIGTERM, so its models are unloaded instead of holding memory with nobody left to stop them. A SIGTERM to the tether
+    /// (Wicked's own stop) is passed on; the tether waits for the router and ends with its exit code.
+    /// </summary>
+    private const string Tether = """
+        exec 3<&0
+        "$0" "$@" </dev/null 3<&- &
+        router=$!
+        trap 'kill -TERM "$router" 2>/dev/null' TERM INT HUP
+        { cat <&3 >/dev/null; kill -TERM "$router" 2>/dev/null; } &
+        watcher=$!
+        exec 3<&-
+        status=0
+        wait "$router" || status=$?
+        while kill -0 "$router" 2>/dev/null; do wait "$router"; status=$?; done
+        kill "$watcher" 2>/dev/null
+        exit "$status"
+        """;
+
     private readonly RouterOptions _options;
     private readonly HttpClient _http;
     private readonly RotatingLog _log;
@@ -179,6 +200,12 @@ public sealed class RouterProcess : IRouterHandle
         if (monitor is not null) await monitor.ConfigureAwait(false);
     }
 
+    /// <summary>Tests: what Wicked's end does to the tether — its end of the pipe closes, as the system closes it.</summary>
+    internal void CloseTetherForTests()
+    {
+        lock (_gate) _process?.StandardInput.Close();
+    }
+
     public async ValueTask DisposeAsync()
     {
         await StopAsync().ConfigureAwait(false);
@@ -190,7 +217,8 @@ public sealed class RouterProcess : IRouterHandle
     {
         var port = _options.Port ?? FreePort();
         _port = port;
-        var info = new ProcessStartInfo(_options.ServerPath)
+        var tethered = !OperatingSystem.IsWindows();
+        var info = new ProcessStartInfo(tethered ? "/bin/sh" : _options.ServerPath)
         {
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -199,6 +227,13 @@ public sealed class RouterProcess : IRouterHandle
             CreateNoWindow = true,
             WorkingDirectory = Path.GetDirectoryName(_options.ServerPath) ?? ".",
         };
+        if (tethered)
+        {
+            info.ArgumentList.Add("-c");
+            info.ArgumentList.Add(Tether);
+            info.ArgumentList.Add(_options.ServerPath);
+        }
+
         foreach (var a in BuildArguments(port)) info.ArgumentList.Add(a);
         EngineCli.AddLibraryPath(info, Path.GetDirectoryName(_options.ServerPath));
         if (_options.Environment is not null)
@@ -207,7 +242,12 @@ public sealed class RouterProcess : IRouterHandle
         }
 
         var process = Process.Start(info) ?? throw new IOException($"Could not start {_options.ServerPath}");
-        process.StandardInput.Close();
+        // On Unix the standard input stays open: it is the tether. On Windows a job object ends the router with Wicked.
+        if (!tethered)
+        {
+            process.StandardInput.Close();
+            WindowsJob.Hold(process);
+        }
         var started = Stopwatch.StartNew();
         bool stoppedMeanwhile;
         lock (_gate)
@@ -229,6 +269,18 @@ public sealed class RouterProcess : IRouterHandle
     {
         var pumps = Task.WhenAll(Pump(process.StandardOutput, "out"), Pump(process.StandardError, "err"));
         await process.WaitForExitAsync().ConfigureAwait(false);
+        // The tether's pipe is let go with its run (a restart makes a new one), so its reader ends too.
+        if (!OperatingSystem.IsWindows())
+        {
+            try
+            {
+                process.StandardInput.Close();
+            }
+            catch (IOException)
+            {
+            }
+        }
+
         // A child that inherited the pipes (a model instance outliving its router) would hold them open; do not wait for it.
         await Task.WhenAny(pumps, Task.Delay(TimeSpan.FromSeconds(1.5))).ConfigureAwait(false);
         var code = process.ExitCode;

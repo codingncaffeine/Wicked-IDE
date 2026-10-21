@@ -196,6 +196,26 @@ public sealed class RouterTests : IDisposable
     }
 
     [Fact]
+    public async Task WhenWickedEndsHoweverItEndsTheRouterIsStoppedWithIt()
+    {
+        Assert.SkipUnless(!OperatingSystem.IsWindows(), "uses /bin/sh (Windows ties the router to a job object)");
+        var pidFile = Path.Combine(_profile.Root, "router.pid");
+        var termed = Path.Combine(_profile.Root, "termed");
+        var script = Shell.Script(_profile.Root, "llama-server", $"echo $$ > '{pidFile}'; trap 'touch \"{termed}\"; kill $!; exit 0' TERM; sleep 60 & wait");
+        await using var router = new RouterProcess(Options(script, supervise: false), _http);
+        await router.StartAsync(Ct);
+        await WaitUntil(() => File.Exists(pidFile) && File.ReadAllText(pidFile).Trim().Length > 0);
+        var pid = int.Parse(File.ReadAllText(pidFile).Trim(), System.Globalization.CultureInfo.InvariantCulture);
+
+        // Wicked crashed or was killed: nothing calls Stop, the system closes Wicked's end of the pipe.
+        router.CloseTetherForTests();
+
+        await WaitUntil(() => File.Exists(termed), 10);
+        await WaitUntil(() => !RouterOwnership.IsAlive(pid), 10);
+        await WaitUntil(() => !router.IsRunning, 10);
+    }
+
+    [Fact]
     public async Task StopKillsARouterThatIgnoresSigterm()
     {
         Assert.SkipUnless(!OperatingSystem.IsWindows(), "uses /bin/sh");
