@@ -52,6 +52,9 @@ public sealed partial class LanguageFeatures : ObservableObject, IAsyncDisposabl
 
     public ProblemsViewModel Problems { get; }
 
+    /// <summary>A problem's "Fix" or "Explain" in its hover card, handed to the assistant (the shell sets it).</summary>
+    public Action<Wicked.App.Editor.CodeEditor, Diagnostic, string>? ProblemAction { get; set; }
+
     /// <summary>Where Wicked installs servers of its own (the installer writes here; the locator looks here first).</summary>
     public string ServersFolder => Path.Combine(_paths.Data, "servers");
 

@@ -28,6 +28,25 @@ internal sealed class ShellChatHost : IChatHost
 
     public WickedSettings Settings => _shell.Settings;
 
+    public string? ActiveFileName => _shell.Workbench.ActiveTab is { ViewFactory: null } tab ? tab.Title : null;
+
+    /// <summary>
+    /// Code from the chat proposed to the active editor: over its selection; over the whole file when the code is most of a
+    /// file (at least half its lines); else at the caret. It opens as a review.
+    /// </summary>
+    public void ApplyToEditor(string text)
+    {
+        if (_shell.Workbench.ActiveTab is not { ViewFactory: null } tab) return;
+        var doc = tab.Document;
+        var p = doc.Primary;
+        var lines = text.Split('\n').Length;
+        var (start, end) = !p.IsEmpty ? (p.Start, p.End) : lines * 2 >= doc.Text.LineCount ? (0, doc.Text.Length) : (p.Active, p.Active);
+        if (start == 0 && end == doc.Text.Length && doc.Text.Length > 0 && doc.Text[doc.Text.Length - 1] == '\n' && !text.EndsWith('\n')) text += "\n";
+        _shell.OpenReview(tab, start, end, text, "from the assistant");
+    }
+
+    public Task<string> WithContextAsync(string text, bool activeFile) => Wicked.App.Assistant.MentionContext.ExpandAsync(_shell, text, activeFile);
+
     public Task UpdateSettingsAsync(Func<WickedSettings, WickedSettings> change) => _shell.UpdateSettingsAsync(change);
 
     public bool CanInsert => _shell.Workbench.ActiveTab is not null;

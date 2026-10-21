@@ -37,6 +37,9 @@ public interface ICodeActions
 
     void Insert(string text);
 
+    /// <summary>Proposes the code to the active editor as a review (over the selection, the whole file, or at the caret).</summary>
+    void Apply(string text);
+
     void OpenLink(string url);
 }
 

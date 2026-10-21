@@ -176,7 +176,25 @@ public sealed partial class EditorLanguageUi
         if (cts.IsCancellationRequested) return;
 
         var stack = new StackPanel { Spacing = 8 };
-        foreach (var p in problems.Take(6)) stack.Children.Add(ProblemLine(p));
+        foreach (var p in problems.Take(6))
+        {
+            stack.Children.Add(ProblemLine(p));
+            if (_features.ProblemAction is not { } act) continue;
+            var fix = new Button { Name = "FixWithAssistant", Content = "Fix with the assistant", Classes = { "secondary", "small" } };
+            var explain = new Button { Name = "ExplainWithAssistant", Content = "Explain", Classes = { "quiet", "small" } };
+            var problem = p;
+            fix.Click += (_, _) =>
+            {
+                _hover.Hide();
+                act(_editor, problem, "fix");
+            };
+            explain.Click += (_, _) =>
+            {
+                _hover.Hide();
+                act(_editor, problem, "explain");
+            };
+            stack.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Margin = new Thickness(21, 0, 0, 0), Children = { fix, explain } });
+        }
         if (problems.Count > 0 && blocks is not null) stack.Children.Add(new Border { Height = 1, Classes = { "popupdivider" } });
         if (blocks is not null) stack.Children.Add(new MarkdownView { Blocks = blocks });
         _hover.Content = new ScrollViewer { Content = stack, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled };

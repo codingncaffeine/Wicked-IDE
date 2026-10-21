@@ -186,6 +186,11 @@
               <KeyBinding Gesture="Ctrl+Enter" Command="{Binding CommitCommand}" />
             </TextBox.KeyBindings>
           </TextBox>
+          <Button Name="WriteCommitMessage" Classes="quiet small" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,2,2,0" Padding="4"
+                  Command="{Binding WriteMessageCommand}" IsVisible="{Binding CanWriteMessage}" IsEnabled="{Binding !WritingMessage}"
+                  ToolTip.Tip="Write a commit message for these changes (the assistant's model)" AutomationProperties.Name="Write commit message">
+            <shell:Icon Data="{StaticResource Icon.Sparkles}" Size="13" />
+          </Button>
           <TextBlock Name="SubjectHint" Text="{Binding SubjectHint}" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,10,6" IsHitTestVisible="False"
                      FontSize="{DynamicResource Font.Size.Small}" Foreground="{DynamicResource Brush.Text.Muted}" Classes.long="{Binding SubjectTooLong}" />
         </Grid>

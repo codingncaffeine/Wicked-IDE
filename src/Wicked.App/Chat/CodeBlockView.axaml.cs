@@ -25,6 +25,11 @@ public partial class CodeBlockView : UserControl
 
     private ICodeActions? Actions => ChatContext.GetActions(this);
 
+    private void OnApply(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (_block is not null && Actions?.CanInsert == true) Actions.Apply(string.Join('\n', _plain));
+    }
+
     public MdCodeBlock? Block => _block;
 
     /// <summary>What the block shows now, highlighted or not.</summary>

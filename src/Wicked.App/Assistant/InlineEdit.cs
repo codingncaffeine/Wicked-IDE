@@ -85,6 +85,13 @@ public sealed class InlineEdit
         }
     }
 
+    /// <summary>Asks about a given stretch (a problem's lines to fix), without the box.</summary>
+    public Task AskAboutAsync(int start, int end, string instruction)
+    {
+        _region = (start, end);
+        return AskAsync(instruction);
+    }
+
     /// <summary>Asks for the rewrite; the answer becomes a proposal over the region.</summary>
     public async Task AskAsync(string instruction)
     {

@@ -47,6 +47,17 @@ public interface IChatHost
     /// <summary>Goes to the Models panel.</summary>
     void ShowModels();
 
+    /// <summary>Proposes code to the active editor as a review to accept change by change.</summary>
+    void ApplyToEditor(string text)
+    {
+    }
+
+    /// <summary>The message as the model gets it: the @-mentions (@file:, @folder:, @problems, @git, @selection) and, when asked, the open file, filled in.</summary>
+    Task<string> WithContextAsync(string text, bool activeFile) => Task.FromResult(text);
+
+    /// <summary>The file in front of the user, for the composer's context chip (null when none).</summary>
+    string? ActiveFileName => null;
+
     /// <summary>The tools the agent may use in the open folder; null where there are none (agent mode is then off).</summary>
     Wicked.App.Assistant.IAgentTools? Agent => null;
 }

@@ -31,6 +31,21 @@ public sealed partial class ChatViewModel
 
     public bool CanUseAgent => _host.Agent is not null;
 
+    /// <summary>The open file goes with the question (the composer's chip); a click leaves it out.</summary>
+    [ObservableProperty]
+    private bool _includeActiveFile = true;
+
+    /// <summary>The chip's text: the file in front of the user, or nothing.</summary>
+    public string? ActiveFileName => _host.ActiveFileName;
+
+    public bool HasActiveFile => ActiveFileName is not null;
+
+    internal void ActiveFileChanged()
+    {
+        OnPropertyChanged(nameof(ActiveFileName));
+        OnPropertyChanged(nameof(HasActiveFile));
+    }
+
     [CommunityToolkit.Mvvm.Input.RelayCommand]
     private void ToggleAgentMode() => AgentMode = !AgentMode && CanUseAgent;
 

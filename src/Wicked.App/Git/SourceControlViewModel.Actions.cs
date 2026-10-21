@@ -35,6 +35,30 @@ public sealed partial class SourceControlViewModel
 
     public bool HasError => ErrorText.Length > 0;
 
+    /// <summary>Writes a commit message from the changes (the assistant's model; the shell sets it). Null: no button.</summary>
+    public Func<CancellationToken, Task<string?>>? MessageWriter { get; set; }
+
+    public bool CanWriteMessage => MessageWriter is not null;
+
+    [ObservableProperty]
+    private bool _writingMessage;
+
+    /// <summary>The sparkle in the commit box: a message for what is staged (or, with nothing staged, every change).</summary>
+    [RelayCommand]
+    private async Task WriteMessage()
+    {
+        if (MessageWriter is not { } write || WritingMessage) return;
+        WritingMessage = true;
+        try
+        {
+            if (await write(CancellationToken.None) is { Length: > 0 } message) CommitMessage = message;
+        }
+        finally
+        {
+            WritingMessage = false;
+        }
+    }
+
     public bool IsBusy => BusyCount > 0;
 
     /// <summary>Length of the message's first line; the box warns past the usual 72.</summary>

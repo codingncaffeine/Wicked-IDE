@@ -123,6 +123,13 @@
           </Button>
 
           <!-- Pictures: only for a model that can see. -->
+          <ToggleButton Grid.Column="2" Name="FileChip" Classes="chipbutton" HorizontalAlignment="Right" IsChecked="{Binding IncludeActiveFile}" IsVisible="{Binding HasActiveFile}"
+                        ToolTip.Tip="The open file goes with the question (click to leave it out). Mention more with @file:path, @folder:path, @problems, @git or @selection." AutomationProperties.Name="Include the open file">
+            <StackPanel Orientation="Horizontal" Spacing="5">
+              <shell:Icon Data="{StaticResource Icon.FileText}" Size="12" />
+              <TextBlock Text="{Binding ActiveFileName}" FontSize="{DynamicResource Font.Size.Small}" MaxWidth="110" TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+          </ToggleButton>
           <ToggleButton Grid.Column="2" Name="AgentToggle" Classes="chipbutton" HorizontalAlignment="Left" IsChecked="{Binding AgentMode}" IsVisible="{Binding CanUseAgent}"
                         ToolTip.Tip="Agent: the model may read, search, edit and run commands in the project, asking before it changes anything" AutomationProperties.Name="Agent mode">
             <StackPanel Orientation="Horizontal" Spacing="5">

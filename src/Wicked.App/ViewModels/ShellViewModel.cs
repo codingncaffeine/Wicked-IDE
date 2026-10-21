@@ -241,6 +241,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             new("editor.action.insertSnippet", "Snippets", "Insert Snippet", null, () => Sync(PickSnippet)),
             .. LanguageCommands(),
             .. TerminalCommands(),
+            .. AssistantCommands(),
             new("workbench.action.openSnippets", "Snippets", "Configure Snippets", null, ConfigureSnippetsAsync),
             new("workbench.action.openGlobalKeybindingsFile", "Preferences", "Open Keyboard Shortcuts (JSON)", null, OpenKeybindingsJsonAsync),
             .. SourceControl.Commands,

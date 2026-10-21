@@ -34,6 +34,9 @@ public sealed partial class ChatMessageViewModel : ObservableObject
 
     public bool HasSteps => Steps.Count > 0;
 
+    /// <summary>A user turn as the model gets it: the context its @-mentions and the open file brought; null when it is the text.</summary>
+    public string? SentText { get; set; }
+
     internal void StepsChanged() => OnPropertyChanged(nameof(HasSteps));
 
     /// <summary>The turn's tool calls and their answers, sent back to the model with the later turns (never shown as text).</summary>

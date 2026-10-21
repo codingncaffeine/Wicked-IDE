@@ -158,6 +158,7 @@ public sealed partial class ChatViewModel : ObservableObject, ICodeActions, IDis
         {
             CanInsertChanged?.Invoke(this, EventArgs.Empty);
             OnPropertyChanged(nameof(CanUseAgent));
+            ActiveFileChanged();
             if (!CanUseAgent) AgentMode = false;
         });
         Attachments.CollectionChanged += (_, _) => OnPropertyChanged(nameof(CanSend));
@@ -334,6 +335,8 @@ public sealed partial class ChatViewModel : ObservableObject, ICodeActions, IDis
         ComposerNote = "";
         var user = new ChatMessageViewModel(this, ChatRole.User, text, images);
         Messages.Add(user);
+        var sent = await _host.WithContextAsync(text, IncludeActiveFile && _host.ActiveFileName is not null);
+        if (sent != text) user.SentText = sent;
         if (Messages.Count == 1 && _title == NewTitle) SetTitle(TitleFrom(text));
         await RunReplyAsync();
     }
@@ -397,7 +400,7 @@ public sealed partial class ChatViewModel : ObservableObject, ICodeActions, IDis
             if (m.IsAssistant) messages.AddRange(m.Transcript);
             if (m.IsAssistant && m.Text.Length == 0) continue;
             // A model that cannot see does not get the pictures an earlier turn carried.
-            messages.Add(new ChatMessage(m.Role, m.Text, model.AcceptsImages && m.Images.Count > 0 ? m.Images : null));
+            messages.Add(new ChatMessage(m.Role, m.SentText ?? m.Text, model.AcceptsImages && m.Images.Count > 0 ? m.Images : null));
         }
 
         return new ChatRequest(model.Id, messages);
@@ -859,6 +862,8 @@ public sealed partial class ChatViewModel : ObservableObject, ICodeActions, IDis
     void ICodeActions.Copy(string text) => _ = _host.SetClipboardAsync(text);
 
     void ICodeActions.Insert(string text) => _host.InsertIntoEditor(text);
+
+    void ICodeActions.Apply(string text) => _host.ApplyToEditor(text);
 
     void ICodeActions.OpenLink(string url) => _host.OpenLink(url);
 

@@ -51,8 +51,109 @@ public sealed partial class ShellViewModel
     /// <summary>The ghost text of an editor, when it has it.</summary>
     public InlineCompletions? GhostsFor(CodeEditor? editor) => editor is not null && _ghosts.TryGetValue(editor, out var g) ? g : null;
 
+    private const string CommitInstructions = """
+        You write git commit messages. From the diff, write one: a subject line in the imperative mood of at most 72
+        characters, then (only when it helps) a blank line and a short body saying what changed and why. Reply with the
+        message only, no quotes or fences.
+        """;
+
+    /// <summary>A commit message for the active repository's staged changes (or all of them when nothing is staged).</summary>
+    private async Task<string?> WriteCommitMessageAsync(CancellationToken ct)
+    {
+        if (AssistantModel() is not { } model || SourceControl.ActiveGit is not { } repo) return null;
+        var diff = await repo.DiffAsync(".", staged: true, ct: ct);
+        if (diff.Trim().Length == 0) diff = await repo.DiffAsync(".", staged: false, ct: ct);
+        if (diff.Trim().Length == 0) return null;
+        if (diff.Length > 24_000) diff = diff[..24_000] + "\n… (cut)";
+        var text = new System.Text.StringBuilder();
+        try
+        {
+            await foreach (var chunk in Assistant.Chat.StreamAsync(new ChatRequest(model, [new ChatMessage(ChatRole.System, CommitInstructions), new ChatMessage(ChatRole.User, diff)], new ChatSampling(Temperature: 0.2)), ct))
+            {
+                if (chunk is ContentDelta d) text.Append(d.Text);
+            }
+        }
+        catch (ChatException ex)
+        {
+            Notices.Post(new Wicked.Core.Notice("commit-message", $"No commit message: {ex.Message}", Wicked.Core.NoticeKind.Error));
+            return null;
+        }
+
+        return InlineEdit.StripFences(text.ToString()).Trim();
+    }
+
+    /// <summary>A problem's Fix (an inline edit over its lines) or Explain (a question in the assistant).</summary>
+    private void OnProblemAction(CodeEditor editor, Wicked.Core.Lsp.Diagnostic problem, string kind)
+    {
+        var text = editor.Document.Text;
+        var first = Math.Clamp(problem.Range.Start.Line, 0, text.LineCount - 1);
+        var last = Math.Clamp(problem.Range.End.Line, first, text.LineCount - 1);
+        var start = text.LineStart(first);
+        var end = last + 1 < text.LineCount ? text.LineStart(last + 1) : text.Length;
+        if (kind == "fix")
+        {
+            _ = InlineEditFor(editor)?.AskAboutAsync(start, end, $"Fix this problem: {problem.Message}");
+            return;
+        }
+
+        AssistantVisible = true;
+        var file = editor.FilePath is { } path ? Path.GetFileName(path) : "this file";
+        var fence = new string((char)96, 3);
+        Chat.Draft = $"Explain this problem in {file} at line {first + 1} and how to fix it: {problem.Message}\n\n{fence}\n{text.Substring(start, end - start).TrimEnd()}\n{fence}";
+        Chat.SendCommand.Execute(null);
+    }
+
+    private IEnumerable<Wicked.App.Shell.WorkbenchCommand> AssistantCommands()
+    {
+        Task Ghost() => GhostsFor(Workbench.ActiveTab?.Editor)?.TriggerAsync() ?? Task.CompletedTask;
+        Task Inline()
+        {
+            InlineEditFor(Workbench.ActiveTab?.Editor)?.Open();
+            return Task.CompletedTask;
+        }
+
+        Task Agent()
+        {
+            AssistantVisible = true;
+            Chat.AgentMode = Chat.CanUseAgent && !Chat.AgentMode;
+            return Task.CompletedTask;
+        }
+
+        return
+        [
+            new("editor.action.inlineSuggest.trigger", "Assistant", "Trigger Inline Suggestion", "Alt+OemPipe", Ghost),
+            new("inlineChat.start", "Assistant", "Edit with the Assistant (Inline)", null, Inline),
+            new("wicked.assistant.toggleAgent", "Assistant", "Toggle Agent Mode", null, Agent),
+            new("git.generateCommitMessage", "Git", "Write Commit Message", null, async () =>
+            {
+                if (await WriteCommitMessageAsync(CancellationToken.None) is { Length: > 0 } message) SourceControl.CommitMessage = message;
+            }),
+            new("wicked.assistant.installCodingPack", "Assistant", "Install Coding Pack", null, InstallCodingPackAsync),
+        ];
+    }
+
+    /// <summary>
+    /// The coding pack (D18): the Coding pick for this machine with its small completion companion, installed in one go
+    /// (licences asked for first), from the Models panel.
+    /// </summary>
+    private async Task InstallCodingPackAsync()
+    {
+        Navigate(Wicked.App.Shell.ShellRoutes.Models);
+        var card = Models.Picks.FirstOrDefault(p => p.Pick.Kind == Wicked.Core.Catalog.PickKind.Coding || p.Pick.AlsoFor.Contains(Wicked.Core.Catalog.PickKind.Coding));
+        if (card is null)
+        {
+            Notices.Post(new Wicked.Core.Notice("coding-pack", "No coding model fits this machine in the catalog yet", Wicked.Core.NoticeKind.Info, Wicked.App.Shell.ShellRoutes.Models));
+            return;
+        }
+
+        if (card.Installed) Notices.Post(new Wicked.Core.Notice("coding-pack", $"The coding pack ({card.Name}) is installed", Wicked.Core.NoticeKind.Success));
+        else await card.InstallCommand.ExecuteAsync(null);
+    }
+
     private void WireAssistant()
     {
+        SourceControl.MessageWriter = WriteCommitMessageAsync;
+        Language.ProblemAction = OnProblemAction;
         Workbench.TabOpened += tab =>
         {
             if (tab.ViewFactory is not null) return;
