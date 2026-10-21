@@ -49,7 +49,7 @@ public sealed record LanguageServerSpec(
 /// <summary>The servers the IDE knows. Each language takes the first one in this list that is installed.</summary>
 public static class LanguageServerCatalog
 {
-    public static readonly IReadOnlyList<LanguageServerSpec> All =
+    private static readonly IReadOnlyList<LanguageServerSpec> BuiltIn =
     [
         new("clangd", "clangd", ["c", "cpp", "objective-c", "objective-cpp", "cuda-cpp"], ["clangd"], ["--background-index", "--header-insertion=iwyu", "--completion-style=detailed"],
             InstallKind.GitHubRelease, Repository: "clangd/clangd",
@@ -126,6 +126,50 @@ public static class LanguageServerCatalog
         new("intelephense", "PHP (Intelephense)", ["php"], ["intelephense"], ["--stdio"], InstallKind.Npm, Package: "intelephense", Homepage: "https://intelephense.com"),
         new("ruby-lsp", "Ruby LSP", ["ruby"], ["ruby-lsp"], [], InstallKind.System, Package: "ruby-lsp", Homepage: "https://github.com/Shopify/ruby-lsp"),
     ];
+
+    private static readonly Lock Gate = new();
+    private static IReadOnlyList<(string Owner, LanguageServerSpec Spec)> _added = [];
+    private static IReadOnlyList<LanguageServerSpec> _all = BuiltIn;
+
+    /// <summary>Every server: those extensions added first (so an installed extension's server is tried ahead of the built-in one), then the built-in ones.</summary>
+    public static IReadOnlyList<LanguageServerSpec> All => Volatile.Read(ref _all);
+
+    /// <summary>Adds a server for <paramref name="owner"/> (an extension id); disposing the handle takes it back. A second server with the same id replaces the first.</summary>
+    public static IDisposable Register(string owner, LanguageServerSpec spec)
+    {
+        lock (Gate)
+        {
+            _added = [.. _added.Where(a => a.Spec.Id != spec.Id), (owner, spec)];
+            Rebuild();
+        }
+
+        return new Registration(owner, spec);
+    }
+
+    /// <summary>Takes back every server <paramref name="owner"/> added.</summary>
+    public static void Unregister(string owner)
+    {
+        lock (Gate)
+        {
+            _added = [.. _added.Where(a => a.Owner != owner)];
+            Rebuild();
+        }
+    }
+
+    private static void Rebuild() =>
+        Volatile.Write(ref _all, [.. _added.Select(a => a.Spec), .. BuiltIn.Where(b => _added.All(a => a.Spec.Id != b.Id))]);
+
+    private sealed class Registration(string owner, LanguageServerSpec spec) : IDisposable
+    {
+        public void Dispose()
+        {
+            lock (Gate)
+            {
+                _added = [.. _added.Where(a => !(a.Owner == owner && ReferenceEquals(a.Spec, spec)))];
+                Rebuild();
+            }
+        }
+    }
 
     /// <summary>The servers that serve <paramref name="languageId"/>, in order of preference.</summary>
     public static IEnumerable<LanguageServerSpec> For(string languageId) => All.Where(s => s.Languages.Contains(languageId));
