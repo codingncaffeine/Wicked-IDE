@@ -72,6 +72,65 @@ public sealed class PatchSelection
         return this;
     }
 
+
+    /// <summary>
+    /// The changes of a work-tree diff that fall in a range of lines of the working text (0-based, inclusive): the lines added or
+    /// changed there, and the lines removed just above any of them. This is what "stage the selected lines" and "revert the
+    /// selected lines" act on. Null when the range holds no change.
+    /// </summary>
+    public static PatchSelection? ForNewLines(FilePatch patch, int firstLine, int lastLine)
+    {
+        PatchSelection? selection = null;
+        for (var h = 0; h < patch.Hunks.Length; h++)
+        {
+            var hunk = patch.Hunks[h];
+            var line = hunk.NewFirst - 1;
+            var picked = new List<int>();
+            for (var i = 0; i < hunk.Lines.Length; i++)
+            {
+                var kind = hunk.Lines[i].Kind;
+                if (kind == '-')
+                {
+                    // A removed line sits above the working line that follows it.
+                    if (line >= firstLine && line <= lastLine) picked.Add(i);
+                    continue;
+                }
+
+                if (kind == '+' && line >= firstLine && line <= lastLine) picked.Add(i);
+                line++;
+            }
+
+            if (picked.Count > 0) (selection ??= new PatchSelection()).AddLines(h, picked);
+        }
+
+        return selection;
+    }
+
+    /// <summary>The whole hunk that covers a line of the working text (or has lines removed just above it), as one selection; null when no hunk does.</summary>
+    public static PatchSelection? ForHunkAt(FilePatch patch, int line)
+    {
+        for (var h = 0; h < patch.Hunks.Length; h++)
+        {
+            var hunk = patch.Hunks[h];
+            var first = hunk.NewFirst - 1;
+            var covered = false;
+            var at = first;
+            foreach (var l in hunk.Lines)
+            {
+                if (l.Kind == '-') covered |= at == line;
+                else
+                {
+                    if (l.Kind == '+') covered |= at == line;
+                    at++;
+                }
+            }
+
+            if (covered) return OfHunks(h);
+        }
+
+        return null;
+    }
+
     internal bool Includes(int hunk, int line) => _hunks.TryGetValue(hunk, out var lines) && (lines is null || lines.Contains(line));
 
     internal bool Touches(int hunk) => _hunks.ContainsKey(hunk);

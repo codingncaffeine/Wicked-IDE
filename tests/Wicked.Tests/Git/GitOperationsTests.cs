@@ -297,3 +297,70 @@ public sealed class GitOperationsTests
         Assert.True(status.IsClean);
     }
 }
+
+public sealed class GitSwitchTests
+{
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
+    private static async Task<(GitSandbox Box, GitRepository Repo)> TwoBranchesAsync()
+    {
+        var (box, repo) = await GitSandbox.CreateAsync();
+        var lines = string.Join('\n', Enumerable.Range(1, 40).Select(i => $"line {i}")) + "\n";
+        await box.CommitAsync("base", ("f.txt", lines));
+        await box.GitAsync("switch", "-q", "-c", "other");
+        await box.CommitAsync("other", ("f.txt", lines.Replace("line 2\n", "line 2 on other\n", StringComparison.Ordinal)));
+        await box.GitAsync("switch", "-q", "main");
+        return (box, repo);
+    }
+
+    [Fact]
+    public async Task ASwitchBlockedByLocalChangesCanCarryThemAcrossThroughTheStash()
+    {
+        var (box, repo) = await TwoBranchesAsync();
+        using var _ = box;
+        // Line 2 differs on "other" and is edited here too: git refuses to switch. A change far away is carried.
+        box.Write("f.txt", box.Read("f.txt").Replace("line 2\n", "line 2 edited here\n", StringComparison.Ordinal));
+        var plain = await repo.CheckoutAsync("other", false, Ct);
+        Assert.False(plain.Ok);
+        Assert.Contains("would be overwritten", plain.Error, StringComparison.Ordinal);
+
+        // Edit line 30 instead of line 2: the switch is still refused (the file differs), and carrying works.
+        await repo.DiscardAsync(["f.txt"], Ct);
+        box.Write("f.txt", box.Read("f.txt").Replace("line 30\n", "line 30 edited here\n", StringComparison.Ordinal));
+        var carried = await repo.SwitchCarryingChangesAsync(["switch", "other"], Ct);
+        Assert.True(carried.Ok, carried.Error);
+        var status = await repo.StatusAsync(Ct);
+        Assert.Equal("other", status.Branch.Head);
+        var text = box.Read("f.txt");
+        Assert.Contains("line 2 on other", text, StringComparison.Ordinal);
+        Assert.Contains("line 30 edited here", text, StringComparison.Ordinal);
+        Assert.Empty(await repo.StashesAsync(Ct));
+    }
+
+    [Fact]
+    public async Task WhenTheChangesConflictOnTheOtherBranchTheySurviveInTheStash()
+    {
+        var (box, repo) = await TwoBranchesAsync();
+        using var _ = box;
+        box.Write("f.txt", box.Read("f.txt").Replace("line 2\n", "line 2 edited here\n", StringComparison.Ordinal));
+        var carried = await repo.SwitchCarryingChangesAsync(["switch", "other"], Ct);
+        Assert.False(carried.Ok);
+        Assert.Contains("stash", carried.Error, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal("other", (await repo.StatusAsync(Ct)).Branch.Head);
+        var stash = Assert.Single(await repo.StashesAsync(Ct));
+        Assert.Contains("line 2 edited here", await box.GitAsync("show", stash.Ref + ":f.txt"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ASwitchThatFailsForAnotherReasonPutsTheChangesBack()
+    {
+        var (box, repo) = await TwoBranchesAsync();
+        using var _ = box;
+        box.Write("f.txt", box.Read("f.txt").Replace("line 30\n", "line 30 edited here\n", StringComparison.Ordinal));
+        var result = await repo.SwitchCarryingChangesAsync(["switch", "no-such-branch"], Ct);
+        Assert.False(result.Ok);
+        Assert.Equal("main", (await repo.StatusAsync(Ct)).Branch.Head);
+        Assert.Contains("line 30 edited here", box.Read("f.txt"), StringComparison.Ordinal);
+        Assert.Empty(await repo.StashesAsync(Ct));
+    }
+}

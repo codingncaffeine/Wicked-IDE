@@ -29,7 +29,8 @@ public sealed partial class GitRepository
         }
         else
         {
-            args.Add("--all");
+            // The stash is kept as commits on a ref of its own; the graph is for the history, so it is left out.
+            args.AddRange(["--exclude=refs/stash", "--all"]);
             // --all leaves out a detached HEAD.
             if (await IsDetachedAsync(ct).ConfigureAwait(false)) args.Add("HEAD");
         }

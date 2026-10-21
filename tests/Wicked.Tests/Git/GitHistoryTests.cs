@@ -200,3 +200,18 @@ public sealed class GitHistoryTests
         Assert.Equal("You, uncommitted changes", BlameText.Format(new BlameHunk(0, 1, new string('0', 40), "Not Committed Yet", "x", now, "x"), null, now));
     }
 }
+
+public sealed class GitStashLogTests
+{
+    [Fact]
+    public async Task TheGraphLeavesTheStashesCommitsOut()
+    {
+        var (box, repo) = await GitSandbox.CreateAsync();
+        using var _ = box;
+        await box.CommitAsync("base", ("a.txt", "1\n"));
+        box.Write("a.txt", "2\n");
+        Assert.True((await repo.StashPushAsync("parked", true, TestContext.Current.CancellationToken)).Ok);
+        var log = await repo.LogAsync(0, 50, null, TestContext.Current.CancellationToken);
+        Assert.Equal(["base"], log.Select(c => c.Subject));
+    }
+}

@@ -128,6 +128,40 @@ public sealed class GitStagingTests
     }
 
     [Fact]
+    public async Task StagingJustTheAddedHalfOfAReplacementKeepsTheOldLineInTheIndex()
+    {
+        var (box, repo) = await WithFileAsync();
+        using var _ = box;
+        var patch = await repo.PatchAsync("f.txt", false, Ct);
+        var hunk = patch.Hunks.ToList().FindIndex(h => h.Lines.Any(l => l.Text == "line 3 changed"));
+        var added = patch.Hunks[hunk].Lines.ToList().FindIndex(l => l.Kind == '+' && l.Text == "line 3 changed");
+        var result = await repo.ApplySelectionAsync(patch, PatchAction.Stage, PatchSelection.OfLines(hunk, [added]), Ct);
+        Assert.True(result.Ok, result.Error);
+
+        var staged = (await box.GitAsync("show", ":f.txt")).Split('\n');
+        Assert.Contains("line 3", staged);
+        Assert.Contains("line 3 changed", staged);
+        Assert.Equal(Edited(), box.Read("f.txt"));
+    }
+
+    [Fact]
+    public async Task UnstagingJustTheRemovedHalfOfAReplacementPutsTheOldLineBack()
+    {
+        var (box, repo) = await WithFileAsync();
+        using var _ = box;
+        await repo.StageAsync(["f.txt"], Ct);
+        var patch = await repo.PatchAsync("f.txt", staged: true, Ct);
+        var hunk = patch.Hunks.ToList().FindIndex(h => h.Lines.Any(l => l.Text == "line 3 changed"));
+        var removed = patch.Hunks[hunk].Lines.ToList().FindIndex(l => l.Kind == '-' && l.Text == "line 3");
+        var result = await repo.ApplySelectionAsync(patch, PatchAction.Unstage, PatchSelection.OfLines(hunk, [removed]), Ct);
+        Assert.True(result.Ok, result.Error);
+
+        var staged = (await box.GitAsync("show", ":f.txt")).Split('\n');
+        Assert.Contains("line 3", staged);
+        Assert.Contains("line 3 changed", staged);
+    }
+
+    [Fact]
     public async Task UnstagingOneLineOfAStagedFileKeepsTheRest()
     {
         var (box, repo) = await WithFileAsync();
@@ -195,5 +229,94 @@ public sealed class GitStagingTests
         Assert.Equal(["star*.txt"], status.Staged.Select(c => c.Path));
         Assert.True((await repo.UnstageAsync(["star*.txt"], Ct)).Ok);
         Assert.Empty((await repo.StatusAsync(Ct)).Staged);
+    }
+}
+
+public sealed class GitRangeStagingTests
+{
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
+    private static async Task<(GitSandbox, GitRepository)> SetUpAsync()
+    {
+        var (box, repo) = await GitSandbox.CreateAsync();
+        await box.CommitAsync("base", ("f.txt", string.Join('\n', Enumerable.Range(1, 40).Select(i => $"line {i}")) + "\n"));
+        // Working text: line 3 edited, line 10 removed, "new" added after 20 (so it is working line 20, 0-based 19+... see asserts), line 35 edited.
+        var lines = Enumerable.Range(1, 40).Select(i => $"line {i}").ToList();
+        lines[34] = "line 35 edited";
+        lines.Insert(20, "new after 20");
+        lines.RemoveAt(9);
+        lines[2] = "line 3 edited";
+        box.Write("f.txt", string.Join('\n', lines) + "\n");
+        return (box, repo);
+    }
+
+    [Fact]
+    public async Task AllChangedLinesInARangeAreSelectedAndNothingOutsideIt()
+    {
+        var (box, repo) = await SetUpAsync();
+        using var _ = box;
+        var patch = await repo.PatchAsync("f.txt", false, Ct);
+        var working = box.Read("f.txt").Split('\n');
+        var edited3 = Array.IndexOf(working, "line 3 edited");
+        var added = Array.IndexOf(working, "new after 20");
+
+        // Just the edited line 3 (its removed original is above it and goes with it).
+        Assert.NotNull(PatchSelection.ForNewLines(patch, edited3, edited3));
+        Assert.True((await repo.ApplySelectionAsync(patch, PatchAction.Stage, PatchSelection.ForNewLines(patch, edited3, edited3)!, Ct)).Ok);
+        var index = (await box.GitAsync("show", ":f.txt")).Split('\n');
+        Assert.Contains("line 3 edited", index);
+        Assert.DoesNotContain("line 3", index);
+        Assert.Contains("line 10", index); // the removal was not in the range
+        Assert.DoesNotContain("new after 20", index);
+        Assert.DoesNotContain("line 35 edited", index);
+
+        // The addition alone.
+        var patch2 = await repo.PatchAsync("f.txt", false, Ct);
+        Assert.True((await repo.ApplySelectionAsync(patch2, PatchAction.Stage, PatchSelection.ForNewLines(patch2, added, added)!, Ct)).Ok);
+        Assert.Contains("new after 20", (await box.GitAsync("show", ":f.txt")).Split('\n'));
+
+        // A range with no change selects nothing.
+        var patch3 = await repo.PatchAsync("f.txt", false, Ct);
+        Assert.Null(PatchSelection.ForNewLines(patch3, 0, 0));
+    }
+
+    [Fact]
+    public async Task ARemovedLineIsSelectedByTheLineBelowItAndAHunkByAnyLineOfIt()
+    {
+        var (box, repo) = await SetUpAsync();
+        using var _ = box;
+        var patch = await repo.PatchAsync("f.txt", false, Ct);
+        var working = box.Read("f.txt").Split('\n');
+        var below = Array.IndexOf(working, "line 11"); // "line 10" was removed just above it
+        var selection = PatchSelection.ForNewLines(patch, below, below);
+        Assert.NotNull(selection);
+        Assert.True((await repo.ApplySelectionAsync(patch, PatchAction.Stage, selection!, Ct)).Ok);
+        Assert.DoesNotContain("line 10", (await box.GitAsync("show", ":f.txt")).Split('\n'));
+
+        // The hunk at line 35 as a whole.
+        var patch2 = await repo.PatchAsync("f.txt", false, Ct);
+        var edited35 = Array.IndexOf(working, "line 35 edited");
+        var hunk = PatchSelection.ForHunkAt(patch2, edited35);
+        Assert.NotNull(hunk);
+        Assert.True((await repo.ApplySelectionAsync(patch2, PatchAction.Stage, hunk!, Ct)).Ok);
+        Assert.Contains("line 35 edited", (await box.GitAsync("show", ":f.txt")).Split('\n'));
+        Assert.Null(PatchSelection.ForHunkAt(patch2, 0));
+    }
+
+    [Fact]
+    public async Task RevertingARangeChangesTheWorkTreeAndLeavesTheIndex()
+    {
+        var (box, repo) = await SetUpAsync();
+        using var _ = box;
+        var patch = await repo.PatchAsync("f.txt", false, Ct);
+        var working = box.Read("f.txt").Split('\n');
+        var edited35 = Array.IndexOf(working, "line 35 edited");
+        var result = await repo.ApplySelectionAsync(patch, PatchAction.Discard, PatchSelection.ForNewLines(patch, edited35, edited35)!, Ct);
+        Assert.True(result.Ok, result.Error);
+        var after = box.Read("f.txt").Split('\n');
+        Assert.Contains("line 35", after);
+        Assert.DoesNotContain("line 35 edited", after);
+        Assert.Contains("line 3 edited", after); // the other changes stay
+        Assert.Contains("line 35", (await box.GitAsync("show", ":f.txt")).Split('\n'));
     }
 }

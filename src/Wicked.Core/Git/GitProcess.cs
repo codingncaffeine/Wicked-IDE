@@ -9,10 +9,10 @@ public sealed record GitResult(int ExitCode, string Output, string Error)
     public bool Ok => ExitCode == 0;
 }
 
-/// <summary>A git command that failed; <see cref="Result"/> carries its output and stderr.</summary>
+/// <summary>A git command that failed; <see cref="Details"/> carries its output and stderr.</summary>
 public sealed class GitException(string message, GitResult result) : Exception(message)
 {
-    public GitResult Result { get; } = result;
+    public GitResult Details { get; } = result;
 }
 
 /// <summary>One line of the Git output log: the command, how it ended, and what it said on stderr.</summary>
@@ -94,7 +94,6 @@ public static class GitProcess
         info.Environment["GIT_PAGER"] = "cat";
         info.Environment["GIT_EDITOR"] = "true";
         info.Environment["GIT_SEQUENCE_EDITOR"] = "true";
-        info.Environment["GCM_INTERACTIVE"] = "never";
         foreach (var (key, value) in env.Variables)
         {
             if (value is null) info.Environment.Remove(key);

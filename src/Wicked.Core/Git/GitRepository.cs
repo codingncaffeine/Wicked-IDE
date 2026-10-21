@@ -498,3 +498,37 @@ public sealed partial class GitRepository
         return list.ToImmutable();
     }
 }
+
+public sealed partial class GitRepository
+{
+    /// <summary>
+    /// Runs git without taking the write queue. Only for use inside <see cref="WriteScopeAsync{T}"/>, which already holds it;
+    /// anywhere else it would race the queued writes.
+    /// </summary>
+    public Task<GitResult> RunInScopeAsync(IReadOnlyList<string> args, CancellationToken ct = default) =>
+        GitProcess.RunAsync(Environment, Root, args, null, ct);
+
+    /// <summary>
+    /// Switches to a branch or commit when local changes stand in the way: they are stashed (untracked files too), the switch
+    /// is made, and they are put back. If putting them back conflicts, they stay in the stash and the result says so.
+    /// </summary>
+    public Task<GitResult> SwitchCarryingChangesAsync(IReadOnlyList<string> switchArgs, CancellationToken ct = default) =>
+        WriteScopeAsync(async () =>
+        {
+            var stash = await RunInScopeAsync(["stash", "push", "--include-untracked", "-m", "Wicked: changes carried to another branch"], ct).ConfigureAwait(false);
+            if (!stash.Ok) return stash;
+            var switched = await RunInScopeAsync(switchArgs, ct).ConfigureAwait(false);
+            if (!switched.Ok)
+            {
+                await RunInScopeAsync(["stash", "pop"], ct).ConfigureAwait(false);
+                return switched;
+            }
+
+            var pop = await RunInScopeAsync(["stash", "pop"], ct).ConfigureAwait(false);
+            return pop.Ok ? switched : new GitResult(1, pop.Output, "Switched, but your changes conflict with the new branch and are kept in the stash.\n" + pop.Error);
+        }, ct);
+
+    public Task<GitResult> CherryPickAsync(string hash, CancellationToken ct = default) => WriteAsync(["cherry-pick", hash], null, ct);
+
+    public Task<GitResult> RevertAsync(string hash, CancellationToken ct = default) => WriteAsync(["revert", "--no-edit", hash], null, ct);
+}
