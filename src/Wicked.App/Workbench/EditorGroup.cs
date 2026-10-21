@@ -79,6 +79,28 @@ public sealed partial class EditorGroup(Workbench workbench) : ObservableObject
         if (Active == tab) Active = Tabs.Count == 0 ? null : Tabs[Math.Min(at, Tabs.Count - 1)];
     }
 
+    /// <summary>
+    /// Takes a tab out to move it to another group: its editor stays open and nothing hears of a close (the history, unsaved
+    /// backups and the language servers follow the tab, which goes on living).
+    /// </summary>
+    internal void Detach(EditorTab tab)
+    {
+        var at = Tabs.IndexOf(tab);
+        if (at < 0) return;
+        Tabs.RemoveAt(at);
+        _recent.Remove(tab);
+        if (Active == tab) Active = Tabs.Count == 0 ? null : Tabs[Math.Min(at, Tabs.Count - 1)];
+    }
+
+    /// <summary>A tab moved in from another group: after the active one (never among the pinned), and active.</summary>
+    internal void Attach(EditorTab tab)
+    {
+        tab.IsPreview = false;
+        var at = Active is null ? Tabs.Count : Tabs.IndexOf(Active) + 1;
+        Tabs.Insert(tab.IsPinned ? Math.Min(at, PinnedCount) : Math.Max(at, PinnedCount), tab);
+        Activate(tab);
+    }
+
     /// <summary>Pins or unpins a tab: a pinned one moves to the end of the pinned tabs at the front, an unpinned one just after them.</summary>
     public void SetPinned(EditorTab tab, bool pinned)
     {
@@ -97,5 +119,20 @@ public sealed partial class EditorGroup(Workbench workbench) : ObservableObject
         if (Tabs.Count < 2 || Active is null) return;
         var at = (Tabs.IndexOf(Active) + direction + Tabs.Count) % Tabs.Count;
         Activate(Tabs[at]);
+    }
+}
+
+public sealed partial class EditorGroup
+{
+    /// <summary>A tab dragged along its own strip: to <paramref name="index"/>, kept on its side of the pinned ones.</summary>
+    public void MoveWithin(EditorTab tab, int index)
+    {
+        var from = Tabs.IndexOf(tab);
+        if (from < 0) return;
+        var pinned = PinnedCount;
+        var to = Math.Clamp(index > from ? index - 1 : index, 0, Tabs.Count - 1);
+        to = tab.IsPinned ? Math.Min(to, pinned - 1) : Math.Max(to, pinned);
+        if (to != from) Tabs.Move(from, to);
+        Activate(tab);
     }
 }

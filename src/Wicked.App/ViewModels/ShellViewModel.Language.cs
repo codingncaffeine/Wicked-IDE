@@ -23,6 +23,8 @@ public sealed partial class ShellViewModel
             new("editor.action.formatDocument", "Edit", "Format Document", "Shift+Alt+F", () => Workbench.ActiveTab is { } t ? Language.FormatAsync(t) : Task.CompletedTask),
             new("editor.action.formatSelection", "Edit", "Format Selection", "Ctrl+K Ctrl+F", () => Workbench.ActiveTab is { } t ? Language.FormatAsync(t, selection: true) : Task.CompletedTask),
             new("editor.action.quickFix", "Edit", "Quick Fix...", "Ctrl+OemPeriod", () => Ui(ui => ui.ShowActionsAsync())),
+            new("editor.action.refactor", "Edit", "Refactor...", "Ctrl+Shift+R", () => Ui(ui => ui.ShowActionsAsync("refactor"))),
+            new("editor.action.sourceAction", "Edit", "Source Action...", null, () => Ui(ui => ui.ShowActionsAsync("source"))),
             new("editor.action.triggerSuggest", "Edit", "Trigger Suggest", null, () => Ui(ui => ui.TriggerSuggestAsync())),
             new("editor.action.triggerParameterHints", "Edit", "Trigger Parameter Hints", null, () => Ui(ui => ui.TriggerSignatureAsync())),
             new("editor.action.showHover", "View", "Show Hover", "Ctrl+K Ctrl+I", () => Ui(ui => ui.ShowHoverAtCaretAsync())),

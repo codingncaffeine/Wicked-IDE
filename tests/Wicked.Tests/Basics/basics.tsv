@@ -139,3 +139,36 @@ workbench.action.zoomOut	workbench	Ctrl+-
 workbench.action.zoomReset	workbench	Ctrl+Num 0
 workbench.action.pinEditor	workbench	Ctrl+K Shift+Enter
 workbench.action.quickOpenNavigateNextInEditorPicker	workbench	Ctrl+Tab
+workbench.action.splitEditorDown	workbench	
+workbench.action.splitEditorOrthogonal	workbench	Ctrl+K Ctrl+\
+workbench.action.splitEditorLeft	workbench	
+workbench.action.splitEditorUp	workbench	
+workbench.action.focusLeftGroup	workbench	Ctrl+K Ctrl+Left
+workbench.action.focusRightGroup	workbench	Ctrl+K Ctrl+Right
+workbench.action.focusAboveGroup	workbench	Ctrl+K Ctrl+Up
+workbench.action.focusBelowGroup	workbench	Ctrl+K Ctrl+Down
+workbench.action.moveEditorToNextGroup	workbench	Ctrl+Alt+Right
+workbench.action.moveEditorToPreviousGroup	workbench	Ctrl+Alt+Left
+workbench.action.moveEditorToLeftGroup	workbench	
+workbench.action.moveEditorToRightGroup	workbench	
+workbench.action.moveEditorToAboveGroup	workbench	
+workbench.action.moveEditorToBelowGroup	workbench	
+workbench.action.toggleMaximizeEditorGroup	workbench	Ctrl+K Ctrl+M
+workbench.action.closeEditorsInGroup	workbench	Ctrl+K W
+workbench.action.moveEditorLeftInGroup	workbench	Ctrl+Shift+PageUp
+workbench.action.moveEditorRightInGroup	workbench	Ctrl+Shift+PageDown
+workbench.action.openEditorAtIndex1	workbench	Alt+1
+workbench.action.openEditorAtIndex9	workbench	Alt+9
+workbench.action.lastEditorInGroup	workbench	Alt+0
+workbench.action.focusNextGroup	workbench	
+workbench.action.focusPreviousGroup	workbench	
+workbench.action.evenEditorWidths	workbench	
+workbench.action.joinTwoGroups	workbench	
+workbench.action.joinAllGroups	workbench	
+workbench.action.closePanel	workbench	
+workbench.action.closeSidebar	workbench	
+workbench.action.closeWindow	workbench	Ctrl+Shift+W
+workbench.action.toggleMenuBar	workbench	
+editor.action.changeAll	editor	Ctrl+F2
+editor.action.refactor	workbench	Ctrl+Shift+R
+editor.action.sourceAction	workbench	

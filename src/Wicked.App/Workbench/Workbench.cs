@@ -460,16 +460,6 @@ public sealed partial class Workbench : ObservableObject, IDisposable
         return tab;
     }
 
-    /// <summary>The group to the right of the active one, made when there is none (for "to the side").</summary>
-    public EditorGroup SideGroup()
-    {
-        var at = Groups.IndexOf(ActiveGroup);
-        if (at + 1 < Groups.Count) return Groups[at + 1];
-        var side = new EditorGroup(this);
-        Groups.Add(side);
-        return side;
-    }
-
     public EditorTab NewFile()
     {
         var tab = new EditorTab(null, new Document(Rope.Empty), null, FileEncoding.Utf8, default);
@@ -594,11 +584,7 @@ public sealed partial class Workbench : ObservableObject, IDisposable
         }
 
         group.Remove(tab);
-        if (group.Tabs.Count == 0 && Groups.Count > 1)
-        {
-            Groups.Remove(group);
-            Focus(Groups[^1]);
-        }
+        if (group.Tabs.Count == 0 && Groups.Count > 1) RemoveGroup(group);
 
         ActiveTabChanged();
         return true;
@@ -679,19 +665,10 @@ public sealed partial class Workbench : ObservableObject, IDisposable
     }
 
     /// <summary>Open to the Side: the file in the group to the right, made when there is none.</summary>
-    public async Task OpenToSideAsync(string path)
-    {
-        var at = Groups.IndexOf(ActiveGroup);
-        EditorGroup side;
-        if (at + 1 < Groups.Count) side = Groups[at + 1];
-        else
-        {
-            side = new EditorGroup(this);
-            Groups.Add(side);
-        }
+    public async Task OpenToSideAsync(string path) => await OpenAsync(path, preview: false, group: SideGroup());
 
-        await OpenAsync(path, preview: false, group: side);
-    }
+    /// <summary>Split Editor (Ctrl+\): a group to the right showing the same file.</summary>
+    public void SplitRight() => Split(SplitDirection.Right);
 
     /// <summary>Shows a file or folder in the desktop's file manager, without waiting for it.</summary>
     public static void Reveal(string path) => _ = Task.Run(() =>
@@ -759,18 +736,6 @@ public sealed partial class Workbench : ObservableObject, IDisposable
     // ── Groups ───────────────────────────────────────────────────────────────────────────────────
 
     /// <summary>Ctrl+\: a new group to the right, showing the same document.</summary>
-    public void SplitRight()
-    {
-        var group = new EditorGroup(this);
-        Groups.Insert(Groups.IndexOf(ActiveGroup) + 1, group);
-        if (ActiveTab is { } tab)
-        {
-            var copy = new EditorTab(tab.Path, tab.Document, tab.Language, tab.Encoding, tab.LastWriteUtc);
-            group.Add(copy);
-        }
-
-        Focus(group);
-    }
 
     public void FocusGroup(int index)
     {

@@ -53,6 +53,8 @@
 
     <Panel>
       <ContentControl Name="Host" />
+      <!-- Where a dragged tab would go: this group's middle, or the half it would split off. -->
+      <Border Name="DropZone" IsVisible="False" IsHitTestVisible="False" Background="{DynamicResource Brush.Accent}" Opacity="0.2" CornerRadius="6" />
       <views:FindWidget Name="FindBar" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,6,22,0" IsVisible="False" />
       <!-- An empty group shows the welcome. -->
       <StackPanel Name="Welcome" HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10" MaxWidth="460">

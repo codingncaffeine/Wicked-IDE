@@ -109,6 +109,13 @@ public sealed record WickedSettings
     [JsonPropertyName("window.titleBarStyle")]
     public string TitleBarStyle { get; init; } = "custom";
 
+    /// <summary>
+    /// The menu bar (VS Code's window.menuBarVisibility): "classic" (File, Edit... in the title bar), "compact" (one ☰ menu),
+    /// "toggle" (hidden until Alt is pressed) or "hidden".
+    /// </summary>
+    [JsonPropertyName("window.menuBarVisibility")]
+    public string MenuBarVisibility { get; init; } = "classic";
+
     /// <summary>The caret: "blink" (the default) or "solid" (a steady caret, also what reduced motion asks for).</summary>
     [JsonPropertyName("editor.cursorBlinking")]
     public string CursorBlinking { get; init; } = "blink";

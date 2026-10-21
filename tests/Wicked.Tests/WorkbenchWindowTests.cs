@@ -43,7 +43,8 @@ public sealed class WorkbenchWindowTests
         }
 
         Input.Click(window, Row(window, names[^1]).GetVisualDescendants().OfType<TextBlock>().First());
-        Assert.True(Ui.PumpUntil(() => shell.Workbench.ActiveTab?.Editor?.IsAttachedToVisualTree() == true, 5), "the file did not open in an editor");
+        // The clicked file's own editor: the one open before it is attached already.
+        Assert.True(Ui.PumpUntil(() => shell.Workbench.ActiveTab is { Path: { } path, Editor: { } shown } && Path.GetFileName(path) == Path.GetFileName(names[^1]) && shown.IsAttachedToVisualTree(), 5), $"{names[^1]} did not open in an editor");
 
         // As a user would, click into the text to type there (focus that follows the open is not every platform's promise).
         var editor = shell.Workbench.ActiveTab!.Editor!;

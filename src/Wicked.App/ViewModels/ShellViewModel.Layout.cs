@@ -32,6 +32,9 @@ public sealed partial class ShellViewModel
 
     private bool _fullScreen;
 
+    /// <summary>The window fills the screen (F11).</summary>
+    public bool FullScreen => _fullScreen;
+
     private IEnumerable<WorkbenchCommand> LayoutCommands() =>
     [
         new("workbench.action.toggleFullScreen", "View", "Toggle Full Screen", "F11", () =>
@@ -44,6 +47,9 @@ public sealed partial class ShellViewModel
             ToggleZenMode();
             return Task.CompletedTask;
         }),
+        // Toggle Menu Bar, as VS Code's: a shown menu bar is hidden until Alt is pressed; a hidden one comes back.
+        new("workbench.action.toggleMenuBar", "View", "Toggle Menu Bar", null,
+            () => UpdateSettingsAsync(s => s with { MenuBarVisibility = s.MenuBarVisibility is "classic" or "compact" ? "toggle" : "classic" })),
         new("workbench.action.toggleStatusbarVisibility", "View", "Toggle Status Bar Visibility", null,
             () => UpdateSettingsAsync(s => s with { StatusBarVisible = !s.StatusBarVisible })),
         new("workbench.action.positionPanelBottom", "View", "Move Panel to Bottom", null, () => UpdateSettingsAsync(s => s with { PanelLocation = "bottom" })),
@@ -120,5 +126,51 @@ public sealed partial class ShellViewModel
             return Task.CompletedTask;
         }))], direction > 0 ? 1 : recent.Count - 1);
         PaletteRequested?.Invoke("");
+    }
+}
+
+/// <summary>The editor grid's commands, with VS Code's ids and keys: split any way, focus and move editors by direction, maximise.</summary>
+public sealed partial class ShellViewModel
+{
+    private IEnumerable<WorkbenchCommand> GridCommands()
+    {
+        var bench = Workbench;
+        Task Do(Action run)
+        {
+            run();
+            return Task.CompletedTask;
+        }
+
+        return
+        [
+            new("workbench.action.splitEditorDown", "View", "Split Editor Down", null, () => Do(() => bench.Split(Wicked.App.Workbench.SplitDirection.Down))),
+            new("workbench.action.splitEditorOrthogonal", "View", "Split Editor in Orthogonal Direction", "Ctrl+K Ctrl+OemPipe", () => Do(() => bench.Split(Wicked.App.Workbench.SplitDirection.Down))),
+            new("workbench.action.splitEditorLeft", "View", "Split Editor Left", null, () => Do(() => bench.Split(Wicked.App.Workbench.SplitDirection.Left))),
+            new("workbench.action.splitEditorUp", "View", "Split Editor Up", null, () => Do(() => bench.Split(Wicked.App.Workbench.SplitDirection.Up))),
+            new("workbench.action.focusLeftGroup", "View", "Focus Left Editor Group", "Ctrl+K Ctrl+Left", () => Do(() => bench.FocusDirection(Wicked.App.Workbench.SplitDirection.Left))),
+            new("workbench.action.focusRightGroup", "View", "Focus Right Editor Group", "Ctrl+K Ctrl+Right", () => Do(() => bench.FocusDirection(Wicked.App.Workbench.SplitDirection.Right))),
+            new("workbench.action.focusAboveGroup", "View", "Focus Editor Group Above", "Ctrl+K Ctrl+Up", () => Do(() => bench.FocusDirection(Wicked.App.Workbench.SplitDirection.Up))),
+            new("workbench.action.focusBelowGroup", "View", "Focus Editor Group Below", "Ctrl+K Ctrl+Down", () => Do(() => bench.FocusDirection(Wicked.App.Workbench.SplitDirection.Down))),
+            new("workbench.action.moveEditorToNextGroup", "View", "Move Editor into Next Group", "Ctrl+Alt+Right", () => Do(() => bench.MoveActiveEditorAlong(1))),
+            new("workbench.action.moveEditorToPreviousGroup", "View", "Move Editor into Previous Group", "Ctrl+Alt+Left", () => Do(() => bench.MoveActiveEditorAlong(-1))),
+            new("workbench.action.moveEditorToLeftGroup", "View", "Move Editor into Left Group", null, () => Do(() => bench.MoveActiveEditor(Wicked.App.Workbench.SplitDirection.Left))),
+            new("workbench.action.moveEditorToRightGroup", "View", "Move Editor into Right Group", null, () => Do(() => bench.MoveActiveEditor(Wicked.App.Workbench.SplitDirection.Right))),
+            new("workbench.action.moveEditorToAboveGroup", "View", "Move Editor into Group Above", null, () => Do(() => bench.MoveActiveEditor(Wicked.App.Workbench.SplitDirection.Up))),
+            new("workbench.action.moveEditorToBelowGroup", "View", "Move Editor into Group Below", null, () => Do(() => bench.MoveActiveEditor(Wicked.App.Workbench.SplitDirection.Down))),
+            new("workbench.action.toggleMaximizeEditorGroup", "View", "Toggle Maximize Editor Group", "Ctrl+K Ctrl+M", () => Do(bench.ToggleMaximizeGroup)),
+            new("workbench.action.closeEditorsInGroup", "View", "Close All Editors in Group", "Ctrl+K W", () => bench.CloseGroupTabsAsync(bench.ActiveGroup)),
+            new("workbench.action.focusNextGroup", "View", "Focus Next Editor Group", null, () => Do(() => bench.FocusAlong(1))),
+            new("workbench.action.focusPreviousGroup", "View", "Focus Previous Editor Group", null, () => Do(() => bench.FocusAlong(-1))),
+            new("workbench.action.moveEditorLeftInGroup", "View", "Move Editor Left", "Ctrl+Shift+PageUp", () => Do(() => bench.MoveActiveTabInGroup(-1))),
+            new("workbench.action.moveEditorRightInGroup", "View", "Move Editor Right", "Ctrl+Shift+PageDown", () => Do(() => bench.MoveActiveTabInGroup(1))),
+            new("workbench.action.evenEditorWidths", "View", "Reset Editor Group Sizes", null, () => Do(bench.EvenGroupSizes)),
+            new("workbench.action.joinTwoGroups", "View", "Join Editor Group with Next Group", null, () => Do(bench.JoinWithNextGroup)),
+            new("workbench.action.joinAllGroups", "View", "Join All Editor Groups", null, () => Do(bench.JoinAllGroups)),
+            new("workbench.action.closePanel", "View", "Hide Panel", null, () => Do(() => BottomPanel.IsVisible = false)),
+            new("workbench.action.closeSidebar", "View", "Close Primary Side Bar", null, () => Do(() => SidebarVisible = false)),
+            // Alt+1..9 opens the group's tab at that place, Alt+0 its last (VS Code's keys on Linux and Windows).
+            .. Enumerable.Range(1, 9).Select(i => new WorkbenchCommand($"workbench.action.openEditorAtIndex{i}", "View", $"Open Editor at Index {i}", $"Alt+D{i}", () => Do(() => bench.ActivateTabAt(i - 1)))),
+            new("workbench.action.lastEditorInGroup", "View", "Open Last Editor in Group", "Alt+D0", () => Do(() => bench.ActivateTabAt(-1))),
+        ];
     }
 }

@@ -240,7 +240,7 @@ public sealed class TerminalWindowTests
             var point = rig.CellCentre(0, 14);
             // The link under the pointer is looked up on a worker; the click after it follows.
             rig.Window.MouseMove(point);
-            Ui.Pump(0.4);
+            Assert.True(Ui.PumpUntil(() => rig.View.OverLink, 10), "the link under the pointer was never found");
             rig.Window.MouseDown(point, MouseButton.Left, RawInputModifiers.Control);
             rig.Window.MouseUp(point, MouseButton.Left, RawInputModifiers.Control);
             Ui.Pump(0.1);

@@ -18,6 +18,9 @@ public sealed record WorkbenchCommand(string Id, string Category, string Title, 
 
     public bool Applies => When?.Invoke() != false;
 
+    /// <summary>One of the code editor's own actions: its keys are the editor's (EditorKeymap), shown here, bound there.</summary>
+    public bool EditorKeys { get; init; }
+
     /// <summary>The keys as gestures: one for a plain shortcut, two for a chord.</summary>
     public KeyGesture[] Gestures { get; } = Keys is null ? [] : [.. Keys.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(KeyGesture.Parse)];
 }
@@ -30,6 +33,7 @@ public sealed class KeyDispatcher
 {
     private readonly IReadOnlyList<(KeyGesture[] Gestures, WorkbenchCommand Command)> _bindings;
     private KeyGesture? _pending;
+    private readonly HashSet<string> _editorActions;
 
     /// <summary>The commands' default keys, with keybindings.json applied: its bindings first, its removals gone.</summary>
     public KeyDispatcher(IReadOnlyList<WorkbenchCommand> commands, IReadOnlyList<Wicked.Core.Settings.Keybinding>? overrides = null)
@@ -47,11 +51,14 @@ public sealed class KeyDispatcher
         }
 
         _bindings = list;
+        _editorActions = [.. commands.Where(c => c.EditorKeys).Select(c => c.Id)];
     }
 
     /// <summary>The keys that run a command now, in Avalonia's names ("Ctrl+OemPlus", "Ctrl+D1"; "" when none).</summary>
     public string KeysFor(string commandId) =>
-        _bindings.FirstOrDefault(b => b.Command.Id == commandId) is { Command: not null } b ? string.Join(' ', b.Gestures.Select(g => g.ToString())) : "";
+        _bindings.FirstOrDefault(b => b.Command.Id == commandId) is { Command: not null } b ? string.Join(' ', b.Gestures.Select(g => g.ToString()))
+        : _editorActions.Contains(commandId) && Wicked.App.Editor.EditorKeymap.Effective.FirstOrDefault(d => d.Command.Id == commandId) is { Command: not null } e ? e.Gesture.ToString()
+        : "";
 
     /// <summary>The keys that run a command now, as people read them ("Ctrl+=", "Ctrl+1"): the palette, menus and help show these.</summary>
     public string DisplayKeysFor(string commandId) => KeyNames.Readable(KeysFor(commandId));

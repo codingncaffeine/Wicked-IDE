@@ -280,8 +280,11 @@ public sealed partial class EditorLanguageUi
 
     public bool ActionsOpen => _actionsPopup?.IsOpen == true;
 
-    /// <summary>Ctrl+. or a lightbulb click: the fixes and refactorings for the selection or the caret's problems.</summary>
-    public async Task ShowActionsAsync()
+    /// <summary>
+    /// Ctrl+. or a lightbulb click: the fixes and refactorings for the selection or the caret's problems. With a
+    /// <paramref name="kind"/> ("refactor", "source"), only those: Refactor... (Ctrl+Shift+R) and Source Action....
+    /// </summary>
+    public async Task ShowActionsAsync(string? kind = null)
     {
         if (Doc is not { } doc) return;
         var primary = _editor.Document.Primary;
@@ -300,9 +303,10 @@ public sealed partial class EditorLanguageUi
             return;
         }
 
+        if (kind is not null) actions = [.. (actions ?? []).Where(a => a.Kind is { } k && (k == kind || k.StartsWith(kind + ".", StringComparison.Ordinal)))];
         if (actions is not { Count: > 0 })
         {
-            _features.Tell("No code actions available");
+            _features.Tell(kind switch { "refactor" => "No refactorings available", "source" => "No source actions available", _ => "No code actions available" });
             return;
         }
 

@@ -17,6 +17,7 @@ public partial class EditorGroupView : UserControl
     {
         InitializeComponent();
         TabStrip.AddHandler(PointerReleasedEvent, OnTabPointer, RoutingStrategies.Bubble, handledEventsToo: true);
+        InitDrag();
         AddHandler(GotFocusEvent, (_, _) => _group?.Workbench.Focus(_group), handledEventsToo: true);
         // Out of the window, the view lets go of its editor so another view may show it.
         DetachedFromVisualTree += (_, _) => Host.Content = null;
@@ -63,7 +64,7 @@ public partial class EditorGroupView : UserControl
 
         if (tab.CustomView is { } custom)
         {
-            Host.Content = custom;
+            Adopt(custom);
             FindBar.IsVisible = false;
             return;
         }
@@ -78,7 +79,7 @@ public partial class EditorGroupView : UserControl
             editor.LostFocus += (_, _) => bench.EditorLostFocus(tab);
         }
 
-        Host.Content = editor;
+        Adopt(editor);
         ShowFind(editor);
         // Focus once the editor is in the window: a control not yet attached ignores Focus() without a word.
         Avalonia.Threading.Dispatcher.UIThread.Post(() =>
@@ -152,11 +153,12 @@ public partial class EditorGroupView : UserControl
 
     private void OnTabPointer(object? sender, PointerReleasedEventArgs e)
     {
+        if (FinishDrag(e)) return;
         if (_group is null || e.Source is not Avalonia.Visual source) return;
         var tabBorder = source.FindAncestorOfType<Border>(includeSelf: true);
         while (tabBorder is not null && !tabBorder.Classes.Contains("tab")) tabBorder = tabBorder.FindAncestorOfType<Border>();
         if (tabBorder?.Tag is not EditorTab tab) return;
-        if (e.InitialPressMouseButton == MouseButton.Middle) _ = _group.Workbench.CloseAsync(tab, _group);
+        if (e.InitialPressMouseButton == MouseButton.Middle && !tab.IsPinned) _ = _group.Workbench.CloseAsync(tab, _group);
         else if (e.InitialPressMouseButton == MouseButton.Left && source.FindAncestorOfType<Button>(includeSelf: true) is null) _group.Activate(tab);
     }
 
@@ -168,6 +170,16 @@ public partial class EditorGroupView : UserControl
     private void OnWelcomeGetStarted(object? sender, RoutedEventArgs e) => Shell?.ShowGetStarted();
 
     private Wicked.App.ViewModels.ShellViewModel? Shell => TopLevel.GetTopLevel(this)?.DataContext as Wicked.App.ViewModels.ShellViewModel;
+
+    /// <summary>
+    /// Shows a tab's editor (or view) here; one moved from another group may still be in that group's host for a moment,
+    /// and a control can have one parent, so it is taken from there first.
+    /// </summary>
+    private void Adopt(Control content)
+    {
+        if (content.Parent is ContentControl { } other && other != Host) other.Content = null;
+        Host.Content = content;
+    }
 
     private void OnClose(object? sender, RoutedEventArgs e)
     {

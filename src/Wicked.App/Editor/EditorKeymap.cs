@@ -91,6 +91,7 @@ public static class EditorKeymap
         Add("Shift+Insert", "editor.action.clipboardPasteAction", "Paste", e => _ = e.PasteAsync());
         Add("Ctrl+D", "editor.action.addSelectionToNextFindMatch", "Add next occurrence", e => Edits.AddNextOccurrence(e.Document));
         Add("Ctrl+Shift+L", "editor.action.selectHighlights", "Select all occurrences", e => Edits.SelectAllOccurrences(e.Document));
+        Add("Ctrl+F2", "editor.action.changeAll", "Change all occurrences", e => Edits.SelectAllOccurrences(e.Document));
         Add(Windows ? "Ctrl+Alt+Up" : "Ctrl+Shift+Up", "editor.action.insertCursorAbove", "Add caret above", e => Edits.AddCaretVertically(e.Document, -1, e.Options));
         Add(Windows ? "Ctrl+Alt+Down" : "Ctrl+Shift+Down", "editor.action.insertCursorBelow", "Add caret below", e => Edits.AddCaretVertically(e.Document, 1, e.Options));
         Add("Alt+Up", "editor.action.moveLinesUpAction", "Move lines up", e => Edits.MoveLines(e.Document, -1));

@@ -63,6 +63,12 @@ public sealed partial class ShellViewModel
             }),
             new("workbench.action.clearRecentFiles", "File", "Clear Recently Opened", null, ClearRecentAsync),
             new("workbench.action.closeFolder", "File", "Close Folder", "Ctrl+K F", CloseFolderAsync),
+            // Each window is its own Wicked: closing it is quitting that one (unsaved files kept or asked about as at Quit).
+            new("workbench.action.closeWindow", "File", "Close Window", "Ctrl+Shift+W", () =>
+            {
+                QuitRequested?.Invoke();
+                return Task.CompletedTask;
+            }),
             new("workbench.action.quit", "File", "Quit", "Ctrl+Q", () =>
             {
                 QuitRequested?.Invoke();

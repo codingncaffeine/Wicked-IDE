@@ -69,6 +69,15 @@ public partial class MainWindow : Window, IWorkbenchDialogs
                 return;
             }
 
+            // The second key of a chord is the chord's, as in VS Code: Ctrl+K Ctrl+Left focuses the left group, never moves the
+            // editor's caret a word or reaches the terminal's shell. A second key no chord has is swallowed.
+            if (_shell is not null && _shell.Keys.ChordPending && !DialogLayer.IsVisible && e.Key is not (Key.LeftCtrl or Key.RightCtrl or Key.LeftShift or Key.RightShift or Key.LeftAlt or Key.RightAlt or Key.LWin or Key.RWin))
+            {
+                if (_shell.Keys.Match(e) is { } chord) _ = RunAsync(chord);
+                e.Handled = true;
+                return;
+            }
+
             // Ctrl+Tab before keyboard navigation takes Tab: it opens the switcher, and while Ctrl is held Tab and Shift+Tab move
             // through it (letting go chooses, below).
             if (_shell is not null && e.Key == Key.Tab && e.KeyModifiers.HasFlag(KeyModifiers.Control))

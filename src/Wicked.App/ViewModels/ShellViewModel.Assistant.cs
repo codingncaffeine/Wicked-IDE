@@ -129,7 +129,46 @@ public sealed partial class ShellViewModel
                 if (await WriteCommitMessageAsync(CancellationToken.None) is { Length: > 0 } message) SourceControl.CommitMessage = message;
             }),
             new("wicked.assistant.installCodingPack", "Assistant", "Install Coding Pack", null, InstallCodingPackAsync),
+            new("wicked.assistant.explainSelection", "Assistant", "Explain with the Assistant", null, () => SelectionToChat(send: true)),
+            new("wicked.assistant.addSelectionToChat", "Assistant", "Add Selection to Chat", null, () => SelectionToChat(send: false)),
         ];
+    }
+
+    /// <summary>
+    /// The selection (or the caret's line) into the assistant's message as a quoted block with its file and lines: added to
+    /// what is being written (Add to Chat), or sent as a question (Explain).
+    /// </summary>
+    private Task SelectionToChat(bool send)
+    {
+        if (Workbench.ActiveTab is not { Editor: { } editor } tab) return Task.CompletedTask;
+        var text = editor.Document.Text;
+        var selection = editor.Document.Primary;
+        var (start, end) = (selection.Start, selection.End);
+        if (start == end)
+        {
+            var line = text.LineOf(start);
+            start = text.LineStart(line);
+            end = line + 1 < text.LineCount ? text.LineStart(line + 1) : text.Length;
+        }
+
+        var first = text.LineOf(start) + 1;
+        var last = text.LineOf(Math.Max(start, end - 1)) + 1;
+        var file = editor.FilePath is { } path ? Path.GetFileName(path) : "this file";
+        var where = first == last ? $"{file}, line {first}" : $"{file}, lines {first}–{last}";
+        var fence = new string((char)96, 3);
+        var quote = $"{where}:\n{fence}{tab.Language?.Id}\n{text.Substring(start, end - start).TrimEnd()}\n{fence}\n";
+        AssistantVisible = true;
+        if (send)
+        {
+            Chat.Draft = $"Explain this code from {quote}";
+            Chat.SendCommand.Execute(null);
+        }
+        else
+        {
+            Chat.Draft = Chat.Draft.Length == 0 ? quote : Chat.Draft.TrimEnd() + "\n\n" + quote;
+        }
+
+        return Task.CompletedTask;
     }
 
     /// <summary>

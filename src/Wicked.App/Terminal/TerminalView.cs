@@ -135,6 +135,9 @@ public sealed class TerminalView : Control
 
     public TerminalSelection? Selection => _selection;
 
+    /// <summary>The pointer is over a link (its lookup on the worker has come back).</summary>
+    internal bool OverLink => _hover is not null;
+
     public bool HasSelection => _selection is { IsEmpty: false };
 
     public (int Columns, int Rows) GridSize => (_lastColumns, _lastRows);
