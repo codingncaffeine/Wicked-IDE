@@ -30,7 +30,7 @@ public sealed record RouterExit(int? Code, bool Intentional, bool WillRestart, T
 /// with growing delays when it dies by itself. Every wait is async and cancellable; the only thread work is the pumps.
 /// </summary>
 /// <remarks>Thread-safe. <see cref="Exited"/> and <see cref="Started"/> are raised from background threads.</remarks>
-public sealed class RouterProcess : IAsyncDisposable
+public sealed class RouterProcess : IRouterHandle
 {
     private static readonly TimeSpan HealthyAfter = TimeSpan.FromSeconds(60);
 
