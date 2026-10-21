@@ -74,9 +74,18 @@ public sealed partial class LanguageServersViewModel : ObservableObject
         await RefreshAsync();
     }
 
+    /// <summary>Servers that extensions added (or took back) since the sheet was made.</summary>
+    private void SyncWithCatalog()
+    {
+        var all = LanguageServerCatalog.All;
+        foreach (var gone in Servers.Where(r => !all.Contains(r.Spec)).ToList()) Servers.Remove(gone);
+        foreach (var spec in all.Where(s => Servers.All(r => r.Spec != s))) Servers.Add(new ServerRow(spec, InstallAsync));
+    }
+
     /// <summary>Which servers are here: the user's command, Wicked's folder, the PATH (file checks, on a worker).</summary>
     public async Task RefreshAsync()
     {
+        SyncWithCatalog();
         var locator = new ServerLocator(_shell.Language.ServersFolder,
             userCommands: _shell.Settings.Servers?.Where(kv => kv.Value.Command is { Count: > 0 }).ToDictionary(kv => kv.Key, kv => (IReadOnlyList<string>)kv.Value.Command!));
         var found = await Task.Run(() => Servers.Select(r => (Row: r, Command: locator.Find(r.Spec), Blocked: LanguageServerInstaller.MissingTool(r.Spec))).ToList());

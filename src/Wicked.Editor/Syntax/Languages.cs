@@ -48,6 +48,8 @@ public static class Languages
     {
         var name = Path.GetFileName(path);
         var extension = Path.GetExtension(path);
+        if (extension.Equals(".csx", StringComparison.OrdinalIgnoreCase)) extension = ".cs";
+        if (AddedGrammars.For(name, extension) is { } added) return added.Info;
         lock (Gate)
         {
             var options = Index.Value;
@@ -95,6 +97,7 @@ public static class Languages
     {
         if (string.IsNullOrWhiteSpace(name)) return null;
         var key = name.Trim();
+        if (AddedGrammars.ForLanguage(key) is { } named) return named.Info;
         lock (Gate)
         {
             var options = Index.Value;
@@ -110,10 +113,13 @@ public static class Languages
     /// <summary>Every language id, for a language picker.</summary>
     public static IReadOnlyList<string> All()
     {
-        lock (Gate) return [.. Index.Value.GetAvailableLanguages().Select(l => l.Id).Order(StringComparer.Ordinal)];
+        lock (Gate) return [.. Index.Value.GetAvailableLanguages().Select(l => l.Id).Concat(AddedGrammars.LanguageIds).Distinct().Order(StringComparer.Ordinal)];
     }
 
     internal static RegistryOptions Registry => Index.Value;
+
+    /// <summary>What a TextMate registry reads grammars through: the bundled ones, then those extensions added.</summary>
+    internal static TextMateSharp.Registry.IRegistryOptions Options { get; } = new ExtensibleOptions();
 
     private static EditOptions OptionsFrom(LanguageConfiguration? config)
     {

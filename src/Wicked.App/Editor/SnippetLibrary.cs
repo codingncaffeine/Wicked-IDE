@@ -10,7 +10,7 @@ namespace Wicked.App.Editor;
 /// any (narrowed by each snippet's "scope"), in the config folder's <c>snippets</c>. Read on a worker, read again when a
 /// file there changes.
 /// </summary>
-public sealed class SnippetLibrary : IDisposable
+public sealed partial class SnippetLibrary : IDisposable
 {
     private readonly string _folder;
     private FileSystemWatcher? _watcher;
@@ -35,8 +35,9 @@ public sealed class SnippetLibrary : IDisposable
 
     private ImmutableArray<SnippetDefinition> Read()
     {
-        if (!Directory.Exists(_folder)) return [];
         var all = ImmutableArray.CreateBuilder<SnippetDefinition>();
+        all.AddRange(ReadAdded());
+        if (!Directory.Exists(_folder)) return all.ToImmutable();
         foreach (var file in Directory.EnumerateFiles(_folder))
         {
             var name = Path.GetFileName(file);

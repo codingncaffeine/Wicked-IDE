@@ -21,6 +21,10 @@ public enum SidePanel
     SourceControl,
     Models,
     Outline,
+    Extensions,
+
+    /// <summary>A panel an extension added.</summary>
+    Custom,
 }
 
 /// <summary>
@@ -75,7 +79,8 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         WireSourceControl();
         WireAssistant();
         WireTerminal();
-        Commands = BuildCommands();
+        WireExtensions();
+        Commands = _builtInCommands = BuildCommands();
         QuickInput = new QuickInputViewModel(this);
         Models = new ModelsViewModel(paths, Notices);
         Assistant = AssistantServices.Resolve(paths, Models.Services);
@@ -103,7 +108,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
 
     public Bench Workbench { get; }
 
-    public IReadOnlyList<WorkbenchCommand> Commands { get; }
+    public IReadOnlyList<WorkbenchCommand> Commands { get; private set; }
 
     public QuickInputViewModel QuickInput { get; }
 
@@ -254,6 +259,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             .. LanguageCommands(),
             .. TerminalCommands(),
             .. AssistantCommands(),
+            .. ExtensionCommands(),
             new("workbench.action.openSnippets", "Snippets", "Configure Snippets", null, ConfigureSnippetsAsync),
             new("workbench.action.openGlobalKeybindingsFile", "Preferences", "Open Keyboard Shortcuts (JSON)", null, OpenKeybindingsJsonAsync),
             .. SourceControl.Commands,
@@ -286,6 +292,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         Language.ApplySettings(settings);
         Terminal?.ApplySettings(settings);
         Chat.ApplySettings(settings);
+        Extensions.Bridge.SettingsApplied(settings);
         OnPropertyChanged(nameof(Settings));
         var services = await EditorServices.Ready;
         services.Apply(settings);
@@ -359,8 +366,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         }
 
         Notices.Clear("keybindings");
-        EditorKeymap.Apply(bindings);
-        Keys = new KeyDispatcher(Commands, bindings);
+        SetUserBindings(bindings);
     }
 
     private async Task OpenKeybindingsJsonAsync()
@@ -497,6 +503,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         await ReloadKeybindingsAsync();
         await Snippets.LoadAsync();
         WatchSettings();
+        StartExtensions();
         if (problem is not null) Notices.Post(new Notice("settings", problem, NoticeKind.Warning, $"tab/{Paths.SettingsFile}"));
         _session = await SessionState.ReadAsync(Paths.SessionFile, CancellationToken.None);
         ShowRecent();
@@ -632,6 +639,8 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         SidePanel.SourceControl => "SOURCE CONTROL",
         SidePanel.Models => "MODELS",
         SidePanel.Outline => "OUTLINE",
+        SidePanel.Extensions => "EXTENSIONS",
+        SidePanel.Custom => ActiveCustomPanel?.Title.ToUpperInvariant() ?? "EXTENSION",
         _ => "EXPLORER",
     };
 
@@ -709,6 +718,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             case ShellRoutes.SourceControl: Panel = SidePanel.SourceControl; SidebarVisible = true; return true;
             case ShellRoutes.Models: Panel = SidePanel.Models; SidebarVisible = true; return true;
             case ShellRoutes.Outline: Panel = SidePanel.Outline; SidebarVisible = true; return true;
+            case ShellRoutes.Extensions: Panel = SidePanel.Extensions; SidebarVisible = true; return true;
             case ShellRoutes.Assistant: AssistantVisible = true; return true;
             case ShellRoutes.SettingsModels: Models.Prompt = null; Models.Browse.Close(); SettingsOpen = true; SettingsSheet.RequestSection("models"); return true;
             case ShellRoutes.SettingsRuntime: Models.Prompt = null; Models.Browse.Close(); SettingsOpen = true; SettingsSheet.RequestSection("runtime"); return true;
@@ -804,6 +814,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         Terminal.Dispose();
         ApiLog.Dispose();
         _ = Models.DisposeAsync().AsTask();
+        _ = Extensions.DisposeAsync().AsTask();
         _stop.Cancel();
         _stop.Dispose();
     }

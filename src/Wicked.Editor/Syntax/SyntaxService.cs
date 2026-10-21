@@ -89,7 +89,7 @@ public sealed class SyntaxService : IDisposable
     {
         try
         {
-            _registry = new Registry(Languages.Registry);
+            _registry = new Registry(Languages.Options);
             _registry.SetTheme(Languages.Registry.LoadTheme(_theme));
             _colors = ColorTable.From(_registry.GetTheme());
         }

@@ -6,6 +6,8 @@
         xmlns:chat="using:Wicked.App.Chat"
         xmlns:search="using:Wicked.App.Search"
         xmlns:git="using:Wicked.App.Git"
+        xmlns:ext="using:Wicked.App.Extensions"
+        xmlns:assist="using:Wicked.App.Assistant"
         x:Class="Wicked.App.Views.MainWindow"
         x:DataType="vm:ShellViewModel"
         Title="{Binding Title}"
@@ -92,6 +94,24 @@
                     Command="{Binding ShowPanelCommand}" CommandParameter="{x:Static vm:SidePanel.Models}">
               <shell:Icon Data="{StaticResource Icon.Boxes}" Size="19" />
             </Button>
+            <!-- Extensions, and the panels extensions add -->
+            <Button Name="RailExtensions" Classes="rail" Classes.active="{Binding IsExtensions}" ToolTip.Tip="Extensions (Ctrl+Shift+X)"
+                    Command="{Binding ShowPanelCommand}" CommandParameter="{x:Static vm:SidePanel.Extensions}">
+              <shell:Icon Data="{StaticResource Icon.Puzzle}" Size="19" />
+            </Button>
+            <ItemsControl Name="RailCustomPanels" ItemsSource="{Binding CustomPanels}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate><StackPanel Spacing="4" /></ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="shell:CustomPanel">
+                  <Button Classes="rail" Classes.active="{Binding IsOpen}" ToolTip.Tip="{Binding Title}"
+                          Command="{Binding $parent[Window].((vm:ShellViewModel)DataContext).ToggleCustomPanelCommand}" CommandParameter="{Binding}">
+                    <shell:Icon Data="{Binding IconKey, Converter={x:Static assist:IconKey.Instance}}" Size="19" />
+                  </Button>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
           </StackPanel>
         </DockPanel>
 
@@ -107,6 +127,8 @@
               <views:OutlineView DataContext="{Binding Outline}" IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).IsOutline}" />
               <search:SearchView Name="SearchPanel" DataContext="{Binding Search}" IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).IsSearch}" />
               <git:SourceControlView DataContext="{Binding SourceControl}" IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).IsSourceControl}" />
+              <ext:ExtensionsView DataContext="{Binding Extensions}" IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).IsExtensions}" />
+              <ContentControl Name="CustomPanelContent" Content="{Binding ActiveCustomPanel.View}" IsVisible="{Binding IsCustomPanel}" />
               <StackPanel Margin="14,8" Spacing="4" IsVisible="{Binding ShowsPanelPlaceholder}">
                 <TextBlock Text="{Binding PanelEmptyTitle}" />
                 <TextBlock Classes="muted" Text="{Binding PanelEmptyText}" TextWrapping="Wrap" />
