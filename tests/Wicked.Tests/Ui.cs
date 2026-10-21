@@ -40,10 +40,31 @@ internal static class Ui
     private static readonly Lazy<HeadlessUnitTestSession> Session = new(() =>
         HeadlessUnitTestSession.StartNew(typeof(HeadlessEntry), AvaloniaTestIsolationLevel.PerAssembly));
 
-    public static Task EnsureStartedAsync() => Session.Value.Dispatch(() => 0, CancellationToken.None);
+    /// <summary>The windows open now in the session (the opened and closed class events keep it).</summary>
+    private static readonly HashSet<Avalonia.Controls.Window> OpenWindows = [];
 
-    /// <summary>Runs a UI test's body on the session's thread.</summary>
-    public static Task<T> Run<T>(Func<T> body) => Session.Value.Dispatch(body, TestContext.Current.CancellationToken);
+    public static Task EnsureStartedAsync() => Session.Value.Dispatch(() =>
+    {
+        Avalonia.Controls.Window.WindowOpenedEvent.AddClassHandler<Avalonia.Controls.Window>((w, _) => OpenWindows.Add(w));
+        Avalonia.Controls.Window.WindowClosedEvent.AddClassHandler<Avalonia.Controls.Window>((w, _) => OpenWindows.Remove(w));
+        return 0;
+    }, CancellationToken.None);
+
+    /// <summary>
+    /// Runs a UI test's body on the session's thread. A window the body leaves open (a failed assertion skips its Close) is
+    /// closed after it: the session is shared, and a window left streaming a reply slowed every later test to a stop.
+    /// </summary>
+    public static Task<T> Run<T>(Func<T> body) => Session.Value.Dispatch(() =>
+    {
+        try
+        {
+            return body();
+        }
+        finally
+        {
+            foreach (var window in OpenWindows.ToList()) window.Close();
+        }
+    }, TestContext.Current.CancellationToken);
 
     /// <summary>The main window on <paramref name="paths"/>'s profile, shown and laid out.</summary>
     public static (MainWindow Window, ShellViewModel Shell) Start(WickedPaths paths, NoticeBoard? notices = null)
