@@ -165,7 +165,7 @@ public sealed class ShortcutsEditorWindowTests
             // A command without keys: the box names the command Ctrl+B already runs.
             Input.Click(window, window.GetVisualDescendants().OfType<Avalonia.Controls.Primitives.ToggleButton>().Single(t => t.Name == "RecordKeysToggle"));
             var view = window.GetVisualDescendants().OfType<ShortcutsView>().Single();
-            view.StartRecording(new ShortcutRow(shell.Commands.First(c => c.Id == "workbench.action.tasks.runTask"), null, false, null, false));
+            view.StartRecording(new ShortcutRow(shell.Commands.First(c => c.Id == "workbench.action.tasks.runTask"), null, "", null, false));
             var box = window.GetVisualDescendants().OfType<Border>().Single(b => b.Name == "RecordBox");
             Assert.True(Ui.PumpUntil(() => box.IsFocused, 5));
             Press(window, Key.B, RawInputModifiers.Control);
@@ -175,6 +175,50 @@ public sealed class ShortcutsEditorWindowTests
             Press(window, Key.Escape);
             Assert.False(box.IsEffectivelyVisible);
             Assert.False(File.Exists(profile.Paths.KeybindingsFile), "Escape wrote keybindings.json");
+            window.Close();
+            return 0;
+        });
+    }
+}
+
+/// <summary>Keymap presets: VS Code's keys by default, a JetBrains IDE's on request.</summary>
+public sealed class KeymapPresetTests
+{
+    [Trait("Tier", "Window")]
+    [Fact]
+    public async Task JetBrainsKeysTakeOverInTheWorkbenchAndTheEditorAndVsCodesComeBack()
+    {
+        using var profile = new TempProfile();
+        var root = Path.Combine(profile.Root, "project");
+        Directory.CreateDirectory(root);
+        File.WriteAllText(Path.Combine(root, "a.txt"), "one\ntwo\n");
+        await Ui.Run(() =>
+        {
+            var (window, shell) = WorkbenchWindowTests.OpenWorkbench(profile, root);
+            var tab = WorkbenchWindowTests.OpenByClicks(window, shell, "a.txt");
+            Assert.Equal("Ctrl+B", shell.Keys.KeysFor("workbench.action.toggleSidebarVisibility"));
+
+            // Every command the preset names is one Wicked has.
+            var ids = shell.Commands.Select(c => c.Id).ToHashSet(StringComparer.Ordinal);
+            Assert.DoesNotContain(Keymaps.For(Keymaps.JetBrains), b => !ids.Contains(b.Command));
+
+            var picked = shell.RunCommandAsync("wicked.keymap.jetbrains");
+            Assert.True(Ui.PumpUntil(() => picked.IsCompleted && shell.Settings.Keymap == "jetbrains" && shell.Keys.KeysFor("editor.action.revealDefinition") == "Ctrl+B", 5),
+                shell.Keys.KeysFor("editor.action.revealDefinition"));
+            Assert.Contains("\"workbench.keymap\": \"jetbrains\"", File.ReadAllText(profile.Paths.SettingsFile), StringComparison.Ordinal);
+
+            // Ctrl+D in the editor duplicates the line, as in IntelliJ IDEA.
+            tab.Editor!.Focus();
+            tab.Document.SetSelections([Wicked.Editor.Model.Selection.Caret(0)]);
+            Input.Chord(window, Key.D, RawInputModifiers.Control);
+            Assert.Equal("one\none\ntwo\n", tab.Document.Text.ToString());
+
+            // The Keyboard Shortcuts editor names where the keys come from.
+            var model = new ShortcutsViewModel(shell);
+            Assert.Contains(model.Rows, r => r.Id == "editor.action.revealDefinition" && r.DisplayKeys == "Ctrl+B" && r.SourceText == "JetBrains");
+
+            picked = shell.RunCommandAsync("wicked.keymap.vscode");
+            Assert.True(Ui.PumpUntil(() => picked.IsCompleted && shell.Keys.KeysFor("workbench.action.toggleSidebarVisibility") == "Ctrl+B" && shell.Keys.KeysFor("editor.action.revealDefinition") == "F12", 5));
             window.Close();
             return 0;
         });

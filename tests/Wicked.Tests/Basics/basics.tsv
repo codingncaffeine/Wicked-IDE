@@ -179,3 +179,5 @@ wicked.run.selectConfiguration	workbench
 workbench.action.tasks.rebuild	workbench	
 wicked.tasks.clean	workbench	
 workbench.action.openGlobalKeybindings	workbench	Ctrl+K Ctrl+S
+wicked.keymap.vscode	workbench	
+wicked.keymap.jetbrains	workbench	

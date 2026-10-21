@@ -7,7 +7,7 @@ using Wicked.Core.Settings;
 namespace Wicked.App.ViewModels;
 
 /// <summary>One row of the Keyboard Shortcuts editor: a command and one of its keys (or none), where the keys come from.</summary>
-public sealed record ShortcutRow(WorkbenchCommand Command, string? Keys, bool User, string? When, bool HasConflict)
+public sealed record ShortcutRow(WorkbenchCommand Command, string? Keys, string Source, string? When, bool HasConflict)
 {
     public string Title => Command.Label;
 
@@ -16,8 +16,11 @@ public sealed record ShortcutRow(WorkbenchCommand Command, string? Keys, bool Us
     /// <summary>The keys as people read them ("Ctrl+K Ctrl+S"); empty for a command with none.</summary>
     public string DisplayKeys => Keys is null ? "" : KeyNames.Readable(Keys);
 
-    /// <summary>"Default" or "User", as VS Code's Source column.</summary>
-    public string Source => Keys is null ? "" : User ? "User" : "Default";
+    /// <summary>A line of keybindings.json (edited in place) rather than a default, a keymap preset's or an extension's key.</summary>
+    public bool User => Source == KeyDispatcher.UserSource;
+
+    /// <summary>Where the keys come from, as VS Code's Source column: Default, a keymap preset, Extension or User.</summary>
+    public string SourceText => Keys is null ? "" : Source;
 
     public string WhenText => When ?? "";
 }
@@ -89,14 +92,14 @@ public sealed partial class ShortcutsViewModel : ObservableObject
             var mine = bound.Where(b => b.Command.Id == command.Id).ToList();
             if (mine.Count == 0 && command.EditorKeys && keys.KeysFor(command.Id) is { Length: > 0 } editorKeys)
             {
-                mine.Add((editorKeys, command, false));
+                mine.Add((editorKeys, command, "Default"));
             }
 
-            if (mine.Count == 0) rows.Add(new ShortcutRow(command, null, false, null, false));
-            foreach (var (k, _, user) in mine)
+            if (mine.Count == 0) rows.Add(new ShortcutRow(command, null, "", null, false));
+            foreach (var (k, _, source) in mine)
             {
-                var when = user ? whenByUser.GetValueOrDefault((command.Id, k)) : command.WhenText;
-                rows.Add(new ShortcutRow(command, k, user, when, shared.Contains(k)));
+                var when = source == KeyDispatcher.UserSource ? whenByUser.GetValueOrDefault((command.Id, k)) : command.WhenText;
+                rows.Add(new ShortcutRow(command, k, source, when, shared.Contains(k)));
             }
         }
 

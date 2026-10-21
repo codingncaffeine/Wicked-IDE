@@ -292,6 +292,8 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             .. ExtensionCommands(),
             new("workbench.action.openSnippets", "Snippets", "Configure Snippets", null, ConfigureSnippetsAsync),
             new("workbench.action.openGlobalKeybindings", "Preferences", "Open Keyboard Shortcuts", "Ctrl+K Ctrl+S", () => Sync(OpenShortcuts)),
+            new("wicked.keymap.vscode", "Preferences", "Keymap: Visual Studio Code", null, () => UpdateSettingsAsync(s => s with { Keymap = Keymaps.VsCode })),
+            new("wicked.keymap.jetbrains", "Preferences", "Keymap: JetBrains (IntelliJ IDEA, Rider, PyCharm)", null, () => UpdateSettingsAsync(s => s with { Keymap = Keymaps.JetBrains })),
             new("workbench.action.openGlobalKeybindingsFile", "Preferences", "Open Keyboard Shortcuts (JSON)", null, OpenKeybindingsJsonAsync),
             .. SourceControl.Commands,
             .. TaskCommands(),
@@ -327,6 +329,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     /// <summary>Puts settings in force everywhere: the editor services (fonts, code colours), every editor, the workbench.</summary>
     public async Task ApplySettingsAsync(WickedSettings settings)
     {
+        var keymapChanged = Settings.Keymap != settings.Keymap;
         Settings = settings;
         Workbench.Settings = settings;
         Models.Configure(settings);
@@ -334,6 +337,11 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         Terminal?.ApplySettings(settings);
         Chat.ApplySettings(settings);
         Extensions.Bridge.SettingsApplied(settings);
+        if (keymapChanged)
+        {
+            lock (_commandGate) RebuildCommands();
+        }
+
         OnPropertyChanged(nameof(Settings));
         LayoutSettingsChanged();
         var services = await EditorServices.Ready;

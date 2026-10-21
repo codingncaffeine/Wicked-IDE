@@ -36,7 +36,7 @@ public sealed class HelpWindowTests
             Assert.True(Ui.PumpUntil(() => shell.Workbench.ActiveTab?.Title == "Get Started", 5), shell.Workbench.ActiveTab?.Title);
             Ui.Pump(0.2);
             var titles = window.GetVisualDescendants().OfType<TextBlock>().Where(t => t.Name == "StepTitle" && t.IsEffectivelyVisible).Select(t => t.Text).ToList();
-            Assert.Equal(["Choose a model", "Open a project", "Ask the assistant", "Run and debug", "Make it yours", "Learn the keys"], titles);
+            Assert.Equal(["Choose a model", "Open a project", "Ask the assistant", "Run and debug", "Make it yours", "Keys you know", "Learn the keys"], titles);
             GetStartedStep Step(string title) => (GetStartedStep)window.GetVisualDescendants().OfType<TextBlock>().First(t => t.Name == "StepTitle" && t.Text == title).DataContext!;
             Assert.False(Step("Open a project").IsDone);
 

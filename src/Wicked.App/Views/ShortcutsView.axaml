@@ -42,7 +42,7 @@
                           ToolTip.Tip="Another command has these keys too" />
             </StackPanel>
             <TextBlock Grid.Column="2" Text="{Binding WhenText}" Classes="muted" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" FontFamily="monospace" />
-            <TextBlock Grid.Column="3" Text="{Binding Source}" Classes="muted" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="3" Text="{Binding SourceText}" Classes="muted" VerticalAlignment="Center" />
           </Grid>
         </DataTemplate>
       </ListBox.ItemTemplate>

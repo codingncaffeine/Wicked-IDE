@@ -145,8 +145,11 @@ public sealed partial class ShellViewModel
     {
         Commands = [.. _builtInCommands, .. _extensionCommands];
         // The workbench key map takes the last binding first, the editor's the first: each gets the order that lets the user's win.
-        Keys = new KeyDispatcher(Commands, [.. _extensionBindings, .. _userBindings]);
-        EditorKeymap.Apply([.. _userBindings, .. _extensionBindings]);
+        // The keymap preset (workbench.keymap) lies over the defaults, extensions over it, keybindings.json over them all.
+        var preset = Keymaps.For(Settings.Keymap);
+        var presetName = Settings.Keymap == Keymaps.JetBrains ? "JetBrains" : "Preset";
+        Keys = new KeyDispatcher(Commands, [.. preset.Select(b => (b, presetName)), .. _extensionBindings.Select(b => (b, "Extension")), .. _userBindings.Select(b => (b, KeyDispatcher.UserSource))]);
+        EditorKeymap.Apply([.. _userBindings, .. _extensionBindings, .. preset]);
         _post(() => OnPropertyChanged(nameof(Keys)));
     }
 

@@ -151,6 +151,12 @@ public sealed record WickedSettings
     [JsonPropertyName("window.menuBarVisibility")]
     public string MenuBarVisibility { get; init; } = "classic";
 
+    /// <summary>The keys: VS Code's, or a JetBrains IDE's laid over them (keybindings.json wins over both).</summary>
+    [Setting("The keys you know: Visual Studio Code's, or those of JetBrains IDEs (IntelliJ IDEA, Rider, PyCharm) where they differ. keybindings.json wins over both.",
+        Values = new[] { "vscode", "jetbrains" })]
+    [JsonPropertyName("workbench.keymap")]
+    public string Keymap { get; init; } = "vscode";
+
     /// <summary>The caret: "blink" (the default) or "solid" (a steady caret, also what reduced motion asks for).</summary>
     [Setting("The caret blinks, or stays solid (also what reduced motion asks for).", Values = new[] { "blink", "solid" })]
     [JsonPropertyName("editor.cursorBlinking")]

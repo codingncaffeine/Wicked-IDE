@@ -53,6 +53,8 @@ public sealed class GetStartedViewModel
                 null, ("Run and Debug", "workbench.action.debug.start"), ("Run Task…", "workbench.action.tasks.runTask")),
             Step("Make it yours", "Pick a theme, or change the font, the keys and every other setting.",
                 null, ("Color Theme", "workbench.action.selectTheme"), ("Settings", "workbench.action.openSettings")),
+            Step("Keys you know", "Keep Visual Studio Code's keys, or take a JetBrains IDE's (IntelliJ IDEA, Rider, PyCharm). Any key can be changed in Keyboard Shortcuts.",
+                null, ("VS Code keys", "wicked.keymap.vscode"), ("JetBrains keys", "wicked.keymap.jetbrains"), ("Keyboard Shortcuts", "workbench.action.openGlobalKeybindings")),
             Step("Learn the keys", "Every command is in the palette; the reference lists the keys that run them.",
                 null, ("Show All Commands", "workbench.action.showCommands"), ("Keyboard Shortcuts Reference", "workbench.action.keybindingsReference")),
         ];
