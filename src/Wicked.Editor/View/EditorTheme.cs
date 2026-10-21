@@ -88,6 +88,8 @@ public sealed record EditorTheme
 
     public uint Lightbulb { get; init; } = 0xFFFFCC00;
 
+    public uint BookmarkColor { get; init; } = 0xFF4FC1FF;
+
     /// <summary>Inlay hints: text and pill, and ghost text a completion suggests.</summary>
     public uint InlayForeground { get; init; } = 0xFF969696;
 

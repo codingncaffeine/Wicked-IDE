@@ -80,6 +80,9 @@ public enum GutterGlyph
 
     /// <summary>A quick fix or refactoring is offered for the caret's line.</summary>
     Lightbulb,
+
+    /// <summary>A line the user marked to come back to.</summary>
+    Bookmark,
 }
 
 /// <summary>Text drawn inside a line that is not in the document: an inlay hint, or completion text not yet accepted.</summary>

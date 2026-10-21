@@ -1,4 +1,5 @@
 using Wicked.App.Language;
+using Wicked.App.Editor;
 using Wicked.App.Shell;
 
 namespace Wicked.App.ViewModels;
@@ -30,6 +31,13 @@ public sealed partial class ShellViewModel
             new("workbench.action.gotoSymbol", "Go", "Go to Symbol in Editor...", "Ctrl+Shift+O", () => Sync(() => OpenPalette("@"))),
             new("workbench.action.showAllSymbols", "Go", "Go to Symbol in Workspace...", "Ctrl+T", () => Sync(() => OpenPalette("#"))),
             new("wicked.lsp.restart", "Language", "Restart Language Server", null, () => Language.RestartAsync(Workbench.ActiveTab)),
+            new("bookmarks.toggle", "Bookmarks", "Toggle Bookmark", "Ctrl+Alt+K", () => Sync(() => _bookmarks.Toggle(Workbench.ActiveTab))),
+            new("bookmarks.jumpToNext", "Bookmarks", "Jump to Next", "Ctrl+Alt+L", () => Sync(() => _bookmarks.Step(Workbench.ActiveTab, 1))),
+            new("bookmarks.jumpToPrevious", "Bookmarks", "Jump to Previous", "Ctrl+Alt+J", () => Sync(() => _bookmarks.Step(Workbench.ActiveTab, -1))),
+            new("bookmarks.list", "Bookmarks", "List", null, () => Sync(ListBookmarks)),
+            new("editor.action.peekDefinition", "Go", "Peek Definition", "Alt+F12", () => Ui(ui => ui.PeekDefinitionAsync())),
+            new("references-view.showCallHierarchy", "Go", "Show Call Hierarchy", "Shift+Alt+H", () => Language.CallHierarchyAsync(Workbench.ActiveTab)),
+            new("references-view.showOutgoingCalls", "Go", "Show Outgoing Calls", null, () => Language.CallHierarchyAsync(Workbench.ActiveTab, incoming: false)),
         ];
 
         static Task Sync(Action a)
@@ -68,10 +76,27 @@ public sealed partial class ShellViewModel
         PaletteRequested?.Invoke("");
     }
 
+    private Bookmarks? _bookmarksMade;
+
+    private Bookmarks _bookmarks => _bookmarksMade ??= new Bookmarks(Workbench);
+
+    private void ListBookmarks()
+    {
+        var items = _bookmarks.All().Select(b => new QuickItem($"{b.Tab.Title}:{b.Line + 1}  {b.Tab.Document.Text.Line(b.Line).Trim()}", b.Tab.Path ?? "", "", () =>
+        {
+            _bookmarks.Go(b);
+            return Task.CompletedTask;
+        })).ToList();
+        QuickInput.OpenList(items.Count == 0 ? "No bookmarks: Ctrl+Alt+K marks a line" : "Bookmarks", items, 0, null);
+        PaletteRequested?.Invoke("");
+    }
+
     /// <summary>The language layer's ways into the window: opening a place, listing places.</summary>
     private void WireLanguage()
     {
         Language.OpenLocation = (path, range) => OpenAtAsync(path, range.Start.Line, range.Start.Character, range.End.Line, range.End.Character);
+        BottomPanel.Add(PanelIds.References, "REFERENCES", () => new Views.ReferencesView { DataContext = Language.References });
+        Language.ReferencesShown += () => BottomPanel.Show(PanelIds.References);
         Language.ShowList = (title, items) =>
         {
             QuickInput.OpenList(title, items, 0, null);

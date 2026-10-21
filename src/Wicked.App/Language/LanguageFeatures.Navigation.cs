@@ -53,6 +53,9 @@ public sealed partial class LanguageFeatures
         return _palette;
     }
 
+    /// <summary>The text of a file as its editor has it, when it is open (UI thread).</summary>
+    internal Wicked.Editor.Text.Rope? OpenDocumentText(string path) => _bench.AllTabs.FirstOrDefault(t => t.Path == path)?.Document.Text;
+
     internal EditorTab? TabOf(CodeEditor editor) => _bench.AllTabs.FirstOrDefault(t => ReferenceEquals(t.Editor, editor));
 
     internal FormattingOptions FormattingOf(EditorTab tab) => FormattingFor(tab);
@@ -93,7 +96,45 @@ public sealed partial class LanguageFeatures
             return;
         }
 
-        await ListLocationsAsync($"{found.Count} {Words(kind)}s", found);
+        await ShowPlacesAsync($"{found.Count} {Words(kind)}s", found);
+    }
+
+    /// <summary>The References panel: references, implementations and call hierarchies show there.</summary>
+    public ReferencesViewModel References { get; }
+
+    /// <summary>The panel has something new to show (the shell brings it forward).</summary>
+    public event Action? ReferencesShown;
+
+    private async Task ShowPlacesAsync(string title, IReadOnlyList<Location> places)
+    {
+        await References.ShowAsync(title, places, _bench.Root);
+        ReferencesShown?.Invoke();
+    }
+
+    /// <summary>Show Call Hierarchy (Shift+Alt+H): who calls the function at the caret, or (outgoing) what it calls.</summary>
+    public async Task CallHierarchyAsync(EditorTab? tab, bool incoming = true)
+    {
+        if (tab is null || DocumentFor(tab) is not { } doc) return;
+        var caret = tab.Document.Primary.Active;
+        IReadOnlyList<CallHierarchyItem>? items;
+        try
+        {
+            items = await doc.RequestAsync((c, text, _) => c.Supports("callHierarchyProvider") ? c.PrepareCallHierarchyAsync(doc.Uri, LspText.PositionOf(text, caret)) : Task.FromResult<IReadOnlyList<CallHierarchyItem>>([]));
+        }
+        catch (Exception ex) when (ex is IOException or OperationCanceledException)
+        {
+            Tell($"Call hierarchy failed: {ex.Message}");
+            return;
+        }
+
+        if (items is not { Count: > 0 } || doc.Client is not { } client)
+        {
+            Tell("No call hierarchy here");
+            return;
+        }
+
+        await References.ShowCallsAsync(incoming ? $"Callers of {items[0].Name}" : $"Calls from {items[0].Name}", items[0], item => client.CallsAsync(item, incoming));
+        ReferencesShown?.Invoke();
     }
 
     private static string Words(string kind) => kind switch
@@ -129,7 +170,8 @@ public sealed partial class LanguageFeatures
 
         LastReferences = found;
         ReferencesFound?.Invoke(found);
-        await ListLocationsAsync($"{found.Count} references", found);
+        var (s, e) = Wicked.Editor.Model.TextNavigation.WordAt(tab.Document.Text, caret);
+        await ShowPlacesAsync($"{found.Count} reference{(found.Count == 1 ? "" : "s")} to {tab.Document.Text.Substring(s, e - s)}", found);
     }
 
     /// <summary>The last references found, for the References panel.</summary>

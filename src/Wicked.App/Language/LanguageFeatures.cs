@@ -41,6 +41,8 @@ public sealed partial class LanguageFeatures : ObservableObject, IAsyncDisposabl
         _notices = notices;
         _post = post ?? (a => Dispatcher.UIThread.Post(a));
         Problems = new ProblemsViewModel(this);
+        References = new ReferencesViewModel((path, line, column, endLine, endColumn) =>
+            OpenLocation?.Invoke(path, new Wicked.Core.Lsp.Range(new Position(line, column), new Position(endLine, endColumn))) ?? Task.CompletedTask);
         bench.TabOpened += OnTabOpened;
         bench.TabClosed += OnTabClosed;
         bench.Saved += tab =>

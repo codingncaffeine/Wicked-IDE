@@ -7,6 +7,7 @@ public static class ShellRoutes
     public const string Search = "panel/search";
     public const string SourceControl = "panel/source-control";
     public const string Models = "panel/models";
+    public const string Outline = "panel/outline";
     public const string Assistant = "assistant";
     public const string SettingsModels = "settings/models";
     public const string SettingsRuntime = "settings/runtime";

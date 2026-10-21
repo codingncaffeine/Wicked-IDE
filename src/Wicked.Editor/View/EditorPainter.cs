@@ -338,6 +338,21 @@ public static class EditorPainter
                 }
 
                 break;
+            case GutterGlyph.Bookmark:
+                paint.Color = new SKColor(theme.BookmarkColor);
+                using (var flag = new SKPath())
+                {
+                    // A ribbon with a notch, at the gutter's left edge so it sits beside a breakpoint.
+                    flag.MoveTo(1, cy - 6);
+                    flag.LineTo(6, cy - 6);
+                    flag.LineTo(6, cy + 6);
+                    flag.LineTo(3.5f, cy + 3.5f);
+                    flag.LineTo(1, cy + 6);
+                    flag.Close();
+                    canvas.DrawPath(flag, paint);
+                }
+
+                break;
             case GutterGlyph.Lightbulb:
                 paint.Color = new SKColor(theme.Lightbulb);
                 canvas.DrawCircle(cx, cy - 1.5f, 3.5f, paint);

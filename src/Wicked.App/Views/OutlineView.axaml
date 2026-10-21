@@ -1,0 +1,26 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:lang="using:Wicked.App.Language"
+             xmlns:shell="using:Wicked.App.Shell"
+             xmlns:assist="using:Wicked.App.Assistant"
+             x:Class="Wicked.App.Views.OutlineView"
+             x:DataType="lang:OutlineViewModel">
+  <DockPanel>
+    <TextBox DockPanel.Dock="Top" Name="OutlineFilter" Classes="find" Text="{Binding Filter}" PlaceholderText="Filter symbols" Margin="10,0,10,6" />
+    <TextBlock DockPanel.Dock="Top" Text="{Binding Empty}" Classes="muted" Margin="14,4" TextWrapping="Wrap" IsVisible="{Binding Empty, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+    <ListBox Name="OutlineList" ItemsSource="{Binding Rows}" Classes="problems" Background="Transparent">
+      <ListBox.ItemsPanel>
+        <ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate>
+      </ListBox.ItemsPanel>
+      <ListBox.ItemTemplate>
+        <DataTemplate x:DataType="lang:OutlineRow">
+          <StackPanel Orientation="Horizontal" Spacing="6" Margin="{Binding Indent, Converter={x:Static lang:IndentMargin.Instance}}">
+            <shell:Icon Data="{Binding Icon, Converter={x:Static assist:IconKey.Instance}}" Size="13" Foreground="{DynamicResource Brush.Accent}" />
+            <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+            <TextBlock Text="{Binding Detail}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" MaxWidth="160" />
+          </StackPanel>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+  </DockPanel>
+</UserControl>

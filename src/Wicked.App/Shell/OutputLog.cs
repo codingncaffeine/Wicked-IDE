@@ -14,6 +14,7 @@ public static class PanelIds
     public const string Terminal = "terminal";
     public const string DebugConsole = "debug-console";
     public const string ApiLog = "api-log";
+    public const string References = "references";
 }
 
 /// <summary>

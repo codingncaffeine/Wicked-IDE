@@ -84,6 +84,10 @@
                     Command="{Binding ShowPanelCommand}" CommandParameter="{x:Static vm:SidePanel.SourceControl}">
               <shell:Icon Data="{StaticResource Icon.GitBranch}" Size="19" />
             </Button>
+            <Button Name="RailOutline" Classes="rail" Classes.active="{Binding IsOutline}" ToolTip.Tip="Outline: the file's symbols"
+                    Command="{Binding ShowPanelCommand}" CommandParameter="{x:Static vm:SidePanel.Outline}">
+              <shell:Icon Data="{StaticResource Icon.ListTree}" Size="19" />
+            </Button>
             <Button Name="RailModels" Classes="rail" Classes.active="{Binding IsModels}" ToolTip.Tip="Models (Ctrl+Shift+M)"
                     Command="{Binding ShowPanelCommand}" CommandParameter="{x:Static vm:SidePanel.Models}">
               <shell:Icon Data="{StaticResource Icon.Boxes}" Size="19" />
@@ -100,6 +104,7 @@
             <Panel>
               <views:ExplorerView DataContext="{Binding Workbench}" IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).IsExplorer}" />
               <views:ModelsView DataContext="{Binding Models}" IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).IsModels}" />
+              <views:OutlineView DataContext="{Binding Outline}" IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).IsOutline}" />
               <search:SearchView Name="SearchPanel" DataContext="{Binding Search}" IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).IsSearch}" />
               <git:SourceControlView DataContext="{Binding SourceControl}" IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).IsSourceControl}" />
               <StackPanel Margin="14,8" Spacing="4" IsVisible="{Binding ShowsPanelPlaceholder}">

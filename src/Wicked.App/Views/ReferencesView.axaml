@@ -1,0 +1,42 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:lang="using:Wicked.App.Language"
+             xmlns:shell="using:Wicked.App.Shell"
+             x:Class="Wicked.App.Views.ReferencesView"
+             x:DataType="lang:ReferencesViewModel">
+  <DockPanel>
+    <TextBlock DockPanel.Dock="Top" Name="ReferencesTitle" Text="{Binding Title}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" Margin="10,0,10,4" />
+    <ListBox Name="ReferencesList" ItemsSource="{Binding Rows}" Classes="problems" Background="Transparent">
+      <ListBox.ItemsPanel>
+        <ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate>
+      </ListBox.ItemsPanel>
+      <ListBox.DataTemplates>
+        <DataTemplate DataType="lang:ReferenceFile">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <shell:Icon Data="{StaticResource Icon.ChevronDown}" Size="13" IsVisible="{Binding IsExpanded}" />
+            <shell:Icon Data="{StaticResource Icon.ChevronRight}" Size="13" IsVisible="{Binding !IsExpanded}" />
+            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+            <TextBlock Text="{Binding Folder}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" VerticalAlignment="Center" />
+            <Border Classes="badge"><TextBlock Text="{Binding Count}" /></Border>
+          </StackPanel>
+        </DataTemplate>
+        <DataTemplate DataType="lang:ReferenceRow">
+          <TextBlock Margin="22,0,0,0" TextTrimming="CharacterEllipsis">
+            <Run Text="{Binding Before}" Foreground="{DynamicResource Brush.Text.Secondary}" />
+            <Run Text="{Binding Hit}" Background="{DynamicResource Brush.Match}" />
+            <Run Text="{Binding After}" Foreground="{DynamicResource Brush.Text.Secondary}" />
+          </TextBlock>
+        </DataTemplate>
+        <DataTemplate DataType="lang:CallRow">
+          <StackPanel Orientation="Horizontal" Spacing="6" Margin="{Binding Indent, Converter={x:Static lang:IndentMargin.Instance}}">
+            <shell:Icon Data="{StaticResource Icon.ChevronDown}" Size="13" IsVisible="{Binding IsExpanded}" />
+            <shell:Icon Data="{StaticResource Icon.ChevronRight}" Size="13" IsVisible="{Binding !IsExpanded}" />
+            <shell:Icon Data="{StaticResource Icon.SquareFunction}" Size="13" Foreground="{DynamicResource Brush.Accent}" />
+            <TextBlock Text="{Binding Name}" />
+            <TextBlock Text="{Binding Where}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" VerticalAlignment="Center" />
+          </StackPanel>
+        </DataTemplate>
+      </ListBox.DataTemplates>
+    </ListBox>
+  </DockPanel>
+</UserControl>

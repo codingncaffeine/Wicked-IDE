@@ -20,6 +20,7 @@ public enum SidePanel
     Search,
     SourceControl,
     Models,
+    Outline,
 }
 
 /// <summary>
@@ -53,6 +54,13 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         Output = new OutputLog();
         Language = new LanguageFeatures(Workbench, paths, Output, Notices);
         Search = new Wicked.App.Search.SearchViewModel(this);
+        Outline = new OutlineViewModel(Language, Workbench);
+        PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName != nameof(IsOutline)) return;
+            Outline.Active = IsOutline;
+            if (IsOutline) _ = Outline.RefreshAsync();
+        };
         Language.Problems.Opened += p => _ = OpenAtAsync(p.Path, p.Line, p.Column);
         Language.Problems.CountsChanged += () =>
         {
@@ -98,6 +106,9 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     public IReadOnlyList<WorkbenchCommand> Commands { get; }
 
     public QuickInputViewModel QuickInput { get; }
+
+    /// <summary>The Outline panel: the active file's symbols.</summary>
+    public OutlineViewModel Outline { get; }
 
     /// <summary>The Search panel.</summary>
     public Wicked.App.Search.SearchViewModel Search { get; }
@@ -226,6 +237,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             })),
             new("workbench.view.scm", "View", "Show Source Control", "Ctrl+Shift+G", () => Sync(() => Navigate(ShellRoutes.SourceControl))),
             new("wicked.showModels", "View", "Show Models", "Ctrl+Shift+M", () => Sync(() => Navigate(ShellRoutes.Models))),
+            new("outline.focus", "View", "Show Outline", null, () => Sync(() => Navigate(ShellRoutes.Outline))),
             new("workbench.action.showCommands", "View", "Show All Commands", "Ctrl+Shift+P", () => Sync(() => OpenPalette(">"))),
             new("workbench.action.quickOpen", "Go", "Go to File...", "Ctrl+P", () => Sync(() => OpenPalette(""))),
             new("workbench.action.gotoLine", "Go", "Go to Line...", "Ctrl+G", () => Sync(() => OpenPalette(":"))),
@@ -578,11 +590,11 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     // ── Side panel and assistant ─────────────────────────────────────────────────────────────
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsExplorer), nameof(IsSearch), nameof(IsSourceControl), nameof(IsModels), nameof(PanelTitle), nameof(PanelEmptyTitle), nameof(PanelEmptyText), nameof(ShowsPanelPlaceholder))]
+    [NotifyPropertyChangedFor(nameof(IsExplorer), nameof(IsSearch), nameof(IsSourceControl), nameof(IsModels), nameof(IsOutline), nameof(PanelTitle), nameof(PanelEmptyTitle), nameof(PanelEmptyText), nameof(ShowsPanelPlaceholder))]
     private SidePanel _panel = SidePanel.Explorer;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsExplorer), nameof(IsSearch), nameof(IsSourceControl), nameof(IsModels))]
+    [NotifyPropertyChangedFor(nameof(IsExplorer), nameof(IsSearch), nameof(IsSourceControl), nameof(IsModels), nameof(IsOutline))]
     private bool _sidebarVisible = true;
 
     [ObservableProperty]
@@ -595,6 +607,8 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     public bool IsSourceControl => SidebarVisible && Panel == SidePanel.SourceControl;
 
     public bool IsModels => SidebarVisible && Panel == SidePanel.Models;
+
+    public bool IsOutline => SidebarVisible && Panel == SidePanel.Outline;
 
     /// <summary>Every side panel has its view now; kept for a panel added before its view is.</summary>
     public bool ShowsPanelPlaceholder => false;
@@ -617,6 +631,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         SidePanel.Search => "SEARCH",
         SidePanel.SourceControl => "SOURCE CONTROL",
         SidePanel.Models => "MODELS",
+        SidePanel.Outline => "OUTLINE",
         _ => "EXPLORER",
     };
 
@@ -693,6 +708,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             case ShellRoutes.Search: Panel = SidePanel.Search; SidebarVisible = true; return true;
             case ShellRoutes.SourceControl: Panel = SidePanel.SourceControl; SidebarVisible = true; return true;
             case ShellRoutes.Models: Panel = SidePanel.Models; SidebarVisible = true; return true;
+            case ShellRoutes.Outline: Panel = SidePanel.Outline; SidebarVisible = true; return true;
             case ShellRoutes.Assistant: AssistantVisible = true; return true;
             case ShellRoutes.SettingsModels: Models.Prompt = null; Models.Browse.Close(); SettingsOpen = true; SettingsSheet.RequestSection("models"); return true;
             case ShellRoutes.SettingsRuntime: Models.Prompt = null; Models.Browse.Close(); SettingsOpen = true; SettingsSheet.RequestSection("runtime"); return true;

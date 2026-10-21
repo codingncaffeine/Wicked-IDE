@@ -105,6 +105,7 @@ public sealed partial class EditorLanguageUi
         CloseSignature();
         CloseRename();
         CloseActions();
+        if (PeekOpen) ClosePeek();
     }
 
     // ── Keys ─────────────────────────────────────────────────────────────────────────────────────
