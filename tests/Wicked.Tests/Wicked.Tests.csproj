@@ -19,6 +19,11 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <!-- The scripted stand-in for llama-server that the model-runtime tests pack into their fake engine archive. -->
+  <ItemGroup>
+    <None Include="Models\fake_llama_server.py" CopyToOutputDirectory="PreserveNewest" Link="fake_llama_server.py" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\..\src\Wicked.Core\Wicked.Core.csproj" />
     <ProjectReference Include="..\..\src\Wicked.Editor\Wicked.Editor.csproj" />
