@@ -31,7 +31,7 @@ public sealed class SettingsWindowTests
 
     [Trait("Tier", "Window")]
     [Fact]
-    public async Task ZoomKeysChangeTheFontAndAreKept()
+    public async Task ZoomKeysZoomTheWindowAndTheEditorFontZoomsFromThePalette()
     {
         using var profile = new TempProfile();
         var root = Folder(profile);
@@ -42,12 +42,20 @@ public sealed class SettingsWindowTests
             var services = EditorServices.Ready.Result;
             var before = services.Fonts.Size;
 
+            // Ctrl+= zooms the whole window (window.zoomLevel, 20% a step), as in VS Code; Ctrl+Numpad0 puts it back.
+            var zoom = window.GetVisualDescendants().OfType<LayoutTransformControl>().Single(z => z.Name == "Zoom");
             Input.Chord(window, Key.OemPlus, RawInputModifiers.Control);
-            Assert.True(Ui.PumpUntil(() => services.Fonts.Size == before + 1, 5), $"font size {services.Fonts.Size}");
-            Assert.True(Ui.PumpUntil(() => File.Exists(profile.Paths.SettingsFile) && File.ReadAllText(profile.Paths.SettingsFile).Contains($"\"editor.fontSize\": {before + 1}"), 5));
+            Assert.True(Ui.PumpUntil(() => zoom.LayoutTransform is Avalonia.Media.ScaleTransform { ScaleX: > 1.19 and < 1.21 }, 5), $"zoom {zoom.LayoutTransform}");
+            Assert.True(Ui.PumpUntil(() => File.Exists(profile.Paths.SettingsFile) && File.ReadAllText(profile.Paths.SettingsFile).Contains("\"window.zoomLevel\": 1"), 5));
+            Assert.Equal(before, services.Fonts.Size);
+            Input.Chord(window, Key.NumPad0, RawInputModifiers.Control);
+            Assert.True(Ui.PumpUntil(() => zoom.LayoutTransform is null, 5));
 
-            Input.Chord(window, Key.D0, RawInputModifiers.Control);
-            Assert.True(Ui.PumpUntil(() => services.Fonts.Size == 14, 5));
+            // The editor's own font zoom is a command (no default keys, as in VS Code).
+            var font = shell.RunCommandAsync("editor.action.fontZoomIn");
+            Assert.True(Ui.PumpUntil(() => font.IsCompleted && services.Fonts.Size == before + 1, 5), $"font size {services.Fonts.Size}");
+            font = shell.RunCommandAsync("editor.action.fontZoomReset");
+            Assert.True(Ui.PumpUntil(() => font.IsCompleted && services.Fonts.Size == 14, 5));
             window.Close();
             return 0;
         });

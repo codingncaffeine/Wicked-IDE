@@ -36,6 +36,10 @@ public sealed partial class EditorTab : ObservableObject
     [ObservableProperty]
     private bool _isPreview;
 
+    /// <summary>Pinned (Ctrl+K Shift+Enter): kept at the front of the strip, not closed by Close Others or the keyboard.</summary>
+    [ObservableProperty]
+    private bool _isPinned;
+
     [ObservableProperty]
     private bool _isActive;
 

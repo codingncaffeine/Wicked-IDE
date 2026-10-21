@@ -69,6 +69,25 @@ public partial class MainWindow : Window, IWorkbenchDialogs
                 return;
             }
 
+            // Ctrl+Tab before keyboard navigation takes Tab: it opens the switcher, and while Ctrl is held Tab and Shift+Tab move
+            // through it (letting go chooses, below).
+            if (_shell is not null && e.Key == Key.Tab && e.KeyModifiers.HasFlag(KeyModifiers.Control))
+            {
+                if (_shell.QuickInput is { IsOpen: true, IsSwitcher: true }) _shell.QuickInput.Move(e.KeyModifiers.HasFlag(KeyModifiers.Shift) ? -1 : 1);
+                else if (_shell.Keys.Match(e) is { } command) _ = RunAsync(command);
+                else return;
+                e.Handled = true;
+                return;
+            }
+
+            // Escape twice in Zen Mode leaves it, as in VS Code (the first one still does its usual work).
+            if (_shell is { ZenMode: true } && e.Key == Key.Escape)
+            {
+                var now = DateTime.UtcNow;
+                if (now - _lastEscape < TimeSpan.FromMilliseconds(600)) _shell.ToggleZenMode();
+                _lastEscape = now;
+            }
+
             if (_shell is null || e.Key != Key.Escape) return;
             if (_shell.Models.Prompt is not null) return; // the question has its own Escape
             if (_shell.Models.RunSettings is not null) _shell.Models.RunSettings = null;
@@ -78,6 +97,13 @@ public partial class MainWindow : Window, IWorkbenchDialogs
             else if (_shell.Notifications.IsOpen) _shell.Notifications.IsOpen = false;
             else if (_shell.SettingsOpen) _shell.SettingsOpen = false;
             else return;
+            e.Handled = true;
+        }, RoutingStrategies.Tunnel);
+        // Letting go of Ctrl chooses the switcher's selected editor.
+        AddHandler(KeyUpEvent, (_, e) =>
+        {
+            if (_shell is not { QuickInput: { IsOpen: true, IsSwitcher: true } } || e.Key is not (Key.LeftCtrl or Key.RightCtrl)) return;
+            _ = _shell.QuickInput.ChooseAsync();
             e.Handled = true;
         }, RoutingStrategies.Tunnel);
         DataContextChanged += (_, _) =>
@@ -99,6 +125,11 @@ public partial class MainWindow : Window, IWorkbenchDialogs
             _shell.PaletteRequested += OnPaletteRequested;
             _shell.FocusPartRequested += FocusPart;
             _shell.QuitRequested += Close;
+            _shell.FullScreenRequested += on =>
+            {
+                if (on && WindowState != WindowState.FullScreen) _beforeFullScreen = WindowState;
+                WindowState = on ? WindowState.FullScreen : _beforeFullScreen;
+            };
             _shell.ActivateRequested += () =>
             {
                 if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;
@@ -109,6 +140,8 @@ public partial class MainWindow : Window, IWorkbenchDialogs
             _shell.Clipboard = text => Clipboard?.SetTextAsync(text) ?? Task.CompletedTask;
             ApplyColumns();
             ApplyChrome(_shell.Settings.TitleBarStyle == "native");
+            Root.RowDefinitions[2].Height = new GridLength(_shell.ShowStatusBar ? 28 : 0);
+            ApplyZoom(_shell.WindowZoom);
         };
     }
 
@@ -125,8 +158,11 @@ public partial class MainWindow : Window, IWorkbenchDialogs
             }, Avalonia.Threading.DispatcherPriority.Loaded);
         }
 
-        if (e.PropertyName is nameof(ShellViewModel.SidebarVisible) or nameof(ShellViewModel.AssistantVisible)) ApplyColumns();
+        if (e.PropertyName is nameof(ShellViewModel.SidebarVisible) or nameof(ShellViewModel.AssistantVisible) or nameof(ShellViewModel.ShowRail)) ApplyColumns();
         if (e.PropertyName == nameof(ShellViewModel.Settings) && _shell is not null) ApplyChrome(_shell.Settings.TitleBarStyle == "native");
+        if (e.PropertyName == nameof(ShellViewModel.ShowStatusBar) && _shell is not null) Root.RowDefinitions[2].Height = new GridLength(_shell.ShowStatusBar ? 28 : 0);
+        if (e.PropertyName == nameof(ShellViewModel.WindowZoom) && _shell is not null) ApplyZoom(_shell.WindowZoom);
+        if (e.PropertyName == nameof(ShellViewModel.PanelLocation)) ApplyPanelRows();
 
         // The assistant opens with the cursor in its composer (Ctrl+L, as in Cursor).
         if (e.PropertyName == nameof(ShellViewModel.AssistantVisible) && _shell is { AssistantVisible: true }) AssistantChat.FocusComposer();
@@ -143,7 +179,15 @@ public partial class MainWindow : Window, IWorkbenchDialogs
         columns[SideColumn + 1].Width = new GridLength(_shell.SidebarVisible ? 6 : 0);
         columns[AssistantColumn].Width = _shell.AssistantVisible ? _assistantWidth : new GridLength(0);
         columns[AssistantColumn - 1].Width = new GridLength(_shell.AssistantVisible ? 6 : 0);
+        columns[0].Width = new GridLength(_shell.ShowRail ? 52 : 0); // the rail, hidden in Zen Mode
     }
+
+    private DateTime _lastEscape;
+    private WindowState _beforeFullScreen = WindowState.Normal;
+
+    /// <summary>window.zoomLevel: everything inside the frame scaled; 1 is no transform at all, so nothing is resampled.</summary>
+    private void ApplyZoom(double zoom) =>
+        Zoom.LayoutTransform = Math.Abs(zoom - 1) < 0.001 ? null : new Avalonia.Media.ScaleTransform(zoom, zoom);
 
     /// <summary>
     /// window.titleBarStyle: the desktop's own frame (its title bar and buttons; Wicked's bar stays as a toolbar with the
@@ -160,26 +204,63 @@ public partial class MainWindow : Window, IWorkbenchDialogs
 
     private bool _nativeChrome;
 
-    /// <summary>The bottom panel's rows: hidden it takes none, shown it has the height it was left at, maximised all of it.</summary>
+    /// <summary>
+    /// The panel beside the editors (workbench.panel.defaultLocation): below them, or to their left or right. Hidden it takes
+    /// no room, shown it has the size it was left at, maximised all of it.
+    /// </summary>
     private void ApplyPanelRows()
     {
         if (_shell is null) return;
         var panel = _shell.BottomPanel;
+        var side = _shell.PanelLocation is "left" or "right";
         var rows = EditorColumn.RowDefinitions;
-        if (rows[2].Height.IsAbsolute && rows[2].Height.Value > 0 && !panel.IsMaximized) panel.Resized(rows[2].Height.Value);
-        if (!panel.IsVisible)
+        var columns = EditorColumn.ColumnDefinitions;
+        if (!side && rows[2].Height.IsAbsolute && rows[2].Height.Value > 0 && !panel.IsMaximized) panel.Resized(rows[2].Height.Value);
+        if (side && columns.Count == 3 && columns[PanelSlot()].Width is { IsAbsolute: true, Value: > 0 } width && !panel.IsMaximized) _panelWidth = width.Value;
+
+        // The three parts in a row (bottom) or in columns (left: panel, gap, editor; right: editor, gap, panel).
+        while (columns.Count < 3) columns.Add(new ColumnDefinition(0, GridUnitType.Pixel));
+        int EditorAt() => side && _shell.PanelLocation == "left" ? 2 : 0;
+        int PanelSlot() => _shell.PanelLocation == "left" ? 0 : 2;
+        Grid.SetRow(Editor, 0);
+        Grid.SetRow(DebugToolbar, 0);
+        Grid.SetRow(PanelSplitter, side ? 0 : 1);
+        Grid.SetRow(PanelArea, side ? 0 : 2);
+        Grid.SetColumn(Editor, side ? EditorAt() : 0);
+        Grid.SetColumn(DebugToolbar, side ? EditorAt() : 0);
+        Grid.SetColumn(PanelSplitter, side ? 1 : 0);
+        Grid.SetColumn(PanelArea, side ? PanelSlot() : 0);
+        PanelSplitter.ResizeDirection = side ? Avalonia.Controls.GridResizeDirection.Columns : Avalonia.Controls.GridResizeDirection.Rows;
+
+        var shown = panel.IsVisible;
+        var editorSize = shown && panel.IsMaximized ? new GridLength(0) : GridLength.Star;
+        var gap = new GridLength(shown && !panel.IsMaximized ? 6 : 0);
+        var panelSize = !shown ? new GridLength(0) : panel.IsMaximized ? GridLength.Star : new GridLength(side ? _panelWidth : panel.Height);
+        if (side)
         {
             rows[0].Height = GridLength.Star;
             rows[1].Height = new GridLength(0);
             rows[2].Height = new GridLength(0);
-            return;
+            columns[EditorAt()].Width = editorSize;
+            columns[1].Width = gap;
+            columns[PanelSlot()].Width = panelSize;
+            columns[PanelSlot()].MinWidth = shown ? 200 : 0;
+            rows[2].MinHeight = 0;
         }
-
-        rows[0].Height = panel.IsMaximized ? new GridLength(0) : GridLength.Star;
-        rows[1].Height = new GridLength(panel.IsMaximized ? 0 : 6);
-        rows[2].Height = panel.IsMaximized ? GridLength.Star : new GridLength(panel.Height);
-        rows[2].MinHeight = BottomPanel.MinHeight;
+        else
+        {
+            columns[0].Width = GridLength.Star;
+            columns[1].Width = new GridLength(0);
+            columns[2].Width = new GridLength(0);
+            columns[2].MinWidth = 0;
+            rows[0].Height = editorSize;
+            rows[1].Height = gap;
+            rows[2].Height = panelSize;
+            rows[2].MinHeight = shown ? BottomPanel.MinHeight : 0;
+        }
     }
+
+    private double _panelWidth = 420;
 
     /// <summary>F6: the keyboard to the next part that is showing — the side bar, the editor, the panel, the assistant.</summary>
     private void FocusPart(int direction)
@@ -302,7 +383,10 @@ public partial class MainWindow : Window, IWorkbenchDialogs
 
     // ── The window ───────────────────────────────────────────────────────────────────────────────
 
-    /// <summary>Closing: unsaved tabs are asked about once, the session remembered, then the window really closes.</summary>
+    /// <summary>
+    /// Closing: unsaved files are kept for next time (files.hotExit, VS Code's default) or, with it off, asked about once;
+    /// the session is remembered, then the window really closes.
+    /// </summary>
     protected override void OnClosing(WindowClosingEventArgs e)
     {
         base.OnClosing(e);
@@ -313,7 +397,9 @@ public partial class MainWindow : Window, IWorkbenchDialogs
 
     private async Task ConfirmCloseAsync()
     {
-        if (_shell is null || !await _shell.Workbench.ConfirmCloseAllAsync()) return;
+        if (_shell is null) return;
+        if (_shell.Settings.HotExit != "off") await _shell.HotExit.FlushAsync();
+        else if (!await _shell.Workbench.ConfirmCloseAllAsync()) return;
         await _shell.SaveSessionAsync();
         _closingConfirmed = true;
         Close();

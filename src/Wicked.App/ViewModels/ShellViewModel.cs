@@ -47,6 +47,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         _daemonPoll = daemonPoll ?? TimeSpan.FromSeconds(5);
         Notices.Changed += () => _post(RefreshNotice);
         Workbench = new Bench(Notices);
+        HotExit = new Wicked.App.Workbench.HotExit(Workbench, Path.Combine(paths.State, "backups"), () => Settings.HotExit != "off");
         SourceControl = new Git.SourceControlViewModel(this, paths, Notices, _post);
         Workbench.ActiveEditorChanged += OnActiveEditorChanged;
         Workbench.FolderOpened += folder => _ = RememberFolderAsync(folder);
@@ -115,6 +116,9 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     }
 
     public Bench Workbench { get; }
+
+    /// <summary>files.hotExit: unsaved files kept across closing the window (and a crash).</summary>
+    public Wicked.App.Workbench.HotExit HotExit { get; }
 
     public IReadOnlyList<WorkbenchCommand> Commands { get; private set; }
 
@@ -218,7 +222,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         WickedSettingsView SaveSettings() => new(Settings.TrimTrailingWhitespace, Settings.InsertFinalNewline);
         return
         [
-            new("workbench.action.files.newUntitledFile", "File", "New Text File", "Ctrl+N", () => Sync(bench.NewFile)),
+            new("workbench.action.files.newUntitledFile", "File", "New Text File", "Ctrl+N", () => Sync(() => bench.NewFile())),
             new("workbench.action.files.openFile", "File", "Open File...", "Ctrl+O", OpenFilesAsync),
             new("workbench.action.files.openFolder", "File", "Open Folder...", "Ctrl+K Ctrl+O", OpenFolderAsync),
             new("workbench.action.files.save", "File", "Save", "Ctrl+S", () => bench.ActiveTab is { } t ? bench.SaveAsync(t, SaveSettings()) : Task.CompletedTask),
@@ -227,14 +231,16 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             {
                 foreach (var t in bench.AllTabs.Where(t => t.IsDirty).ToList()) await bench.SaveAsync(t, SaveSettings());
             }),
-            new("workbench.action.closeActiveEditor", "View", "Close Editor", "Ctrl+W", () => bench.ActiveTab is { } t ? bench.CloseAsync(t, bench.ActiveGroup) : Task.CompletedTask),
+            // A pinned tab is not closed from the keyboard (VS Code's preventPinnedEditorClose): unpin it first.
+            new("workbench.action.closeActiveEditor", "View", "Close Editor", "Ctrl+W", () => bench.ActiveTab is { IsPinned: false } t ? bench.CloseAsync(t, bench.ActiveGroup) : Task.CompletedTask),
             new("workbench.action.splitEditor", "View", "Split Editor Right", "Ctrl+OemPipe", () => Sync(bench.SplitRight)),
             new("workbench.action.focusFirstEditorGroup", "View", "Focus First Editor Group", "Ctrl+D1", () => Sync(() => bench.FocusGroup(0))),
             new("workbench.action.focusSecondEditorGroup", "View", "Focus Second Editor Group", "Ctrl+D2", () => Sync(() => bench.FocusGroup(1))),
             new("workbench.action.focusThirdEditorGroup", "View", "Focus Third Editor Group", "Ctrl+D3", () => Sync(() => bench.FocusGroup(2))),
             new("workbench.action.nextEditor", "View", "Next Editor", "Ctrl+PageDown", () => Sync(() => bench.ActiveGroup.Cycle(1))),
             new("workbench.action.previousEditor", "View", "Previous Editor", "Ctrl+PageUp", () => Sync(() => bench.ActiveGroup.Cycle(-1))),
-            new("workbench.action.quickOpenNavigateNext", "View", "Switch Editor", "Ctrl+Tab", () => Sync(() => bench.ActiveGroup.Cycle(1))),
+            new("workbench.action.quickOpenNavigateNextInEditorPicker", "View", "Switch Editor", "Ctrl+Tab", () => Sync(() => SwitchEditor(1))),
+            new("workbench.action.quickOpenNavigatePreviousInEditorPicker", "View", "Switch Editor Back", "Ctrl+Shift+Tab", () => Sync(() => SwitchEditor(-1))),
             new("workbench.action.toggleSidebarVisibility", "View", "Toggle Side Bar", "Ctrl+B", () => Sync(ToggleSidebar)),
             new("workbench.action.togglePanel", "View", "Toggle Panel", "Ctrl+J", () => Sync(() => BottomPanel.Toggle())),
             new("wicked.newProject", "File", "New Project…", null, () => NewProject.OpenAsync()),
@@ -263,9 +269,9 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             new("workbench.action.navigateBack", "Go", "Go Back", OperatingSystem.IsWindows() ? "Alt+Left" : "Ctrl+Alt+OemMinus", bench.GoBackAsync),
             new("workbench.action.navigateForward", "Go", "Go Forward", OperatingSystem.IsWindows() ? "Alt+Right" : "Ctrl+Shift+OemMinus", bench.GoForwardAsync),
             new("workbench.action.navigateToLastEditLocation", "Go", "Go to Last Edit Location", "Ctrl+K Ctrl+Q", bench.GoToLastEditAsync),
-            new("editor.action.fontZoomIn", "View", "Zoom In", "Ctrl+OemPlus", () => UpdateSettingsAsync(st => st with { FontSize = Math.Min(72, st.FontSize + 1) })),
-            new("editor.action.fontZoomOut", "View", "Zoom Out", "Ctrl+OemMinus", () => UpdateSettingsAsync(st => st with { FontSize = Math.Max(6, st.FontSize - 1) })),
-            new("editor.action.fontZoomReset", "View", "Reset Zoom", "Ctrl+D0", () => UpdateSettingsAsync(st => st with { FontSize = new WickedSettings().FontSize })),
+            new("editor.action.fontZoomIn", "Editor", "Editor Font Zoom In", null, () => UpdateSettingsAsync(st => st with { FontSize = Math.Min(72, st.FontSize + 1) })),
+            new("editor.action.fontZoomOut", "Editor", "Editor Font Zoom Out", null, () => UpdateSettingsAsync(st => st with { FontSize = Math.Max(6, st.FontSize - 1) })),
+            new("editor.action.fontZoomReset", "Editor", "Editor Font Zoom Reset", null, () => UpdateSettingsAsync(st => st with { FontSize = new WickedSettings().FontSize })),
             new("workbench.action.openSettings", "Preferences", "Open Settings", "Ctrl+OemComma", () => Sync(() => SettingsOpen = true)),
             new("workbench.action.openSettingsJson", "Preferences", "Open Settings (JSON)", null, OpenSettingsJsonAsync),
             new("workbench.action.selectTheme", "Preferences", "Color Theme", "Ctrl+K Ctrl+T", () => Sync(PickTheme)),
@@ -292,6 +298,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             .. ViewCommands(),
             .. FileCommands(),
             .. PreviewCommands(),
+            .. LayoutCommands(),
         ];
     }
 
@@ -323,6 +330,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         Chat.ApplySettings(settings);
         Extensions.Bridge.SettingsApplied(settings);
         OnPropertyChanged(nameof(Settings));
+        LayoutSettingsChanged();
         var services = await EditorServices.Ready;
         ApplyTheme(settings.ColorTheme, services);
         services.Apply(settings);
@@ -554,6 +562,8 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             }
         }
 
+        // Unsaved files kept when this folder's window last closed come back, still unsaved.
+        if (Settings.HotExit != "off") await HotExit.RestoreAsync();
         if (launch is { IsEmpty: false }) StartedTabs = await OpenLaunchAsync(launch);
     }
 

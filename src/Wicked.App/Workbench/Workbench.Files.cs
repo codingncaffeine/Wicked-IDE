@@ -49,16 +49,16 @@ public sealed partial class Workbench
         }
     }
 
-    public Task CloseOthersAsync(EditorTab keep, EditorGroup group) => CloseWhereAsync(group, (tab, _) => tab != keep);
+    public Task CloseOthersAsync(EditorTab keep, EditorGroup group) => CloseWhereAsync(group, (tab, _) => tab != keep && !tab.IsPinned);
 
     public Task CloseToTheRightAsync(EditorTab from, EditorGroup group)
     {
         var at = group.Tabs.IndexOf(from);
-        return CloseWhereAsync(group, (_, index) => index > at);
+        return CloseWhereAsync(group, (tab, index) => index > at && !tab.IsPinned);
     }
 
     /// <summary>Close Saved Editors (Ctrl+K U): every tab without unsaved changes.</summary>
-    public Task CloseSavedAsync(EditorGroup group) => CloseWhereAsync(group, (tab, _) => !tab.IsDirty);
+    public Task CloseSavedAsync(EditorGroup group) => CloseWhereAsync(group, (tab, _) => !tab.IsDirty && !tab.IsPinned);
 
     /// <summary>Close All Editors (Ctrl+K Ctrl+W), in every group.</summary>
     public async Task CloseAllAsync()

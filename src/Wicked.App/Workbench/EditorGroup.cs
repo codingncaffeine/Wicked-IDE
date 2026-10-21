@@ -16,10 +16,21 @@ public sealed partial class EditorGroup(Workbench workbench) : ObservableObject
     [ObservableProperty]
     private bool _isFocused;
 
+    private readonly List<EditorTab> _recent = [];
+
+    /// <summary>The group's tabs, the one used last first (Ctrl+Tab's order).</summary>
+    public IReadOnlyList<EditorTab> Recent => _recent;
+
     partial void OnActiveChanged(EditorTab? oldValue, EditorTab? newValue)
     {
         if (oldValue is not null) oldValue.IsActive = false;
-        if (newValue is not null) newValue.IsActive = true;
+        if (newValue is not null)
+        {
+            newValue.IsActive = true;
+            _recent.Remove(newValue);
+            _recent.Insert(0, newValue);
+        }
+
         Workbench.ActiveTabChanged();
     }
 
@@ -32,20 +43,23 @@ public sealed partial class EditorGroup(Workbench workbench) : ObservableObject
         Workbench.Focus(this);
     }
 
-    /// <summary>Adds a tab after the active one; a preview tab takes the place of the previous preview.</summary>
+    private int PinnedCount => Tabs.Count(t => t.IsPinned);
+
+    /// <summary>Adds a tab after the active one (never among the pinned ones); a preview tab takes the place of the previous preview.</summary>
     public void Add(EditorTab tab)
     {
         if (tab.IsPreview && Tabs.FirstOrDefault(t => t.IsPreview) is { } preview)
         {
             var at = Tabs.IndexOf(preview);
             Tabs[at] = tab;
+            _recent.Remove(preview);
             preview.Close();
             Workbench.TabRemoved(preview);
         }
         else
         {
             var at = Active is null ? Tabs.Count : Tabs.IndexOf(Active) + 1;
-            Tabs.Insert(at, tab);
+            Tabs.Insert(Math.Max(at, PinnedCount), tab);
         }
 
         Workbench.TabAdded(tab);
@@ -59,9 +73,23 @@ public sealed partial class EditorGroup(Workbench workbench) : ObservableObject
         var at = Tabs.IndexOf(tab);
         if (at < 0) return;
         Tabs.RemoveAt(at);
+        _recent.Remove(tab);
         tab.Close();
         Workbench.TabRemoved(tab);
         if (Active == tab) Active = Tabs.Count == 0 ? null : Tabs[Math.Min(at, Tabs.Count - 1)];
+    }
+
+    /// <summary>Pins or unpins a tab: a pinned one moves to the end of the pinned tabs at the front, an unpinned one just after them.</summary>
+    public void SetPinned(EditorTab tab, bool pinned)
+    {
+        var from = Tabs.IndexOf(tab);
+        if (from < 0 || tab.IsPinned == pinned) return;
+        tab.IsPinned = pinned;
+        if (pinned) tab.IsPreview = false;
+        // Counted with the tab's new state: pinned, it is the last of the pinned; unpinned, the first after them.
+        var to = pinned ? PinnedCount - 1 : PinnedCount;
+        if (to != from) Tabs.Move(from, to);
+        Active = tab;
     }
 
     public void Cycle(int direction)

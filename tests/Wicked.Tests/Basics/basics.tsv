@@ -128,3 +128,14 @@ workbench.action.editor.changeEOL	workbench
 workbench.action.editor.changeEncoding	workbench	
 markdown.showPreview	workbench	Ctrl+Shift+V
 markdown.showPreviewToSide	workbench	Ctrl+K V
+workbench.action.toggleFullScreen	workbench	F11
+workbench.action.toggleZenMode	workbench	Ctrl+K Z
+workbench.action.toggleStatusbarVisibility	workbench	
+workbench.action.positionPanelBottom	workbench	
+workbench.action.positionPanelLeft	workbench	
+workbench.action.positionPanelRight	workbench	
+workbench.action.zoomIn	workbench	Ctrl+=
+workbench.action.zoomOut	workbench	Ctrl+-
+workbench.action.zoomReset	workbench	Ctrl+Num 0
+workbench.action.pinEditor	workbench	Ctrl+K Shift+Enter
+workbench.action.quickOpenNavigateNextInEditorPicker	workbench	Ctrl+Tab

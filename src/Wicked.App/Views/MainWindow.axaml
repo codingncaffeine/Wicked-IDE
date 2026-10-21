@@ -20,7 +20,9 @@
         WindowDecorations="None">
 
   <Border Name="Frame" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1">
-    <Grid RowDefinitions="40,*,28">
+    <!-- window.zoomLevel scales everything inside (Ctrl+= / Ctrl+-), as VS Code zooms the whole window. -->
+    <LayoutTransformControl Name="Zoom">
+    <Grid Name="Root" RowDefinitions="40,*,28">
 
       <!-- ── Title bar: the mark, the command centre in the middle, the layout toggles and the caption buttons. ── -->
       <Grid Name="TitleBar" Background="{DynamicResource Brush.Ground}" ColumnDefinitions="*,Auto,*">
@@ -73,7 +75,7 @@
         </Grid.ColumnDefinitions>
 
         <!-- The rail -->
-        <DockPanel Margin="0,2,0,8">
+        <DockPanel Name="Rail" Margin="0,2,0,8" IsVisible="{Binding ShowRail}">
           <StackPanel DockPanel.Dock="Bottom" HorizontalAlignment="Center">
             <Button Name="RailSettings" Classes="rail" ToolTip.Tip="Settings (Ctrl+,)" Command="{Binding OpenSettingsCommand}">
               <shell:Icon Data="{StaticResource Icon.Settings}" Size="19" />
@@ -202,7 +204,7 @@
       </Grid>
 
       <!-- ── Footer: the waiting notice on the left (a click goes where it is dealt with), the editor and daemon on the right. ── -->
-      <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto" Margin="10,0,8,0">
+      <Grid Grid.Row="2" Name="StatusBar" IsVisible="{Binding ShowStatusBar}" ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto" Margin="10,0,8,0">
         <!-- The notice and the status items share column 0 in their own columns: a long notice is cut short with "…" (its
              tooltip has it all), never drawn under the branch, the problems or the language status. -->
         <Grid ColumnDefinitions="*,Auto">
@@ -330,5 +332,6 @@
         </Border>
       </Border>
     </Grid>
+    </LayoutTransformControl>
   </Border>
 </Window>

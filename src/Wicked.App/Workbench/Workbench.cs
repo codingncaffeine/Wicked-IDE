@@ -438,7 +438,7 @@ public sealed partial class Workbench : ObservableObject, IDisposable
             "utf-16be" => new FileEncoding("utf-16be", true),
             _ => loaded.Encoding,
         };
-        var tab = new EditorTab(path, document, language, encoding, loaded.LastWriteUtc) { IsPreview = preview, EditorConfig = config };
+        var tab = new EditorTab(path, document, language, encoding, loaded.LastWriteUtc) { IsPreview = preview && Settings.EnablePreview, EditorConfig = config };
         Track(tab);
         group.Add(tab);
         return tab;
@@ -470,10 +470,11 @@ public sealed partial class Workbench : ObservableObject, IDisposable
         return side;
     }
 
-    public void NewFile()
+    public EditorTab NewFile()
     {
         var tab = new EditorTab(null, new Document(Rope.Empty), null, FileEncoding.Utf8, default);
         ActiveGroup.Add(tab);
+        return tab;
     }
 
     // ── Auto save (files.autoSave, VS Code's four modes) ──────────────────────────────────────────

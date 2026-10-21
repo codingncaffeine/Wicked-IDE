@@ -10,6 +10,14 @@ public sealed record WorkbenchCommand(string Id, string Category, string Title, 
 {
     public string Label => Category.Length > 0 ? $"{Category}: {Title}" : Title;
 
+    /// <summary>
+    /// When the command's keys apply (VS Code's "when"): F11 is Step Into while debugging and full screen otherwise. Null:
+    /// always. The palette lists the command either way.
+    /// </summary>
+    public Func<bool>? When { get; init; }
+
+    public bool Applies => When?.Invoke() != false;
+
     /// <summary>The keys as gestures: one for a plain shortcut, two for a chord.</summary>
     public KeyGesture[] Gestures { get; } = Keys is null ? [] : [.. Keys.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(KeyGesture.Parse)];
 }
@@ -27,7 +35,9 @@ public sealed class KeyDispatcher
     public KeyDispatcher(IReadOnlyList<WorkbenchCommand> commands, IReadOnlyList<Wicked.Core.Settings.Keybinding>? overrides = null)
     {
         var byId = commands.ToDictionary(c => c.Id);
-        var list = commands.Where(c => c.Gestures.Length > 0).Select(c => (c.Gestures, Command: c)).ToList();
+        // The defaults with a "when" come before those without, so a key shared by two commands (F11: Step Into while
+        // debugging, full screen otherwise) reaches the specific one first; keybindings.json's go before them all.
+        var list = commands.Where(c => c.Gestures.Length > 0).OrderBy(c => c.When is null ? 1 : 0).Select(c => (c.Gestures, Command: c)).ToList();
         foreach (var o in overrides ?? [])
         {
             if (!byId.TryGetValue(o.Command, out var command)) continue;
@@ -55,10 +65,10 @@ public sealed class KeyDispatcher
         if (_pending is { } first)
         {
             _pending = null;
-            return _bindings.FirstOrDefault(b => b.Gestures.Length == 2 && b.Gestures[0].Equals(first) && b.Gestures[1].Matches(e)).Command;
+            return _bindings.FirstOrDefault(b => b.Gestures.Length == 2 && b.Gestures[0].Equals(first) && b.Gestures[1].Matches(e) && b.Command.Applies).Command;
         }
 
-        var single = _bindings.FirstOrDefault(b => b.Gestures.Length == 1 && b.Gestures[0].Matches(e)).Command;
+        var single = _bindings.FirstOrDefault(b => b.Gestures.Length == 1 && b.Gestures[0].Matches(e) && b.Command.Applies).Command;
         if (single is not null) return single;
         var chordStart = _bindings.FirstOrDefault(b => b.Gestures.Length == 2 && b.Gestures[0].Matches(e));
         if (chordStart.Command is not null)

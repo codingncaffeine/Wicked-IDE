@@ -23,8 +23,13 @@
                   <TextBlock Text="{Binding Title}" Classes.preview="{Binding IsPreview}" VerticalAlignment="Center" />
                   <Panel Width="18" Height="18">
                     <Ellipse Classes="dirty" Width="8" Height="8" IsVisible="{Binding IsDirty}" />
-                    <Button Classes="tabclose" Classes.dirty="{Binding IsDirty}" Tag="{Binding}" Click="OnClose" ToolTip.Tip="Close (Ctrl+W)">
+                    <Button Classes="tabclose" Classes.dirty="{Binding IsDirty}" Tag="{Binding}" Click="OnClose" ToolTip.Tip="Close (Ctrl+W)" IsVisible="{Binding !IsPinned}">
                       <shell:Icon Data="{StaticResource Icon.X}" Size="12" StrokeWidth="2" />
+                    </Button>
+                    <!-- A pinned tab shows its pin; a click unpins it (Ctrl+K Shift+Enter), as VS Code's does. -->
+                    <Button Classes="tabclose" Name="TabPin" Tag="{Binding}" Click="OnUnpin" ToolTip.Tip="Unpin (Ctrl+K Shift+Enter)" IsVisible="{Binding IsPinned}"
+                            AutomationProperties.Name="Unpin">
+                      <shell:Icon Data="{StaticResource Icon.Pin}" Size="12" StrokeWidth="2" />
                     </Button>
                   </Panel>
                 </StackPanel>

@@ -39,6 +39,7 @@ public sealed partial class QuickInputViewModel(ShellViewModel shell) : Observab
     /// <summary>A line of text to type (a new file's name): Enter accepts it, Escape gives null.</summary>
     public void OpenPrompt(string placeholder, string initial, Action<string?> done)
     {
+        IsSwitcher = false;
         _list = null;
         _prompt = text => done(text);
         _onCancel = () => done(null);
@@ -50,6 +51,7 @@ public sealed partial class QuickInputViewModel(ShellViewModel shell) : Observab
 
     public void Open(string prefix)
     {
+        IsSwitcher = false;
         _prompt = null;
         _list = null;
         _onCancel = null;
@@ -58,9 +60,22 @@ public sealed partial class QuickInputViewModel(ShellViewModel shell) : Observab
         _ = RefreshAsync();
     }
 
+    /// <summary>
+    /// Ctrl+Tab's editor switcher: a list the window moves through with Tab while Ctrl is held and chooses from when Ctrl is
+    /// let go, as VS Code's quick open in the editor picker does.
+    /// </summary>
+    public bool IsSwitcher { get; private set; }
+
+    public void OpenSwitcher(IReadOnlyList<QuickItem> items, int selected)
+    {
+        OpenList("Editors, the one used last first", items, selected, null);
+        IsSwitcher = true;
+    }
+
     /// <summary>A list of choices of the caller's own (a theme picker): filtered by what is typed; Escape calls <paramref name="onCancel"/>.</summary>
     public void OpenList(string placeholder, IReadOnlyList<QuickItem> items, int selected, Action? onCancel)
     {
+        IsSwitcher = false;
         _prompt = null;
         _list = items;
         _onCancel = onCancel;
@@ -72,6 +87,7 @@ public sealed partial class QuickInputViewModel(ShellViewModel shell) : Observab
 
     public void Close()
     {
+        IsSwitcher = false;
         var cancel = _onCancel;
         _onCancel = null;
         IsOpen = false;

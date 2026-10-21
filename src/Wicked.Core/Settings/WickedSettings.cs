@@ -80,6 +80,25 @@ public sealed record WickedSettings
     [JsonPropertyName("files.autoSaveDelay")]
     public int AutoSaveDelay { get; init; } = 1000;
 
+    /// <summary>onExit (VS Code's default): unsaved files are kept when the window closes, and come back; off: closing asks.</summary>
+    [JsonPropertyName("files.hotExit")]
+    public string HotExit { get; init; } = "onExit";
+
+    /// <summary>The whole window's zoom as VS Code counts it: 0 is 100%, each step 20% more (1) or less (-1).</summary>
+    [JsonPropertyName("window.zoomLevel")]
+    public double ZoomLevel { get; init; }
+
+    [JsonPropertyName("workbench.statusBar.visible")]
+    public bool StatusBarVisible { get; init; } = true;
+
+    /// <summary>bottom, left or right: where the panel (Problems, Output, Terminal) sits.</summary>
+    [JsonPropertyName("workbench.panel.defaultLocation")]
+    public string PanelLocation { get; init; } = "bottom";
+
+    /// <summary>A single click in the explorer opens a preview tab that the next one replaces, until it is edited or kept.</summary>
+    [JsonPropertyName("workbench.editor.enablePreview")]
+    public bool EnablePreview { get; init; } = true;
+
     [JsonPropertyName("files.trimTrailingWhitespace")]
     public bool TrimTrailingWhitespace { get; init; }
 

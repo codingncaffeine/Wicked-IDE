@@ -174,4 +174,10 @@ public partial class EditorGroupView : UserControl
         if (_group is not null && (sender as Button)?.Tag is EditorTab tab) _ = _group.Workbench.CloseAsync(tab, _group);
         e.Handled = true;
     }
+
+    private void OnUnpin(object? sender, RoutedEventArgs e)
+    {
+        if (_group is not null && (sender as Button)?.Tag is EditorTab tab) _group.SetPinned(tab, false);
+        e.Handled = true;
+    }
 }
