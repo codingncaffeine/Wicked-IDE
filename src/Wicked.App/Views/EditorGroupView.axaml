@@ -81,6 +81,13 @@
           <TextBlock Grid.Row="4" Classes="secondary" Text="Show or hide the assistant" VerticalAlignment="Center" />
           <Border Grid.Row="4" Grid.Column="1" Classes="kbd"><TextBlock Text="Ctrl+L" /></Border>
         </Grid>
+        <Button Name="WelcomeGetStarted" Classes="link" HorizontalAlignment="Center" Margin="0,10,0,0" Click="OnWelcomeGetStarted"
+                ToolTip.Tip="The first things to do in Wicked (Help: Get Started)">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <shell:Icon Data="{StaticResource Icon.ListChecks}" Size="14" />
+            <TextBlock Text="Get started with Wicked" />
+          </StackPanel>
+        </Button>
         <StackPanel Name="Recent" Spacing="4" Margin="0,18,0,0" Width="300">
           <TextBlock Classes="heading" Text="RECENT" />
           <ItemsControl Name="RecentList" />

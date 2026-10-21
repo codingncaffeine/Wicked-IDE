@@ -36,10 +36,17 @@ public partial class MainWindow : Window, IWorkbenchDialogs
         Opened += OnFirstOpened;
         Deactivated += (_, _) => _shell?.Workbench.WindowDeactivated();
         AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Bubble);
-        // Escape closes the Settings sheet before whatever has the keyboard sees it.
+        // Escape answers an open dialog with Cancel, and closes the Settings sheet, before whatever has the keyboard sees it.
         AddHandler(KeyDownEvent, (_, e) =>
         {
-            if (_shell is null || e.Key != Key.Escape || DialogLayer.IsVisible) return;
+            if (e.Key == Key.Escape && DialogLayer.IsVisible)
+            {
+                Answer(SaveChoice.Cancel);
+                e.Handled = true;
+                return;
+            }
+
+            if (_shell is null || e.Key != Key.Escape) return;
             if (_shell.Models.Prompt is not null) return; // the question has its own Escape
             if (_shell.Models.RunSettings is not null) _shell.Models.RunSettings = null;
             else if (_shell.Chat.PromptEditor is not null) _shell.Chat.PromptEditor = null;

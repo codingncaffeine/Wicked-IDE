@@ -58,6 +58,9 @@ internal static class WindowingBackend
         return WithDrawnDecorations(builder).UseWaylandWithFallback();
     }
 
+    /// <summary>The backend the window opened with ("native Wayland", "X11", ...), for the About box and bug reports.</summary>
+    public static string? Name { get; private set; }
+
     /// <summary>Called once a window is on screen, the only proof the backend works.</summary>
     public static void WindowOpened(TopLevel window)
     {
@@ -66,6 +69,7 @@ internal static class WindowingBackend
             : impl.StartsWith("Avalonia.X11", StringComparison.Ordinal) ? InWaylandSession ? "X11 through XWayland" : "X11"
             : impl;
         Log.Info($"Windowing: {name}");
+        Name = name;
         if (!_attempting) return;
         _attempting = false;
         var breadcrumb = Breadcrumb;

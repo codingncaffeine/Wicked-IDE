@@ -39,9 +39,12 @@ public sealed class KeyDispatcher
         _bindings = list;
     }
 
-    /// <summary>The keys that run a command now, as shown in the palette ("" when none).</summary>
+    /// <summary>The keys that run a command now, in Avalonia's names ("Ctrl+OemPlus", "Ctrl+D1"; "" when none).</summary>
     public string KeysFor(string commandId) =>
         _bindings.FirstOrDefault(b => b.Command.Id == commandId) is { Command: not null } b ? string.Join(' ', b.Gestures.Select(g => g.ToString())) : "";
+
+    /// <summary>The keys that run a command now, as people read them ("Ctrl+=", "Ctrl+1"): the palette, menus and help show these.</summary>
+    public string DisplayKeysFor(string commandId) => KeyNames.Readable(KeysFor(commandId));
 
     /// <summary>The first half of a chord is waiting for its second ("Ctrl+K was pressed...").</summary>
     public bool ChordPending => _pending is not null;
@@ -66,4 +69,28 @@ public sealed class KeyDispatcher
 
         return null;
     }
+}
+
+/// <summary>Avalonia's key names as people read them, the way VS Code writes them: "Ctrl+OemPlus" is "Ctrl+=".</summary>
+public static class KeyNames
+{
+    private static readonly Dictionary<string, string> Names = new(StringComparer.Ordinal)
+    {
+        ["OemPlus"] = "=", ["OemMinus"] = "-", ["OemComma"] = ",", ["OemPeriod"] = ".", ["OemTilde"] = "`", ["Oem3"] = "`",
+        ["OemPipe"] = "\\", ["Oem5"] = "\\", ["OemBackslash"] = "\\", ["OemOpenBrackets"] = "[", ["Oem4"] = "[",
+        ["OemCloseBrackets"] = "]", ["Oem6"] = "]", ["OemQuestion"] = "/", ["Oem2"] = "/", ["OemSemicolon"] = ";", ["Oem1"] = ";",
+        ["OemQuotes"] = "'", ["Oem7"] = "'", ["Add"] = "Num +", ["Subtract"] = "Num -", ["Multiply"] = "Num *", ["Divide"] = "Num /",
+        ["Return"] = "Enter", ["Back"] = "Backspace", ["Next"] = "PageDown", ["Prior"] = "PageUp", ["Escape"] = "Escape",
+    };
+
+    /// <summary>"Ctrl+K Ctrl+OemPlus" → "Ctrl+K Ctrl+="; digits lose their D ("Ctrl+D1" → "Ctrl+1").</summary>
+    public static string Readable(string keys) =>
+        string.Join(' ', keys.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(chord =>
+            string.Join('+', chord.Split('+').Select(Name))));
+
+    private static string Name(string part) =>
+        Names.TryGetValue(part, out var name) ? name
+        : part.Length == 2 && part[0] == 'D' && char.IsAsciiDigit(part[1]) ? part[1..]
+        : part.StartsWith("NumPad", StringComparison.Ordinal) && part.Length == 7 ? "Num " + part[6]
+        : part;
 }

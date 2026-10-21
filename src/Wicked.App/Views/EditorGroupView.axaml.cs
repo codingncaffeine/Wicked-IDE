@@ -164,6 +164,8 @@ public partial class EditorGroupView : UserControl
 
     private void OnWelcomeOpenFolder(object? sender, RoutedEventArgs e) => _ = Shell?.Commands.First(c => c.Id == "workbench.action.files.openFolder").Run();
 
+    private void OnWelcomeGetStarted(object? sender, RoutedEventArgs e) => Shell?.ShowGetStarted();
+
     private Wicked.App.ViewModels.ShellViewModel? Shell => TopLevel.GetTopLevel(this)?.DataContext as Wicked.App.ViewModels.ShellViewModel;
 
     private void OnClose(object? sender, RoutedEventArgs e)

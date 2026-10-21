@@ -279,6 +279,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             .. SourceControl.Commands,
             .. TaskCommands(),
             .. DebugCommands(),
+            .. HelpCommands(),
         ];
     }
 
@@ -836,8 +837,11 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     // ── The daemon ───────────────────────────────────────────────────────────────────────────
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(DaemonText))]
+    [NotifyPropertyChangedFor(nameof(DaemonText), nameof(ShowDaemon))]
     private bool? _daemonRunning;
+
+    /// <summary>The footer shows the daemon only while it runs: not running is normal until the server is wanted (Settings > Server says either way).</summary>
+    public bool ShowDaemon => DaemonRunning == true;
 
     public string DaemonText => DaemonRunning switch
     {

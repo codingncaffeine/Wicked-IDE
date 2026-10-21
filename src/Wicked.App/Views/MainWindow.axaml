@@ -264,7 +264,7 @@
         </Button>
         <TextBlock Grid.Column="2" Name="CaretStatus" Text="{Binding CaretText}" Classes="status" />
         <TextBlock Grid.Column="3" Name="DocumentStatus" Text="{Binding DocumentText}" Classes="status" />
-        <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="6" Margin="0,0,14,0" VerticalAlignment="Center">
+        <StackPanel Grid.Column="4" Name="DaemonStatus" Orientation="Horizontal" Spacing="6" Margin="0,0,14,0" VerticalAlignment="Center" IsVisible="{Binding ShowDaemon}">
           <Ellipse Width="7" Height="7" VerticalAlignment="Center"
                    Fill="{Binding DaemonRunning, Converter={x:Static shell:DaemonBrush.Instance}}" />
           <TextBlock Name="DaemonText" Text="{Binding DaemonText}" FontSize="{DynamicResource Font.Size.Small}"

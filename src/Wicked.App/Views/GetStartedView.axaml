@@ -1,0 +1,57 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Wicked.App.ViewModels"
+             xmlns:shell="using:Wicked.App.Shell"
+             x:Class="Wicked.App.Views.GetStartedView"
+             x:DataType="vm:GetStartedViewModel">
+  <!-- Help: Get Started — the first things to do, each with the button that does it; seen steps are ticked. -->
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+    <StackPanel MaxWidth="720" Margin="32,28" Spacing="18">
+      <StackPanel Spacing="4">
+        <TextBlock Text="Get started with Wicked" FontSize="24" FontWeight="SemiBold" />
+        <TextBlock Classes="secondary" TextWrapping="Wrap"
+                   Text="A local model, a project and the keys to know. Every step can also be found in the command palette." />
+      </StackPanel>
+      <ItemsControl Name="GetStartedSteps" ItemsSource="{Binding Steps}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <StackPanel Spacing="10" />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate DataType="vm:GetStartedStep">
+            <Border Classes="pick">
+              <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
+                <Panel Width="22" Height="22" VerticalAlignment="Top" Margin="0,2,0,0">
+                  <Ellipse Width="18" Height="18" Stroke="{DynamicResource Brush.Text.Muted}" StrokeThickness="1.5" IsVisible="{Binding !IsDone}" />
+                  <shell:Icon Name="StepDone" Data="{StaticResource Icon.CircleCheck}" Size="20" Foreground="{DynamicResource Brush.Success}" IsVisible="{Binding IsDone}" />
+                </Panel>
+                <StackPanel Grid.Column="1" Spacing="6">
+                  <TextBlock Name="StepTitle" Text="{Binding Title}" FontWeight="SemiBold" />
+                  <TextBlock Text="{Binding Text}" Classes="secondary" TextWrapping="Wrap" />
+                  <ItemsControl ItemsSource="{Binding Actions}" Margin="0,4,0,0">
+                    <ItemsControl.ItemsPanel>
+                      <ItemsPanelTemplate>
+                        <WrapPanel ItemSpacing="8" LineSpacing="6" />
+                      </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate DataType="vm:GetStartedAction">
+                        <Button Classes="secondary small" Command="{Binding Run}" ToolTip.Tip="{Binding Keys}" AutomationProperties.Name="{Binding Label}">
+                          <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="{Binding Label}" />
+                            <TextBlock Text="{Binding Keys}" Classes="muted" IsVisible="{Binding Keys.Length}" />
+                          </StackPanel>
+                        </Button>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+              </Grid>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

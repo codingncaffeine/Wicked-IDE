@@ -150,7 +150,7 @@ public sealed class ShellWindowTests
 
     [Trait("Tier", "Window")]
     [Fact]
-    public async Task TheFooterShowsWhetherTheDaemonAnswers()
+    public async Task TheFooterShowsTheDaemonOnlyWhileItAnswers()
     {
         using var profile = new TempProfile();
         DaemonHost? daemon = null;
@@ -158,11 +158,15 @@ public sealed class ShellWindowTests
         {
             await Ui.Run(() =>
             {
-                var (window, _) = Ui.Start(profile.Paths);
-                Assert.True(Ui.PumpUntil(() => Text(window, "DaemonText").Text == "Daemon not running", 5), Text(window, "DaemonText").Text);
+                // No daemon is the normal state until the server is wanted: nothing in the footer reads like a fault.
+                var (window, shell) = Ui.Start(profile.Paths);
+                var status = window.FindControl<StackPanel>("DaemonStatus")!;
+                Assert.True(Ui.PumpUntil(() => shell.DaemonRunning == false, 5), "the daemon was never looked for");
+                Ui.Pump(0.1);
+                Assert.False(status.IsEffectivelyVisible, Text(window, "DaemonText").Text);
 
                 daemon = Task.Run(() => DaemonHost.StartAsync(profile.Paths, CancellationToken.None)).Result;
-                Assert.True(Ui.PumpUntil(() => Text(window, "DaemonText").Text == "Daemon running", 5), Text(window, "DaemonText").Text);
+                Assert.True(Ui.PumpUntil(() => status.IsEffectivelyVisible && Text(window, "DaemonText").Text == "Daemon running", 5), Text(window, "DaemonText").Text);
 
                 window.Close();
                 return 0;
