@@ -260,6 +260,13 @@ public sealed partial class TerminalEmulator
         if (options.Contains("k=c", StringComparison.Ordinal) || options.Contains("k=s", StringComparison.Ordinal)) return;
         if (_alt) return;
 
+        // A command still marked as running when the next prompt appears ended without saying how (the shell could not tell).
+        if (_current is { OutputStarted: true, Finished: false } unfinished)
+        {
+            unfinished.Finished = true;
+            CommandFinished?.Invoke(unfinished);
+        }
+
         // A prompt that was drawn and never used (Enter on an empty line) leaves no mark behind.
         if (_current is { OutputStarted: false } abandoned && abandoned.PromptLine is { } line && ReferenceEquals(line.Command, abandoned)) line.Command = null;
 

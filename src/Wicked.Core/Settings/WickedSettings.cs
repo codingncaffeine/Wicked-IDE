@@ -93,6 +93,37 @@ public sealed record WickedSettings
     [JsonPropertyName("runtime.backend")]
     public string RuntimeBackend { get; init; } = "auto";
 
+    // ── The integrated terminal ──
+
+    /// <summary>The shell to start, by name or path; empty means the user's own.</summary>
+    [JsonPropertyName("terminal.integrated.defaultProfile")]
+    public string TerminalProfile { get; init; } = "";
+
+    [JsonPropertyName("terminal.integrated.fontSize")]
+    public double TerminalFontSize { get; init; } = 14;
+
+    /// <summary>Lines kept above the screen of each terminal.</summary>
+    [JsonPropertyName("terminal.integrated.scrollback")]
+    public int TerminalScrollback { get; init; } = 10_000;
+
+    /// <summary>block, line or underline, as VS Code names them.</summary>
+    [JsonPropertyName("terminal.integrated.cursorStyle")]
+    public string TerminalCursorStyle { get; init; } = "block";
+
+    [JsonPropertyName("terminal.integrated.cursorBlinking")]
+    public bool TerminalCursorBlinking { get; init; }
+
+    [JsonPropertyName("terminal.integrated.copyOnSelection")]
+    public bool TerminalCopyOnSelection { get; init; }
+
+    /// <summary>Whether a program may put text on the clipboard (OSC 52). Off: it could replace what the user copied.</summary>
+    [JsonPropertyName("terminal.integrated.allowClipboardWrite")]
+    public bool TerminalAllowClipboardWrite { get; init; }
+
+    /// <summary>Marks round prompts and commands, for the decorations and command navigation.</summary>
+    [JsonPropertyName("terminal.integrated.shellIntegration.enabled")]
+    public bool TerminalShellIntegration { get; init; } = true;
+
     /// <summary>Keys this build does not know, kept so a save never drops them.</summary>
     [JsonExtensionData]
     public Dictionary<string, JsonElement>? Other { get; init; }

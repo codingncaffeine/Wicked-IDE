@@ -16,6 +16,11 @@
     <EmbeddedResource Include="..\..\catalog\catalog.json.sig" LogicalName="catalog.json.sig" />
   </ItemGroup>
 
+  <!-- The scripts that make shells report their prompts and commands (see Terminal/ShellIntegration.cs). -->
+  <ItemGroup>
+    <EmbeddedResource Include="Terminal\ShellIntegration\**\*" Exclude="Terminal\ShellIntegration\**\*.cs" LogicalName="shell-integration/%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.Data.Sqlite.Core" Version="$(SqliteVersion)" />
     <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="$(SqlitePclVersion)" />
