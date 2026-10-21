@@ -249,6 +249,7 @@ public sealed class TerminalPainterTests
     [Fact]
     public void AWideCharacterCoversTwoCells()
     {
+        Assert.SkipWhen(SkiaSharp.SKFontManager.Default.MatchCharacter(0x6F22) is null, "no font on this machine draws CJK (a bare CI runner)");
         using var shot = Draw("漢", s => With(s, m => m.CursorOn = false));
         Assert.True(shot.InkIn(0, 0, Theme.Background) > 10);
         Assert.True(shot.InkIn(0, 1, Theme.Background) > 10);

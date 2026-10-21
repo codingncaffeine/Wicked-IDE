@@ -343,6 +343,9 @@ public sealed class GatewayTests
         await rig.PostAsync("/v1/chat/completions", new { model = "nope", messages = Array.Empty<object>() });
         await rig.PostAsync("/v1/chat/completions", new { model = GatewayRig.CoderCatalog, stream = true, messages = new[] { new { role = "user", content = "hi" } } });
 
+        // A request is logged when its middleware finishes, which can be just after the client has read the reply.
+        var until = DateTime.UtcNow.AddSeconds(10);
+        while (rig.Daemon.Log.Since(0).Count < 3 && DateTime.UtcNow < until) await Task.Delay(20, Ct);
         var entries = rig.Daemon.Log.Since(0);
 
         Assert.Equal(3, entries.Count);

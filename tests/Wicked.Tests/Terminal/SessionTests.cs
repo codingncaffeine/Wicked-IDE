@@ -153,9 +153,9 @@ public sealed class SessionTests
     {
         Assert.SkipWhen(OperatingSystem.IsWindows(), "starts /bin/sh");
         using var home = new ScratchDir();
-        // The shell asks where the cursor is and prints the answer it reads back.
-        using var session = Start(home, "printf 'ab\\033[6n'; IFS=R read -r -d R reply; printf '|%s|' \"$reply\" | cat -v", out var watch);
-        Assert.True(await watch.WaitForScreenAsync(s => s.Contains("|^[[1;3|", StringComparison.Ordinal)), watch.Screen);
+        // The shell asks where the cursor is and prints the answer it reads back (POSIX only: Debian's sh is dash).
+        using var session = Start(home, "stty -echo -icanon min 1; printf 'ab\\033[6n'; reply=$(dd bs=1 count=6 2>/dev/null); printf '|%s|' \"$reply\" | cat -v", out var watch);
+        Assert.True(await watch.WaitForScreenAsync(s => s.Contains("|^[[1;3R|", StringComparison.Ordinal)), watch.Screen);
     }
 
     [Fact]
