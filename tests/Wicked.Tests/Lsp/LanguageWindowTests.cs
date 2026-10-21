@@ -216,6 +216,22 @@ public sealed class LanguageWindowTests
     }
 
     [Fact]
+    public async Task ParameterNamesAreDrawnBeforeTheArgumentsAsHints()
+    {
+        Assert.SkipUnless(Clangd is not null, "clangd is not installed");
+        using var profile = new TempProfile();
+        await Ui.Run(() =>
+        {
+            var (window, _, tab, editor) = Open(profile);
+            var argument = tab.Document.Text.ToString().IndexOf("twice(21)", StringComparison.Ordinal) + "twice(".Length;
+            Assert.True(Ui.PumpUntil(() => editor.Decorations[EditorLanguageUi.InlayLayer].Inline.Any(i => i.Offset == argument && i.Text.StartsWith("value", StringComparison.Ordinal)), 30),
+                "no hint for the parameter: " + string.Join(", ", editor.Decorations[EditorLanguageUi.InlayLayer].Inline.Select(i => $"{i.Offset}:{i.Text}")));
+            window.Close();
+            return 0;
+        });
+    }
+
+    [Fact]
     public async Task ShiftAltFFormatsTheFileWithTheServer()
     {
         Assert.SkipUnless(Clangd is not null, "clangd is not installed");

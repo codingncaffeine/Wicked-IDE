@@ -194,4 +194,60 @@ public sealed class DecorationTests(FontsFixture fixture) : IClassFixture<FontsF
         Assert.False(PinkOn(frame, "xgamma delta"));
         Assert.True(PinkOn(frame, "alpha beta"));
     }
+
+    [Fact]
+    public void AHintTakesRoomBeforeItsCharacterAndGhostTextStaysAfterTheCaret()
+    {
+        using var shaper = new LineShaper(_fonts);
+        const string Text = "call(1, 2)";
+        var plain = shaper.Shape(Text, null, null, 0xFFFFFFFF, 4);
+        var hinted = shaper.Shape(Text, null, null, 0xFFFFFFFF, 4, default,
+            new Inlays([new Inlay(5, "a:", InlineStyle.Hint, PadRight: true), new Inlay(Text.Length, "  // done", InlineStyle.Ghost)]), 0xFF888888, 0xFF555555);
+        var pill = hinted.Inlays.Single(s => s.Style == InlineStyle.Hint);
+        var ghost = hinted.Inlays.Single(s => s.Style == InlineStyle.Ghost);
+
+        // Before the hint nothing moves; from its character on, everything moves right by its width.
+        Assert.Equal(plain.XOf(4), hinted.XOf(4), 0.01f);
+        Assert.Equal(pill.Left, plain.XOf(5), 0.01f);
+        Assert.Equal(pill.Right, hinted.XOf(5), 0.01f);                       // the caret sits after the hint, beside "1"
+        var shift = pill.Right - pill.Left;
+        Assert.Equal(plain.XOf(9) + shift, hinted.XOf(9), 0.01f);
+
+        // At the end the caret is before the ghost text; the line draws to its end.
+        Assert.Equal(plain.Width + shift, hinted.XOf(Text.Length), 0.01f);
+        Assert.Equal(hinted.XOf(Text.Length), ghost.Left, 0.01f);
+        Assert.True(hinted.Width > ghost.Left + 5 * _fonts.CharAdvance);
+        Assert.Contains(hinted.Runs, r => r.Color == 0xFF888888);
+        Assert.Contains(hinted.Runs, r => r.Color == 0xFF555555);
+
+        // Ghost text inside a line keeps the caret before it, so Tab accepts it there.
+        var middle = shaper.Shape(Text, null, null, 0xFFFFFFFF, 4, default, new Inlays([new Inlay(5, "x, ", InlineStyle.Ghost)]), 0, 0xFF555555);
+        Assert.Equal(plain.XOf(5), middle.XOf(5), 0.01f);
+        Assert.True(middle.XOf(6) > plain.XOf(6) + 2 * _fonts.CharAdvance);
+    }
+
+    [Fact]
+    public async Task InlineDecorationsReachTheShapedLineAndFollowEdits()
+    {
+        using var layout = new LayoutService(_fonts);
+        var ready = new SemaphoreSlim(0);
+        layout.Ready += () => ready.Release();
+        var doc = new Document("let total = sum(values);");
+        var view = new TextView(doc, layout, EditOptions.Default) { ShowMinimap = false };
+        view.Resize(700, 120);
+        view.SetDecorations("inlay", new DecorationSet([], [], [], [new InlineDecoration("let total".Length, ": number", InlineStyle.Hint)]), doc.Version);
+
+        async Task<FrameLine> Line()
+        {
+            view.BuildFrame();
+            for (var i = 0; i < 20 && view.BuildFrame().Lines[0].Shaped is null; i++) await ready.WaitAsync(TimeSpan.FromMilliseconds(250), TestContext.Current.CancellationToken);
+            return view.BuildFrame().Lines[0];
+        }
+
+        var line = await Line();
+        Assert.Equal(9, line.Shaped!.Inlays.Single().Column);
+        doc.Apply([new TextChange(0, 0, "  ")], [Selection.Caret(2)]);
+        line = await Line();
+        Assert.Equal(11, line.Shaped!.Inlays.Single().Column);
+    }
 }

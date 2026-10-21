@@ -191,6 +191,21 @@ public sealed class DecorationSet
         }
     }
 
+    /// <summary>The inline decorations at offsets in [<paramref name="from"/>, <paramref name="to"/>], in order.</summary>
+    public IEnumerable<InlineDecoration> InlineIn(int from, int to)
+    {
+        if (Inline.IsEmpty) yield break;
+        int lo = 0, hi = Inline.Length;
+        while (lo < hi)
+        {
+            var mid = (lo + hi) / 2;
+            if (Inline[mid].Offset < from) lo = mid + 1;
+            else hi = mid;
+        }
+
+        for (var i = lo; i < Inline.Length && Inline[i].Offset <= to; i++) yield return Inline[i];
+    }
+
     /// <summary>A position's line start in <paramref name="text"/>: the key the line marks use.</summary>
     public static int LineKey(Rope text, int line) => text.LineStart(Math.Clamp(line, 0, text.LineCount - 1));
 }

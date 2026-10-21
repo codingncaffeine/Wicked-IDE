@@ -73,6 +73,11 @@ public static class EditorPainter
 
             if (line.Shaped is { } shaped)
             {
+                foreach (var inlay in shaped.Inlays)
+                {
+                    if (inlay.Style == InlineStyle.Hint) FillRound(canvas, paint, new SKRect(x + inlay.Left + 1, line.Y + 2, x + inlay.Right - 1, line.Y + lineHeight - 2), theme.InlayBackground, 4);
+                }
+
                 foreach (var run in shaped.Runs)
                 {
                     paint.Color = new SKColor(run.Color);

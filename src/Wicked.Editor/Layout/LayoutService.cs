@@ -49,9 +49,15 @@ public readonly struct ColorOverrides(int[]? columns, uint[]? colors, int[]? end
     }
 }
 
-public readonly struct LineKey(string text, LineTokens? tokens, ColorTable? colors, uint defaultColor, int tabSize, int fontVersion, ColorOverrides overrides = default) : IEquatable<LineKey>
+public readonly struct LineKey(string text, LineTokens? tokens, ColorTable? colors, uint defaultColor, int tabSize, int fontVersion, ColorOverrides overrides = default, Inlays inlays = default, uint inlayColor = 0, uint ghostColor = 0) : IEquatable<LineKey>
 {
     public ColorOverrides Overrides { get; } = overrides;
+
+    public Inlays Inlays { get; } = inlays;
+
+    public uint InlayColor { get; } = inlayColor;
+
+    public uint GhostColor { get; } = ghostColor;
 
     public string Text { get; } = text;
 
@@ -67,12 +73,13 @@ public readonly struct LineKey(string text, LineTokens? tokens, ColorTable? colo
 
     public bool Equals(LineKey other) =>
         ReferenceEquals(Tokens, other.Tokens) && ReferenceEquals(Colors, other.Colors) && DefaultColor == other.DefaultColor
-        && TabSize == other.TabSize && FontVersion == other.FontVersion && Overrides.Equals(other.Overrides) && string.Equals(Text, other.Text, StringComparison.Ordinal);
+        && TabSize == other.TabSize && FontVersion == other.FontVersion && Overrides.Equals(other.Overrides) && Inlays.Equals(other.Inlays)
+        && InlayColor == other.InlayColor && GhostColor == other.GhostColor && string.Equals(Text, other.Text, StringComparison.Ordinal);
 
     public override bool Equals(object? obj) => obj is LineKey other && Equals(other);
 
     public override int GetHashCode() =>
-        HashCode.Combine(string.GetHashCode(Text, StringComparison.Ordinal), Tokens is null ? 0 : System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(Tokens), DefaultColor, TabSize, FontVersion, Overrides.GetHashCode());
+        HashCode.Combine(string.GetHashCode(Text, StringComparison.Ordinal), Tokens is null ? 0 : System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(Tokens), DefaultColor, TabSize, FontVersion, Overrides.GetHashCode(), Inlays.GetHashCode());
 }
 
 /// <summary>
@@ -185,7 +192,7 @@ public sealed class LayoutService : IDisposable
                 if (_cache.ContainsKey(key) || key.FontVersion != shaperFonts.Version) continue;
                 try
                 {
-                    var line = shaper.Shape(key.Text, key.Tokens, key.Colors, key.DefaultColor, key.TabSize, key.Overrides);
+                    var line = shaper.Shape(key.Text, key.Tokens, key.Colors, key.DefaultColor, key.TabSize, key.Overrides, key.Inlays, key.InlayColor, key.GhostColor);
                     line.LastUsed = Interlocked.Increment(ref _clock);
                     if (_cache.TryAdd(key, line)) shaped++;
                     else line.Dispose();

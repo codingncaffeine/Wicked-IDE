@@ -29,13 +29,50 @@ internal sealed class LineShaper : IDisposable
         _features = fonts.Settings.Ligatures ? [] : [Feature.Parse("liga=0"), Feature.Parse("calt=0"), Feature.Parse("dlig=0")];
     }
 
-    public ShapedLine Shape(string text, LineTokens? tokens, ColorTable? colors, uint defaultColor, int tabSize, ColorOverrides overrides = default)
+    public ShapedLine Shape(string text, LineTokens? tokens, ColorTable? colors, uint defaultColor, int tabSize, ColorOverrides overrides = default,
+        Inlays inlays = default, uint inlayColor = 0, uint ghostColor = 0)
     {
         var caretX = new float[text.Length + 1];
         var builders = new Dictionary<uint, SKTextBlobBuilder>();
         var decorations = new List<Decoration>();
+        var spans = new List<InlaySpan>();
         var tabWidth = tabSize * _fonts.SpaceAdvance;
         var x = 0f;
+        var nextInlay = 0; // the next inlay to place
+        var ghostCarets = new List<(int Column, float X)>();
+
+        // The inlays at a column, drawn before the character there: a hint is passed over by the caret (it sits after
+        // it, beside its character), ghost text is not (the caret stays before it, where Tab would accept it).
+        void PlaceInlays(int column)
+        {
+            while (nextInlay < inlays.Count && inlays[nextInlay].Column <= column)
+            {
+                var inlay = inlays[nextInlay++];
+                if (inlay.Column < column || inlay.Text.Length == 0) continue;
+                var ghost = inlay.Style == Wicked.Editor.Features.InlineStyle.Ghost;
+                if (ghost) ghostCarets.Add((column, x));
+                var left = x;
+                if (inlay.PadLeft) x += _fonts.SpaceAdvance / 2;
+                if (!ghost) x += 3;
+                var label = inlay.Text.Replace('\t', ' ').Replace('\n', ' ');
+                var scratch = new float[label.Length + 1];
+                var color = ghost ? (ghostColor == 0 ? defaultColor : ghostColor) : (inlayColor == 0 ? defaultColor : inlayColor);
+                var at = 0;
+                while (at < label.Length)
+                {
+                    var face = FaceFor(label, at, _fonts.Regular);
+                    var q = at + Step(label, at);
+                    while (q < label.Length && FaceFor(label, q, _fonts.Regular) == face) q += Step(label, q);
+                    x = ShapeRun(label, at, q - at, face, color, x, scratch, builders);
+                    at = q;
+                }
+
+                if (!ghost) x += 3;
+                if (inlay.PadRight) x += _fonts.SpaceAdvance / 2;
+                spans.Add(new InlaySpan(column, left, x, inlay.Style));
+                if (!ghost) caretX[column] = x;
+            }
+        }
 
         foreach (var (start, end, color, style) in Segments(text, tokens, colors, defaultColor, overrides))
         {
@@ -45,6 +82,7 @@ internal sealed class LineShaper : IDisposable
             var pos = start;
             while (pos < end)
             {
+                if (nextInlay < inlays.Count && inlays[nextInlay].Column <= pos) PlaceInlays(pos);
                 if (text[pos] == '\t')
                 {
                     caretX[pos] = x;
@@ -53,10 +91,11 @@ internal sealed class LineShaper : IDisposable
                     continue;
                 }
 
-                // The longest stretch without a tab that one typeface covers.
+                // The longest stretch without a tab that one typeface covers, up to the next inlay.
+                var stop = nextInlay < inlays.Count ? Math.Min(end, Math.Max(pos + 1, inlays[nextInlay].Column)) : end;
                 var face = FaceFor(text, pos, primary);
                 var q = pos + Step(text, pos);
-                while (q < end && text[q] != '\t')
+                while (q < stop && text[q] != '\t')
                 {
                     var next = FaceFor(text, q, primary);
                     if (next != face && !Joins(text, q)) break;
@@ -71,7 +110,13 @@ internal sealed class LineShaper : IDisposable
             if ((style & TokenStyle.Strikethrough) != 0) decorations.Add(new Decoration(new SKRect(segmentStart, -_fonts.Ascent * 0.32f, x, -_fonts.Ascent * 0.32f + 1), color));
         }
 
-        caretX[text.Length] = x;
+        var endX = x;
+        PlaceInlays(text.Length);
+        // Shaping the character after a ghost text set its caret after the ghost: put it back before.
+        foreach (var (column, at) in ghostCarets) caretX[column] = at;
+        // At the line's end the caret stays before any inlay (a type hint, a suggestion after the caret).
+        caretX[text.Length] = spans.Count > 0 && spans[^1].Column == text.Length ? endX : x;
+        var width = x;
         var runs = new List<ColoredRun>(builders.Count);
         foreach (var (color, builder) in builders)
         {
@@ -79,7 +124,7 @@ internal sealed class LineShaper : IDisposable
             builder.Dispose();
         }
 
-        return new ShapedLine(text, runs, caretX, decorations);
+        return new ShapedLine(text, runs, caretX, decorations, spans) { DrawnWidth = width };
     }
 
     /// <summary>

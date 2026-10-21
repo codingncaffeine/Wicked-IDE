@@ -110,7 +110,11 @@ public sealed partial class LanguageFeatures : ObservableObject, IAsyncDisposabl
                 doc.Bind(client);
                 if (client is null) return;
                 ShowDiagnostics(doc);
-                foreach (var editor in EditorsOf(doc.Document)) _ = UiFor(editor)?.RefreshSemanticAsync();
+                foreach (var editor in EditorsOf(doc.Document))
+                {
+                    _ = UiFor(editor)?.RefreshSemanticAsync();
+                    _ = UiFor(editor)?.RefreshInlayHintsAsync();
+                }
             });
         });
     }
@@ -130,7 +134,9 @@ public sealed partial class LanguageFeatures : ObservableObject, IAsyncDisposabl
         AttachUi(tab, editor);
         if (!_documents.TryGetValue(tab.Document, out var doc)) return;
         ShowDiagnostics(doc);
-        if (doc.Client is not null) _ = UiFor(editor)?.RefreshSemanticAsync();
+        if (doc.Client is null) return;
+        _ = UiFor(editor)?.RefreshSemanticAsync();
+        _ = UiFor(editor)?.RefreshInlayHintsAsync();
     }
 
     /// <summary>The editors that show a document (one per tab, a split shows it twice).</summary>

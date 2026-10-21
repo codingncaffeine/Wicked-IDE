@@ -891,6 +891,23 @@ public sealed class TextView
         return s.Lines.TryGetValue(old, out var found) && string.Equals(found.Text, text, StringComparison.Ordinal) ? found : null;
     }
 
+    /// <summary>The text drawn inside a line that is not the document's (inlay hints, ghost text), by column.</summary>
+    private Inlays LineInlays(int line, string text)
+    {
+        if (Decorations.Layers.IsEmpty) return default;
+        var start = Document.Text.LineStart(line);
+        List<Inlay>? found = null;
+        foreach (var set in Decorations.Sets)
+        {
+            foreach (var d in set.InlineIn(start, start + text.Length))
+            {
+                (found ??= []).Add(new Inlay(d.Offset - start, d.Text, d.Style, d.PadLeft, d.PadRight));
+            }
+        }
+
+        return found is null ? default : new Inlays([.. found.OrderBy(i => i.Column)]);
+    }
+
     /// <summary>A line's colour overrides: its semantic stretches with the brackets cut out of them in their depth colours.</summary>
     private ColorOverrides LineOverrides(int line, string text)
     {
@@ -1120,7 +1137,8 @@ public sealed class TextView
     private LineKey Key(int line)
     {
         var text = LineText(line);
-        return new(text, Syntax?[line], Syntax?.Colors, EffectiveTheme.Foreground, Options.TabSize, Fonts.Version, LineOverrides(line, text));
+        return new(text, Syntax?[line], Syntax?.Colors, EffectiveTheme.Foreground, Options.TabSize, Fonts.Version, LineOverrides(line, text),
+            LineInlays(line, text), EffectiveTheme.InlayForeground, EffectiveTheme.GhostText);
     }
 
     private bool TryShaped(int line, out ShapedLine shaped)

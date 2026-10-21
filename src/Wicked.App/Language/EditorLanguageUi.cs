@@ -63,6 +63,7 @@ public sealed partial class EditorLanguageUi
         {
             _semanticTimer.Stop();
             _ = RefreshSemanticAsync();
+            _ = RefreshInlayHintsAsync();
         };
 
         editor.PointerOverText += OnPointer;
@@ -273,6 +274,38 @@ public sealed partial class EditorLanguageUi
                 return data is null ? null : SemanticDecoder.Decode(data, legend, palette, text, version);
             }, cts.Token);
             if (!cts.IsCancellationRequested && colors is not null) _editor.SetSemantic(colors);
+        }
+        catch (Exception ex) when (ex is OperationCanceledException or IOException)
+        {
+        }
+    }
+
+    // ── Inlay hints ──────────────────────────────────────────────────────────────────────────────
+
+    public const string InlayLayer = "inlay";
+    private CancellationTokenSource? _inlayCts;
+
+    /// <summary>Parameter names and inferred types drawn in the text, for the whole file (servers answer a range; this one is all of it).</summary>
+    public async Task RefreshInlayHintsAsync()
+    {
+        if (_features.Settings.InlayHints is "off" or "offUnlessPressed")
+        {
+            if (!_editor.Decorations[InlayLayer].IsEmpty) _editor.SetDecorations(InlayLayer, DecorationSet.Empty, _editor.Document.Version);
+            return;
+        }
+
+        if (Doc is not { } doc) return;
+        _inlayCts?.Cancel();
+        var cts = _inlayCts = new CancellationTokenSource();
+        try
+        {
+            var answer = await doc.RequestAsync(async (c, text, version) =>
+            {
+                if (!c.Supports("inlayHintProvider")) return (Set: DecorationSet.Empty, Version: version);
+                var hints = await c.InlayHintsAsync(doc.Uri, LspText.RangeOf(text, 0, text.Length), cts.Token).ConfigureAwait(false);
+                return (Set: new DecorationSet([], [], [], hints.Select(h => new InlineDecoration(LspText.OffsetOf(text, h.Position), h.Label.Trim(), InlineStyle.Hint, h.PaddingLeft, h.PaddingRight))), Version: version);
+            }, cts.Token);
+            if (!cts.IsCancellationRequested) _editor.SetDecorations(InlayLayer, answer.Set, answer.Version);
         }
         catch (Exception ex) when (ex is OperationCanceledException or IOException)
         {
