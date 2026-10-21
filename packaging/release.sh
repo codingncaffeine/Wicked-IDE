@@ -7,11 +7,14 @@
 #                                   packaging/RELEASE-NOTES-<version>.md is the release's text, and the metainfo
 #                                   must list the version (build-release.sh refuses otherwise)
 #
-# Before it: tools/gate.sh, then tools/push.sh; the full CI run of that commit is waited for here. Needs gh (logged in),
+# Before it: tools/gate.sh, then tools/push.sh (its green CI run on both systems counts; the Window tier runs here,
+# sharded, in minutes). Needs gh (logged in),
 # podman or docker, xvfb-run, dbus-run-session, makepkg and an SSH key for aur.archlinux.org. The Windows zip is built
-# here too; the full CI run has run the suite on Windows.
+# here too; its push run passed on Windows, and the nightly run there has the Window tier too.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+# The .NET this machine builds with (the system one lacks the runtime the tests need).
+[ -f scratch/env.sh ] && source scratch/env.sh
 VER=$(grep -oPm1 '(?<=<VersionPrefix>)[^<]+' Directory.Build.props)
 TAG="v$VER"
 TARBALL="packaging/out/WickedIDE-$VER-linux-x64.tar.gz"
@@ -33,27 +36,21 @@ tools/identity-audit.sh > /dev/null || { echo "identity-audit found something"; 
 gh auth status > /dev/null 2>&1 || { echo "gh is not logged in"; exit 1; }
 echo "ok"
 
-# A push runs every test but the Window tier; a release needs them all, on Linux and Windows. A full run (nightly, or
-# started by hand) of this very commit counts; with none, one is started here and waited for.
-say "CI for $(git rev-parse --short HEAD): the full suite, Window tier included"
+# CI has run this commit on Linux and Windows on its way to main (tools/push.sh lands only a green one): that run counts,
+# and no CI is waited for here. The Window tier, which a push leaves out, runs here instead, shared between processes so
+# it takes minutes, not the quarter of an hour it takes queued in one; CI runs it on both systems every night.
 head=$(git rev-parse HEAD)
-full_run() {
-    gh run list --commit "$head" --json databaseId,event,status,conclusion \
-        -q '[.[] | select(.event == "schedule" or .event == "workflow_dispatch")][0] // empty | "\(.databaseId) \(.status) \(.conclusion)"' 2>/dev/null || true
-}
-if [ -z "$(full_run)" ]; then
-    gh workflow run ci.yml --ref main -f tier=full
-    for _ in $(seq 1 20); do [ -n "$(full_run)" ] && break; sleep 15; done
-fi
-for i in $(seq 1 90); do
-    read -r run status conclusion <<< "$(full_run)"
-    case "$status $conclusion" in
-        "completed success") echo "green (run $run)"; break ;;
-        "completed "*) echo "the full CI run $run: $conclusion (gh run view $run --log-failed)"; exit 1 ;;
-    esac
-    [ "$i" = 90 ] && { echo "the full CI run did not finish in 45 minutes"; exit 1; }
-    sleep 30
-done
+say "CI for $(git rev-parse --short HEAD): a green run on Linux and Windows"
+green=$(gh run list --commit "$head" --json status,conclusion -q '[.[] | select(.status == "completed" and .conclusion == "success")] | length' 2>/dev/null || echo 0)
+[ "${green:-0}" -gt 0 ] || { echo "no green CI run for this commit: land it with tools/push.sh first"; exit 1; }
+echo "green"
+
+say "the full suite here, Window tier included"
+dotnet build -c Release -warnaserror -v q --nologo > /dev/null || { echo "the build failed"; exit 1; }
+PULSE_SERVER=unix:/nonexistent/wicked PIPEWIRE_REMOTE=/nonexistent/wicked WICKED_OFFLINE=1 \
+    tools/ci-test.sh "scratch/release-tests/$VER" full > "scratch/release-tests-$VER.log" 2>&1 \
+    || { tail -30 "scratch/release-tests-$VER.log"; echo "the full suite failed (scratch/release-tests-$VER.log)"; exit 1; }
+grep -E '^(fast|shard[0-9]+): ' "scratch/release-tests-$VER.log"
 
 say "artifacts"
 packaging/build-release.sh

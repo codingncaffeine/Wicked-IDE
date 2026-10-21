@@ -25,6 +25,12 @@ list() {
     done
 }
 
+# --window: the Window-tier tests as "file<TAB>method", for tools/ci-test.sh to share out between processes.
+if [ "${1:-}" = --window ]; then
+    list | awk -F'\t' '$1 == "Window" { split($2, a, ": "); print a[1] "\t" a[2] }'
+    exit 0
+fi
+
 if [ "${1:-}" = --count ]; then
     list | cut -f1 | sort | uniq -c
     exit 0
