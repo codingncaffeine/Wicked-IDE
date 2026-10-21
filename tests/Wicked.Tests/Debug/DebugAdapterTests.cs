@@ -171,7 +171,7 @@ public sealed class DebugAdapterTests : IDisposable
         await new DebugAdapterInstaller(http, folder, server.BaseAddress).InstallAsync(Fake(), new Progress<string>(progress.Add), Ct);
 
         var command = new DebugAdapterLocator(folder, _ => null).Find(Fake())!;
-        Assert.Equal(Path.Combine(folder, "fakedbg", "bin", "fakedbg"), command.Program);
+        Assert.Equal(Path.Combine(folder, "fakedbg", "bin", "fakedbg" + (OperatingSystem.IsWindows() ? ".exe" : "")), command.Program);
         Assert.Equal("v2.5.0\n", await File.ReadAllTextAsync(Path.Combine(folder, "fakedbg", "version.txt"), Ct));
         if (!OperatingSystem.IsWindows()) Assert.True((File.GetUnixFileMode(command.Program) & UnixFileMode.UserExecute) != 0);
         Assert.Contains(progress, p => p.Contains("Downloading", StringComparison.Ordinal));

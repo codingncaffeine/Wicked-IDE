@@ -45,11 +45,16 @@ internal sealed class FakeRuntime : IModelRuntime
 
     private void Raise() => Task.Run(() => Changed?.Invoke(this, EventArgs.Empty));
 
+    /// <summary>Set, a load stays at "Loading 40%" until the test completes it.</summary>
+    public TaskCompletionSource? LoadGate { get; set; }
+
     public async Task LoadAsync(string id, CancellationToken ct = default)
     {
         lock (_gate) Loads.Add(id);
         Update(id, m => m with { State = RunState.Loading, LoadProgress = 0.4, Error = null });
-        await Task.Delay(150, ct);
+        // A test that looks at the loading state holds the load here until it has seen it (150 ms raced a busy CI runner).
+        if (LoadGate is { } gate) await gate.Task.WaitAsync(ct);
+        else await Task.Delay(150, ct);
         if (FailLoadsWith is { } error)
         {
             Update(id, m => m with { State = RunState.Failed, LoadProgress = null, Error = error });

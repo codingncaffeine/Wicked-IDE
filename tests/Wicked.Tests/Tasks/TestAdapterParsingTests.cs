@@ -226,7 +226,7 @@ public sealed class TestAdapterParsingTests
         var file = box.Write("src/lib.rs", "x");
         var dotnetFile = box.Write("C.cs", "x");
         Assert.Equal(new SourceLocation(dotnetFile, 9, 1), TestLocations.Find($"   at N.C.Bad() in {dotnetFile}:line 9", [box.Root]));
-        Assert.Equal(new SourceLocation(file, 14, 9), TestLocations.Find("thread 'x' panicked at src/lib.rs:14:9:", [box.Root]));
+        Assert.Equal(new SourceLocation(Path.GetFullPath(file), 14, 9), TestLocations.Find("thread 'x' panicked at src/lib.rs:14:9:", [box.Root]));
         Assert.Null(TestLocations.Find("thread 'x' panicked at missing.rs:14:9:", [box.Root]));
         Assert.Null(TestLocations.Find("no location here", [box.Root]));
     }

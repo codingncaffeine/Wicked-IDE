@@ -23,7 +23,7 @@ public sealed class BreakpointStoreTests
         Assert.Null(removed);
         Assert.Empty(store.Source);
         Assert.Equal(2, changes.Count);
-        Assert.All(changes, c => Assert.Equal([File1], c.Files));
+        Assert.All(changes, c => Assert.Equal([Path.GetFullPath(File1)], c.Files)); // the store keeps full platform paths
     }
 
     [Fact]

@@ -308,7 +308,7 @@ public sealed class LaunchTests
         var tasks = new List<string>();
         var launcher = new DebugLauncher(manager) { RunTask = (label, _) => { tasks.Add(label); return Task.FromResult<string?>(null); } };
         using var profile = new TempProfile();
-        var program = DebugKit.Program(profile);
+        var program = System.Text.Json.JsonEncodedText.Encode(DebugKit.Program(profile));
         var text = $$"""
             { "configurations": [
                 { "name": "A", "type": "fake", "request": "launch", "program": "{{program}}", "hangAtEnd": true },
@@ -337,7 +337,7 @@ public sealed class LaunchTests
         var tasks = new List<string>();
         var launcher = new DebugLauncher(manager) { RunTask = (label, _) => { lock (tasks) tasks.Add(label); return Task.FromResult<string?>(null); } };
         using var profile = new TempProfile();
-        var program = DebugKit.Program(profile);
+        var program = System.Text.Json.JsonEncodedText.Encode(DebugKit.Program(profile));
         var file = LaunchFile.Parse($$"""{ "configurations": [ { "name": "A", "type": "fake", "request": "launch", "program": "{{program}}", "hangAtEnd": true, "postDebugTask": "clean" } ] }""");
 
         var session = (await launcher.StartAsync(file, "A", Context(), Ct)).Single();

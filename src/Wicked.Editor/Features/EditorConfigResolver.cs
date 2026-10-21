@@ -105,7 +105,12 @@ public sealed class EditorConfigResolver(Func<string, string?> read)
     public void Invalidate(string? dir = null)
     {
         if (dir is null) _cache.Clear();
-        else _cache.TryRemove(dir, out _);
+        else
+        {
+            // The cache is keyed by Path.GetDirectoryName, which writes the platform's separator; a caller may not.
+            _cache.TryRemove(dir, out _);
+            _cache.TryRemove(dir.Replace('/', Path.DirectorySeparatorChar), out _);
+        }
     }
 
     /// <summary>The properties that apply to <paramref name="filePath"/> (an absolute path).</summary>

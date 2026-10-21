@@ -106,8 +106,13 @@ public sealed class LanguageServerInstaller(HttpClient http, string serversFolde
 
         if (digest is not null)
         {
-            await using var check = File.OpenRead(download);
-            var actual = Convert.ToHexStringLower(await SHA256.HashDataAsync(check, ct).ConfigureAwait(false));
+            string actual;
+            // Closed before a mismatch deletes it: Windows will not delete a file that is still open.
+            await using (var check = File.OpenRead(download))
+            {
+                actual = Convert.ToHexStringLower(await SHA256.HashDataAsync(check, ct).ConfigureAwait(false));
+            }
+
             if (actual != digest)
             {
                 File.Delete(download);

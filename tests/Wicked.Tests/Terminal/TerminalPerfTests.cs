@@ -70,9 +70,9 @@ public sealed class TerminalPerfTests
         TestContext.Current.SendDiagnosticMessage(line);
         if (ResultsFile() is { } file) File.AppendAllText(file, line + "\n");
         Assert.Equal(10_000, emulator.ScrollbackCount);
-        // Measured 2026-10-20: 117–184 MB/s on 2 pinned Linux CPUs, 22 MB/s on GitHub's 2-vCPU Windows runner (same managed
-        // parser, in memory). The floor is a regression tripwire per platform, well under what each machine does.
-        Assert.True(mbps > (OperatingSystem.IsWindows() ? 10 : 40), line);
+        // Measured 2026-10-20: 117–184 MB/s on 2 pinned Linux CPUs, 39 MB/s on GitHub's Linux runner, 22 MB/s on its 2-vCPU
+        // Windows runner (same managed parser, in memory). The floor is a regression tripwire, well under each machine.
+        Assert.True(mbps > (OperatingSystem.IsWindows() ? 10 : 20), line);
     }
 
     [Fact]

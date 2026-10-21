@@ -84,6 +84,7 @@ public sealed class ProcessAdapterTests : IAsyncDisposable
     [Fact]
     public async Task AnAdapterThatExitsBeforeItListensIsReportedWithItsLastWords()
     {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "starts /bin/sh");
         // `sh -c` prints a line to stderr and exits at once: the port never opens.
         var endpoint = new ProcessAdapterEndpoint(new AdapterCommand("/bin/sh", ["-c", "echo 'adapter: cannot bind' >&2; exit 3", "{port}"], new Dictionary<string, string>(), AdapterTransport.Tcp), _profile.Root);
 
@@ -97,6 +98,7 @@ public sealed class ProcessAdapterTests : IAsyncDisposable
     [Fact]
     public async Task AProgramRunOnTheAdaptersBehalfHasItsOutputSentToTheConsoleAndEndsWithTheSession()
     {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "starts /bin/sh");
         var output = new List<(string Category, string Text)>();
         var request = new RunInTerminalArguments("integrated", "t", _profile.Root, ["/bin/sh", "-c", "echo out-line; echo err-line >&2; sleep 60"], new Dictionary<string, string?> { ["FROM_TEST"] = "1" });
 
@@ -167,6 +169,7 @@ public sealed class ProcessAdapterTests : IAsyncDisposable
     [Fact]
     public async Task WhateverIsStillRunningWhenWickedExitsIsEndedByTheRegistry()
     {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "starts /bin/sh");
         var request = new RunInTerminalArguments("integrated", null, _profile.Root, ["/bin/sh", "-c", "sleep 60"], null);
         var result = await DetachedProcess.RunAsync(request, null, Ct);
         var before = ProcessRegistry.Count;

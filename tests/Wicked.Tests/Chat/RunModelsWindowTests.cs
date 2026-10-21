@@ -92,10 +92,13 @@ public sealed class RunModelsWindowTests
             ModelsUi.Shot(window, "models-run-unloaded");
 
             // Load: Loading with its progress, then Loaded, and the footer names the model.
+            chat.Runtime.LoadGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
             Input.Click(window, ModelsUi.Named(window, "Load")!);
             Assert.True(Ui.PumpUntil(() => TextIn(window, "RunStateText") == "Loading 40%", 5), "no progress shown");
             Assert.Equal("Loading Tiny Coder 40%", TextIn(window, "ModelStatusText"));
             ModelsUi.Shot(window, "models-run-loading");
+            chat.Runtime.LoadGate.SetResult();
+            chat.Runtime.LoadGate = null;
             Assert.True(Ui.PumpUntil(() => ModelsUi.Named(window, "Unload") is not null, 5), "the model did not load");
             Assert.Equal("Loaded", TextIn(window, "RunStateText"));
             Assert.Equal("Tiny Coder", TextIn(window, "ModelStatusText"));
