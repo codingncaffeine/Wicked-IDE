@@ -74,6 +74,20 @@ internal sealed class RuntimeRig : IAsyncDisposable
         File.WriteAllBytes(Path.Combine(folder, $"{parts[1]}-{quant}.gguf"), StandIns.Weights(4096));
     }
 
+    private readonly List<ModelServices> _others = [];
+
+    /// <summary>Another process on the same profile, as far as the router is concerned: its own services and runtime, the same folders and engine.</summary>
+    public async Task<ModelServices> OtherAsync()
+    {
+        var other = StandIns.Services(_profile, _hub!.Server);
+        other.Configure(new ModelOptions(Backend: EngineBackendKind.Cpu));
+        other.Runtime.Tuning = new RuntimeTuning { RestartDelayBase = TimeSpan.FromMilliseconds(50), PollInterval = TimeSpan.FromMilliseconds(400), HealthTimeout = TimeSpan.FromSeconds(30), AttachedPoll = TimeSpan.FromMilliseconds(100), AttachTimeout = TimeSpan.FromSeconds(10) };
+        await other.InitializeAsync(allowNetwork: false, TestContext.Current.CancellationToken);
+        _others.Add(other);
+        await WaitUntilAsync(() => other.Runtime.Models.Count > 0);
+        return other;
+    }
+
     public async Task RescanAsync() => await Services.RescanAsync(TestContext.Current.CancellationToken);
 
     /// <summary>Waits for the runtime's list to follow the store (it does so on a worker).</summary>
@@ -108,6 +122,7 @@ internal sealed class RuntimeRig : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        foreach (var other in _others) await other.DisposeAsync();
         if (Services is not null) await Services.DisposeAsync();
         if (_hub is not null) await _hub.DisposeAsync();
         _profile.Dispose();

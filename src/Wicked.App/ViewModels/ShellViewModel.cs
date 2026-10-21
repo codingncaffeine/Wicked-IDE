@@ -76,6 +76,18 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         Workbench.Snippets = Snippets;
         Models.RouteRequested += route => Navigate(route);
         SettingsSheet = new SettingsViewModel(this);
+        Notifications = new NotificationsViewModel(this);
+        WhatsNew = new WhatsNewViewModel(this);
+        ApiLog = new ApiLogViewModel(paths);
+        // The server's request log follows the daemon only while its tab is in view.
+        BottomPanel.Add(PanelIds.ApiLog, "SERVER LOG", () => new Views.ApiLogView { DataContext = ApiLog });
+        BottomPanel.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName is not (nameof(Shell.BottomPanel.Active) or nameof(Shell.BottomPanel.IsVisible))) return;
+            if (BottomPanel.IsVisible && BottomPanel.Active?.Id == PanelIds.ApiLog) ApiLog.Start();
+            else ApiLog.Stop();
+        };
+        Models.WhatsNewRequested += WhatsNew.Open;
         Keys = new KeyDispatcher(Commands);
         _ = Task.Run(() => WatchDaemonAsync(_stop.Token));
     }
@@ -146,6 +158,14 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     public bool AllowNetwork { get; set; } = !Wicked.Core.Http.WickedHttp.IsOffline;
 
     public SettingsViewModel SettingsSheet { get; }
+
+    /// <summary>The list behind the footer's "+N", and "What's new in your models".</summary>
+    public NotificationsViewModel Notifications { get; }
+
+    public WhatsNewViewModel WhatsNew { get; }
+
+    /// <summary>The server's request log, for the bottom panel to mount (<c>ApiLogView</c>); it follows the daemon once <c>Start()</c> is called.</summary>
+    public ApiLogViewModel ApiLog { get; }
 
     public KeyDispatcher Keys { get; private set; }
 
@@ -636,6 +656,10 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private void ShowModelsStatus() => Navigate(ShellRoutes.Models);
 
+    /// <summary>The footer's "+N": every waiting notice, with its buttons.</summary>
+    [RelayCommand]
+    private void OpenNotifications() => Notifications.IsOpen = true;
+
     /// <summary>Takes the user to <paramref name="route"/> (see <see cref="ShellRoutes"/>); false for a place this build does not know.</summary>
     public bool Navigate(string route)
     {
@@ -667,10 +691,23 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             case ShellRoutes.Models: Panel = SidePanel.Models; SidebarVisible = true; return true;
             case ShellRoutes.Assistant: AssistantVisible = true; return true;
             case ShellRoutes.SettingsModels: Models.Prompt = null; Models.Browse.Close(); SettingsOpen = true; SettingsSheet.RequestSection("models"); return true;
+            case ShellRoutes.SettingsRuntime: Models.Prompt = null; Models.Browse.Close(); SettingsOpen = true; SettingsSheet.RequestSection("runtime"); return true;
+            case ShellRoutes.SettingsServer: Models.Prompt = null; Models.Browse.Close(); SettingsOpen = true; SettingsSheet.RequestSection("server"); return true;
+            case ShellRoutes.Notifications: Notifications.IsOpen = true; return true;
+            case ShellRoutes.WhatsNew: WhatsNew.Open(); return true;
+            case var url when url.StartsWith(ShellRoutes.UrlPrefix, StringComparison.Ordinal): return OpenWebAddress(url[ShellRoutes.UrlPrefix.Length..]);
             default:
                 Log.Warn($"No place called '{route}' to go to");
                 return false;
         }
+    }
+
+    /// <summary>Opens a web address in the browser; anything but http and https is refused (a notice's route is data, not a command).</summary>
+    private bool OpenWebAddress(string address)
+    {
+        if (!Uri.TryCreate(address, UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https")) return false;
+        Models.OpenExternal(uri.AbsoluteUri);
+        return true;
     }
 
     // ── The footer's notice ──────────────────────────────────────────────────────────────────
@@ -703,6 +740,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         Notice = Notices.Top;
         var more = Notices.Count - 1;
         MoreNotices = more > 0 ? $"+{more}" : "";
+        Notifications.Refresh();
     }
 
     // ── The daemon ───────────────────────────────────────────────────────────────────────────
@@ -743,6 +781,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         SourceControl.Dispose();
         Workbench.Dispose();
         _ = Language.DisposeAsync().AsTask();
+        ApiLog.Dispose();
         _ = Models.DisposeAsync().AsTask();
         _stop.Cancel();
         _stop.Dispose();

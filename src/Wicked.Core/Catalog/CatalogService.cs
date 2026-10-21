@@ -68,20 +68,28 @@ public sealed class CatalogService(HttpClient http, string cacheDirectory, Uri? 
 
     private async Task<CatalogLoad?> FetchAsync(DateTimeOffset newerThan, CancellationToken ct)
     {
-        var json = await GetBytesAsync(new Uri(_base, FileName), ct).ConfigureAwait(false);
-        var signature = Encoding.UTF8.GetString(await GetBytesAsync(new Uri(_base, FileName + ".sig"), ct).ConfigureAwait(false));
+        var etagFile = Path.Combine(cacheDirectory, FileName + ".etag");
+        var known = File.Exists(etagFile) && File.Exists(Path.Combine(cacheDirectory, FileName)) ? await File.ReadAllTextAsync(etagFile, ct).ConfigureAwait(false) : null;
+        var (json, etag) = await GetBytesAsync(new Uri(_base, FileName), known, ct).ConfigureAwait(false);
+        if (json is null) return null; // 304: the copy held is still the current one
+        var signature = Encoding.UTF8.GetString((await GetBytesAsync(new Uri(_base, FileName + ".sig"), null, ct).ConfigureAwait(false)).Bytes!);
         if (!CatalogVerifier.Verify(json, signature, _key)) throw new InvalidDataException("The downloaded catalog's signature does not verify");
         var catalog = ModelCatalog.Parse(json);
         if (catalog.Schema > ModelCatalog.SupportedSchema) throw new InvalidDataException($"The online catalog uses schema {catalog.Schema}, which this version cannot read");
         if (catalog.Generated <= newerThan) return null;
 
         await WriteCacheAsync(json, signature, ct).ConfigureAwait(false);
+        if (etag is not null) await File.WriteAllTextAsync(etagFile, etag, ct).ConfigureAwait(false);
         return new CatalogLoad(catalog, CatalogOrigin.Network, null);
     }
 
-    private async Task<byte[]> GetBytesAsync(Uri url, CancellationToken ct)
+    private async Task<(byte[]? Bytes, string? ETag)> GetBytesAsync(Uri url, string? etag, CancellationToken ct)
     {
-        using var response = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
+        using var request = new HttpRequestMessage(HttpMethod.Get, url);
+        if (etag is not null) request.Headers.TryAddWithoutValidation("If-None-Match", etag);
+        using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
+        var newTag = response.Headers.ETag?.ToString();
+        if (response.StatusCode == HttpStatusCode.NotModified) return (null, newTag);
         if (response.StatusCode == HttpStatusCode.NotFound) throw new InvalidDataException($"{url} was not found");
         response.EnsureSuccessStatusCode();
         if (response.Content.Headers.ContentLength > MaxBytes) throw new InvalidDataException("The catalog file is implausibly large");
@@ -97,7 +105,7 @@ public sealed class CatalogService(HttpClient http, string cacheDirectory, Uri? 
                 if (buffer.Length > MaxBytes) throw new InvalidDataException("The catalog file is implausibly large");
             }
 
-            return buffer.ToArray();
+            return (buffer.ToArray(), newTag);
         }
     }
 

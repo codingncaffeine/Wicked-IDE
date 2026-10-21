@@ -29,7 +29,8 @@ public enum NoticeKind
 /// <param name="Kind">Its kind, which decides its rank and its colour.</param>
 /// <param name="Route">Where a click goes (see <c>ShellRoutes</c>), or null when there is nowhere to go.</param>
 /// <param name="Progress">0–1 for a <see cref="NoticeKind.Progress"/> notice; null when the amount is unknown.</param>
-public sealed record Notice(string Key, string Text, NoticeKind Kind, string? Route = null, double? Progress = null)
+/// <param name="Actions">What the Notifications list offers beside it ("Update", "Dismiss"); null for none.</param>
+public sealed record Notice(string Key, string Text, NoticeKind Kind, string? Route = null, double? Progress = null, IReadOnlyList<NoticeAction>? Actions = null)
 {
     /// <summary>Info and Success clear themselves after this long; every other kind stays until it is dealt with.</summary>
     public static readonly TimeSpan Dwell = TimeSpan.FromSeconds(4);
@@ -119,3 +120,6 @@ public sealed class NoticeBoard
         if (removed) Changed?.Invoke();
     }
 }
+
+/// <summary>A button beside a notice in the Notifications list. <c>Id</c> is what the owner of the notice is told; <c>Label</c> is the words on the button.</summary>
+public sealed record NoticeAction(string Id, string Label);

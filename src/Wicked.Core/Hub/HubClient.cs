@@ -31,9 +31,18 @@ public sealed partial class HubClient(HttpClient http, Func<string?>? token = nu
     public Uri ResolveUrl(string repo, string revision, string file) =>
         new(_base, $"{repo}/resolve/{Uri.EscapeDataString(revision)}/{EscapePath(file)}");
 
-    public async Task<HubModel> GetModelAsync(string repo, CancellationToken ct = default)
+    public async Task<HubModel> GetModelAsync(string repo, CancellationToken ct = default) =>
+        (await GetModelAsync(repo, null, ct).ConfigureAwait(false)).Model ?? throw new InvalidOperationException("The Hub answered 304 to a request that carried no ETag");
+
+    /// <summary>
+    /// As above, sending <paramref name="etag"/> as <c>If-None-Match</c> when there is one: a repo that has not changed answers 304 and the model is null.
+    /// The ETag to send next time comes back with the answer (null when the Hub gave none).
+    /// </summary>
+    public async Task<(HubModel? Model, string? ETag)> GetModelAsync(string repo, string? etag, CancellationToken ct = default)
     {
-        using var doc = await GetJsonAsync(new Uri(_base, $"api/models/{repo}"), repo, ct).ConfigureAwait(false);
+        var (doc, _, newTag) = await GetJsonCoreAsync(new Uri(_base, $"api/models/{repo}"), repo, etag, ct).ConfigureAwait(false);
+        if (doc is null) return (null, etag);
+        using var _ = doc;
         var root = doc.RootElement;
         HubGguf? gguf = null;
         if (root.TryGetProperty("gguf", out var g) && g.ValueKind == JsonValueKind.Object)
@@ -47,7 +56,7 @@ public sealed partial class HubClient(HttpClient http, Func<string?>? token = nu
         var siblings = root.TryGetProperty("siblings", out var s) && s.ValueKind == JsonValueKind.Array
             ? s.EnumerateArray().Select(e => Str(e, "rfilename")).OfType<string>().ToList()
             : [];
-        return new HubModel(
+        return (new HubModel(
             Str(root, "id") ?? repo,
             Str(root, "sha") ?? "",
             Date(root, "lastModified"),
@@ -57,7 +66,14 @@ public sealed partial class HubClient(HttpClient http, Func<string?>? token = nu
             Long(root, "likes") ?? 0,
             tags,
             siblings,
-            gguf);
+            gguf), newTag);
+    }
+
+    /// <summary>The newest commits of a revision (the titles that say what an update changed), newest first.</summary>
+    public async Task<IReadOnlyList<HubCommit>> GetCommitsAsync(string repo, string revision = "main", int limit = 10, CancellationToken ct = default)
+    {
+        using var doc = await GetJsonAsync(new Uri(_base, $"api/models/{repo}/commits/{Uri.EscapeDataString(revision)}"), repo, ct).ConfigureAwait(false);
+        return [.. doc.RootElement.EnumerateArray().Take(limit).Select(e => new HubCommit(Str(e, "id") ?? "", Str(e, "title") ?? "", Date(e, "date")))];
     }
 
     /// <summary>Every file of a revision, folders flattened (<c>recursive=true</c>), following the <c>Link: rel="next"</c> cursor until the Hub stops sending one.</summary>
@@ -113,8 +129,15 @@ public sealed partial class HubClient(HttpClient http, Func<string?>? token = nu
 
     private async Task<(JsonDocument Doc, Uri? Next)> GetJsonWithLinkAsync(Uri url, string what, CancellationToken ct)
     {
+        var (doc, next, _) = await GetJsonCoreAsync(url, what, null, ct).ConfigureAwait(false);
+        return (doc!, next);
+    }
+
+    private async Task<(JsonDocument? Doc, Uri? Next, string? ETag)> GetJsonCoreAsync(Uri url, string what, string? etag, CancellationToken ct)
+    {
         using var request = new HttpRequestMessage(HttpMethod.Get, url);
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+        if (etag is not null) request.Headers.TryAddWithoutValidation("If-None-Match", etag);
         if (Token is { } t && url.Host == _base.Host) request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", t);
 
         using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
@@ -122,6 +145,7 @@ public sealed partial class HubClient(HttpClient http, Func<string?>? token = nu
         {
             case HttpStatusCode.Unauthorized: throw new AuthRequiredException(what);
             case HttpStatusCode.Forbidden: throw new GatedRepoException(what);
+            case HttpStatusCode.NotModified: return (null, null, etag);
             case HttpStatusCode.NotFound: throw new RepoNotFoundException(what);
             case HttpStatusCode.TooManyRequests:
                 var after = response.Headers.RetryAfter?.Delta
@@ -144,7 +168,7 @@ public sealed partial class HubClient(HttpClient http, Func<string?>? token = nu
         var stream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
         await using (stream.ConfigureAwait(false))
         {
-            return (await JsonDocument.ParseAsync(stream, cancellationToken: ct).ConfigureAwait(false), next);
+            return (await JsonDocument.ParseAsync(stream, cancellationToken: ct).ConfigureAwait(false), next, response.Headers.ETag?.ToString());
         }
     }
 

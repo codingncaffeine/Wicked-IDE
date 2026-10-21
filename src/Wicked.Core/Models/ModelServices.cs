@@ -52,7 +52,7 @@ public sealed record InstallProgress(string ModelId, string Message, double? Fra
 /// Hosted in the window process for now; the daemon (D10, Phase 6) will host this same class behind its local API, so
 /// the window and the command line share one store and one engine.
 /// </remarks>
-public sealed class ModelServices : IAsyncDisposable
+public sealed partial class ModelServices : IAsyncDisposable
 {
     private readonly WickedPaths _paths;
     private readonly HttpClient _http;
@@ -69,8 +69,10 @@ public sealed class ModelServices : IAsyncDisposable
     private string? _token;
     private EngineBackendKind? _backend;
     private bool _rootsDirty;
+    private UpdatePolicy _defaultPolicy = UpdatePolicy.Notify;
+    private bool _checksEnabled = true;
 
-    public ModelServices(WickedPaths paths, HttpClient? http = null, Uri? hubBase = null, Uri? catalogBase = null, Uri? githubBase = null, string? catalogKey = null)
+    public ModelServices(WickedPaths paths, HttpClient? http = null, Uri? hubBase = null, Uri? catalogBase = null, Uri? githubBase = null, string? catalogKey = null, Func<bool>? offline = null)
     {
         _paths = paths;
         _http = http ?? WickedHttp.CreateClient();
@@ -84,6 +86,9 @@ public sealed class ModelServices : IAsyncDisposable
         Runtime = new ModelRuntime(this, paths, _http);
         Chat = new ChatEngine(Runtime, _http);
         Conversations = new ConversationStore(Path.Combine(paths.Data, "conversations.db"));
+        _updateState = new UpdateStateStore(Path.Combine(paths.State, "updates.json"), Path.Combine(paths.State, "updates-pending.json"));
+        _appReleases = new AppReleases(_http, Path.Combine(paths.Cache, "app-release.json"), githubBase);
+        Updates = new UpdateScheduler(this, offline ?? (() => WickedHttp.IsOffline), loopback: IsLoopback(hubBase) && IsLoopback(githubBase));
     }
 
     /// <summary>The installed models and what runs them (the router starts on first use, never at launch).</summary>
@@ -148,6 +153,8 @@ public sealed class ModelServices : IAsyncDisposable
         {
             _token = options.HuggingFaceToken?.Trim();
             _backend = options.Backend;
+            _defaultPolicy = options.DefaultUpdatePolicy;
+            _checksEnabled = options.CheckForUpdates;
             var root = location ?? _defaultRoot;
             storeChanged = !string.Equals(_store.Root, root, StringComparison.Ordinal);
             if (storeChanged)
@@ -199,6 +206,7 @@ public sealed class ModelServices : IAsyncDisposable
         Update(s => s with { Catalog = catalog, Picks = Recommender.Recommend(hardware, catalog.Catalog) });
         await RescanAsync(ct).ConfigureAwait(false);
         await Runtime.InitializeAsync(ct).ConfigureAwait(false);
+        _ = Task.Run(() => RecoverUpdatesAsync(CancellationToken.None)).ContinueWith(t => Log.Warn($"Finishing an interrupted update failed: {t.Exception?.GetBaseException().Message}"), CancellationToken.None, TaskContinuationOptions.OnlyOnFaulted, TaskScheduler.Default);
         Log.Info($"Models: {hardware.PrimaryGpu?.Name ?? "no GPU"}, catalog {catalog.Origin} ({catalog.Catalog.Models.Count()} models), {State.Picks.Count} picks, {State.Installed.Count} installed, engine {State.Engine?.Id ?? "none"}");
     }
 
@@ -637,56 +645,6 @@ public sealed class ModelServices : IAsyncDisposable
         await RescanAsync(ct).ConfigureAwait(false);
     }
 
-    /// <summary>
-    /// Asks the Hub whether each installed model's repo has a newer commit than the one installed (D7 channel a), and the catalog
-    /// whether a newer model replaces it (channel b). A repo that cannot be reached is skipped and counted; nothing is replaced.
-    /// </summary>
-    public async Task<UpdateCheck> CheckForUpdatesAsync(CancellationToken ct = default)
-    {
-        var catalog = State.Catalog?.Catalog;
-        var installed = State.Installed;
-        var found = new List<ModelUpdate>();
-        int checkedCount = 0, failed = 0;
-        string? problem = null;
-        foreach (var model in installed)
-        {
-            ct.ThrowIfCancellationRequested();
-            if (model.Manifest is not { SourceRepo: { Length: > 0 } repo, Revision: { Length: > 0 } revision } manifest) continue;
-            checkedCount++;
-            try
-            {
-                var latest = await _hub.GetModelAsync(repo, ct).ConfigureAwait(false);
-                if (latest.Sha.Length > 0 && !string.Equals(latest.Sha, revision, StringComparison.Ordinal))
-                {
-                    var when = latest.LastModified is { } m ? $" ({m.LocalDateTime:d MMM yyyy})" : "";
-                    found.Add(new ModelUpdate(model.Id, UpdateKind.NewUpload, $"A newer upload is available{when}", latest.Sha));
-                    continue;
-                }
-            }
-            catch (RateLimitedException ex)
-            {
-                problem = ex.Message;
-                failed++;
-                break;
-            }
-            catch (Exception ex) when (ex is HubException or HttpRequestException or IOException or JsonException or TaskCanceledException)
-            {
-                failed++;
-                Log.Warn($"Update check for {repo}: {ex.Message}");
-                continue;
-            }
-
-            if (catalog is not null && manifest.CatalogId is { } catalogId
-                && catalog.Models.FirstOrDefault(c => c.Supersedes.Contains(catalogId, StringComparer.Ordinal)) is { } newer)
-            {
-                found.Add(new ModelUpdate(model.Id, UpdateKind.Superseded, $"Superseded by {newer.Name}"));
-            }
-        }
-
-        Update(s => s with { Updates = found.ToDictionary(u => u.ModelId, StringComparer.Ordinal) });
-        return new UpdateCheck(checkedCount, failed, found, problem);
-    }
-
     // ── The Hugging Face browser ─────────────────────────────────────────────────────────────────
 
     /// <summary>GGUF repos matching <paramref name="query"/>, most downloaded first.</summary>
@@ -758,6 +716,7 @@ public sealed class ModelServices : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        await Updates.DisposeAsync().ConfigureAwait(false);
         await Runtime.DisposeAsync().ConfigureAwait(false);
         Conversations.Dispose();
         await Downloads.DisposeAsync().ConfigureAwait(false);

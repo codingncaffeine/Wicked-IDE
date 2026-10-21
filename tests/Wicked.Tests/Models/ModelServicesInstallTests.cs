@@ -245,10 +245,14 @@ public sealed class ModelServicesInstallTests
             Assert.Empty((await services.CheckForUpdatesAsync(Ct)).Found); // same commit: nothing to say
 
             repo.Sha = "rev2";
+            Assert.Empty((await services.CheckForUpdatesAsync(Ct)).Found); // the commit moved but no weights changed: not news
+            repo.Upload("rev3", "o-Q4_K_M.gguf", StandIns.Weights(120_000, 9), "Retrained on more data");
             var check = await services.CheckForUpdatesAsync(Ct);
             var update = Assert.Single(check.Found);
             Assert.Equal(UpdateKind.NewUpload, update.Kind);
-            Assert.Equal("rev2", update.LatestRevision);
+            Assert.Equal("rev3", update.LatestRevision);
+            Assert.Equal(["Retrained on more data"], update.Titles);
+            Assert.True(update.CanApply);
             Assert.Equal(update, services.State.UpdateFor("test/old-GGUF"));
 
             // A newer generation in the catalog replaces a model it supersedes, even when the repo has not changed.

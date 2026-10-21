@@ -161,6 +161,39 @@ public sealed record WickedSettings
     [JsonPropertyName("wicked.assistantModel")]
     public string AssistantModel { get; init; } = "";
 
+    // ── Updates and serving (Phases 5 and 6) ──
+
+    /// <summary>Whether Wicked looks for newer models, engines and releases by itself (on start and every day). "Check now" works either way.</summary>
+    [JsonPropertyName("models.checkForUpdates")]
+    public bool CheckForUpdates { get; init; } = true;
+
+    /// <summary>What a model without a policy of its own does about a newer upload: notify, auto or pin.</summary>
+    [JsonPropertyName("models.updatePolicy")]
+    public string UpdatePolicy { get; init; } = "notify";
+
+    /// <summary>Whether the daemon serves the OpenAI and Anthropic APIs to other programs (Continue, Zed, Cursor, Aider, curl).</summary>
+    [JsonPropertyName("server.enabled")]
+    public bool ServerEnabled { get; init; } = true;
+
+    [JsonPropertyName("server.port")]
+    public int ServerPort { get; init; } = 1337;
+
+    /// <summary>Also listen on the local network, not just this machine. Needs an API key for anything but this machine.</summary>
+    [JsonPropertyName("server.listenOnLan")]
+    public bool ServerListenOnLan { get; init; }
+
+    /// <summary>Load a model on the first request that names it, as LM Studio does.</summary>
+    [JsonPropertyName("server.autoLoad")]
+    public bool ServerAutoLoad { get; init; } = true;
+
+    /// <summary>Web origins that may call the server from a browser page (e.g. <c>http://localhost:3000</c>); empty allows none.</summary>
+    [JsonPropertyName("server.cors")]
+    public string[] ServerCors { get; init; } = [];
+
+    /// <summary>The largest request the server reads, in megabytes (images in a chat can be big).</summary>
+    [JsonPropertyName("server.maxRequestMB")]
+    public int ServerMaxRequestMB { get; init; } = 64;
+
     /// <summary>Keys this build does not know, kept so a save never drops them.</summary>
     [JsonExtensionData]
     public Dictionary<string, JsonElement>? Other { get; init; }

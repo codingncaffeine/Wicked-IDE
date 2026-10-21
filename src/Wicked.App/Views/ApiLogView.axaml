@@ -1,0 +1,44 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Wicked.App.ViewModels"
+             xmlns:shell="using:Wicked.App.Shell"
+             x:Class="Wicked.App.Views.ApiLogView"
+             x:DataType="vm:ApiLogViewModel">
+  <!-- The server's request log: one line per request, newest first. The shell mounts this in its bottom panel. -->
+  <UserControl.Styles>
+    <Style Selector="TextBlock.logcell">
+      <Setter Property="FontFamily" Value="monospace" />
+      <Setter Property="FontSize" Value="{DynamicResource Font.Size.Small}" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+    </Style>
+    <Style Selector="TextBlock.logcell.bad">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Danger}" />
+    </Style>
+  </UserControl.Styles>
+  <DockPanel>
+    <Grid DockPanel.Dock="Top" ColumnDefinitions="*,220,Auto" ColumnSpacing="10" Margin="10,6">
+      <TextBlock Name="ApiLogStatus" Text="{Binding Status}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+      <TextBox Grid.Column="1" Name="ApiLogFilter" Text="{Binding Filter}" PlaceholderText="Filter by route, model, status or key" />
+      <Button Grid.Column="2" Name="ApiLogClear" Classes="quiet" Command="{Binding ClearCommand}" ToolTip.Tip="Clear this list (the server keeps its own)" AutomationProperties.Name="Clear the log">
+        <shell:Icon Data="{StaticResource Icon.Trash2}" Size="14" />
+      </Button>
+    </Grid>
+    <TextBlock DockPanel.Dock="Top" Name="ApiLogEmpty" Text="No requests yet. Point a program at the server and they will appear here." Classes="muted" Margin="12,4" IsVisible="{Binding IsEmpty}" TextWrapping="Wrap" />
+    <ListBox Name="ApiLogRows" ItemsSource="{Binding Rows}" Background="Transparent" SelectionMode="Single">
+      <ListBox.ItemTemplate>
+        <DataTemplate DataType="vm:ApiLogRow">
+          <Grid ColumnDefinitions="68,230,*,50,150,70,110" ColumnSpacing="8">
+            <TextBlock Classes="logcell" Text="{Binding Time}" Foreground="{DynamicResource Brush.Text.Muted}" />
+            <TextBlock Grid.Column="1" Classes="logcell" Text="{Binding Request}" />
+            <TextBlock Grid.Column="2" Classes="logcell" Text="{Binding Model}" ToolTip.Tip="{Binding Note}" />
+            <TextBlock Grid.Column="3" Classes="logcell" Classes.bad="{Binding IsError}" Text="{Binding Status}" />
+            <TextBlock Grid.Column="4" Classes="logcell" Text="{Binding Tokens}" Foreground="{DynamicResource Brush.Text.Secondary}" />
+            <TextBlock Grid.Column="5" Classes="logcell" Text="{Binding Duration}" Foreground="{DynamicResource Brush.Text.Secondary}" />
+            <TextBlock Grid.Column="6" Classes="logcell" Text="{Binding Client}" Foreground="{DynamicResource Brush.Text.Muted}" />
+          </Grid>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+  </DockPanel>
+</UserControl>

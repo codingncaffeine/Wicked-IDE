@@ -9,4 +9,11 @@ public static class ShellRoutes
     public const string Models = "panel/models";
     public const string Assistant = "assistant";
     public const string SettingsModels = "settings/models";
+    public const string SettingsRuntime = "settings/runtime";
+    public const string SettingsServer = "settings/server";
+    public const string Notifications = "notifications";
+    public const string WhatsNew = "whats-new";
+
+    /// <summary>A web address to open in the browser: <c>url/https://…</c>.</summary>
+    public const string UrlPrefix = "url/";
 }

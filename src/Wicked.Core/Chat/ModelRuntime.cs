@@ -35,11 +35,14 @@ public sealed class ModelRuntime : IModelRuntime, IAsyncDisposable
     private IReadOnlyList<Store.StoredModel>? _seenInstalled;
     private string? _seenEngine;
     private int _refreshing;
-    private RouterProcess? _router;
+    private int _disposing;
+    private IRouterHandle? _router;
+    private RouterOwnership? _ownership;
     private RouterClient? _client;
     private CancellationTokenSource? _watchCts;
     private Task? _watcher;
     private int? _routerModelsMax;
+    private DateTime _settingsStamp;
 
     internal ModelRuntime(ModelServices services, WickedPaths paths, HttpClient http)
     {
@@ -65,7 +68,7 @@ public sealed class ModelRuntime : IModelRuntime, IAsyncDisposable
     }
 
     /// <summary>The router process, when one was started (tests kill it to see the supervisor work).</summary>
-    internal RouterProcess? Router
+    internal IRouterHandle? Router
     {
         get
         {
@@ -204,8 +207,39 @@ public sealed class ModelRuntime : IModelRuntime, IAsyncDisposable
         await WaitForAsync(id, s => s is RunState.Unloaded or RunState.Failed, TimeSpan.FromSeconds(60), ct).ConfigureAwait(false);
     }
 
+    /// <summary>
+    /// Attaches to the router another process runs, if there is one, so this process sees what is loaded without starting anything.
+    /// False when no router is running (or this process already has one).
+    /// </summary>
+    public async Task<bool> AttachExistingAsync(CancellationToken ct = default)
+    {
+        await _lifecycle.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            lock (_gate)
+            {
+                if (_router is { IsRunning: true }) return true;
+            }
+
+            if (RouterOwnership.Read(_paths) is not { } info || !RouterOwnership.IsAlive(info.RouterPid)
+                || !await AttachedRouter.IsHealthyAsync(_http, info, ct).ConfigureAwait(false))
+            {
+                return false;
+            }
+
+            await StopRouterLockedAsync(ct).ConfigureAwait(false);
+            await RefreshLockedAsync(ct).ConfigureAwait(false);
+            await WatchRouterAsync(new AttachedRouter(_paths, _http, info, Tuning.AttachedPoll, Tuning.OwnerGrace), ownership: null, ct).ConfigureAwait(false);
+            return true;
+        }
+        finally
+        {
+            _lifecycle.Release();
+        }
+    }
+
     /// <summary>Loads <paramref name="id"/> if it is not, and returns the router's address for a request.</summary>
-    internal async Task<Uri> EnsureLoadedAsync(string id, CancellationToken ct)
+    public async Task<Uri> EnsureLoadedAsync(string id, CancellationToken ct)
     {
         await LoadAsync(id, ct).ConfigureAwait(false);
         RouterClient? client;
@@ -223,7 +257,7 @@ public sealed class ModelRuntime : IModelRuntime, IAsyncDisposable
     /// <summary>A sentence for an error: whether the engine is down, and its last output.</summary>
     internal string RouterHint()
     {
-        RouterProcess? router;
+        IRouterHandle? router;
         lock (_gate) router = _router;
         if (router is null) return "The engine is not running.";
         var lines = router.RecentOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries);
@@ -233,6 +267,7 @@ public sealed class ModelRuntime : IModelRuntime, IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        if (Interlocked.Exchange(ref _disposing, 1) == 1) return;
         _services.Changed -= OnServicesChanged;
         await _disposed.CancelAsync().ConfigureAwait(false);
         await StopRouterAsync(CancellationToken.None).ConfigureAwait(false);
@@ -290,12 +325,13 @@ public sealed class ModelRuntime : IModelRuntime, IAsyncDisposable
     private async Task RefreshLockedAsync(CancellationToken ct)
     {
         await EnsureSettingsAsync(ct).ConfigureAwait(false);
+        await ReloadSettingsIfChangedAsync(ct).ConfigureAwait(false);
         var state = _services.State;
         var hardware = _hardware ??= state.Hardware ?? await HardwareProbe.DetectAsync(ct).ConfigureAwait(false);
         var backend = BackendOf(state.Engine ?? _services.Engines.Current);
         Dictionary<string, ModelRunSettings> settings;
         int? max;
-        RouterProcess? router;
+        IRouterHandle? router;
         int? inForce;
         lock (_gate)
         {
@@ -368,14 +404,36 @@ public sealed class ModelRuntime : IModelRuntime, IAsyncDisposable
             _settings = file.Models;
             _modelsMax = file.ModelsMax;
             _settingsLoaded = true;
+            _settingsStamp = StampOf(_settingsStore.Path);
         }
     }
 
-    private Task SaveFileAsync(CancellationToken ct)
+    private async Task SaveFileAsync(CancellationToken ct)
     {
         RunSettingsFile file;
         lock (_gate) file = new RunSettingsFile(_modelsMax, new Dictionary<string, ModelRunSettings>(_settings, StringComparer.Ordinal));
-        return _settingsStore.SaveAsync(file, ct);
+        await _settingsStore.SaveAsync(file, ct).ConfigureAwait(false);
+        lock (_gate) _settingsStamp = StampOf(_settingsStore.Path);
+    }
+
+    private static DateTime StampOf(string path) => File.Exists(path) ? File.GetLastWriteTimeUtc(path) : default;
+
+    /// <summary>Another process on this profile (the window, the daemon) may have saved the run settings; they are read again when the file changed.</summary>
+    private async Task ReloadSettingsIfChangedAsync(CancellationToken ct)
+    {
+        var stamp = StampOf(_settingsStore.Path);
+        lock (_gate)
+        {
+            if (!_settingsLoaded || stamp == _settingsStamp) return;
+        }
+
+        var file = await _settingsStore.LoadAsync(ct).ConfigureAwait(false);
+        lock (_gate)
+        {
+            _settings = file.Models;
+            _modelsMax = file.ModelsMax;
+            _settingsStamp = stamp;
+        }
     }
 
     // ── The router ───────────────────────────────────────────────────────────────────────────────
@@ -385,7 +443,7 @@ public sealed class ModelRuntime : IModelRuntime, IAsyncDisposable
         await _lifecycle.WaitAsync(ct).ConfigureAwait(false);
         try
         {
-            RouterProcess? alive = null;
+            IRouterHandle? alive = null;
             RouterClient? aliveClient = null;
             lock (_gate)
             {
@@ -404,51 +462,146 @@ public sealed class ModelRuntime : IModelRuntime, IAsyncDisposable
             }
 
             await StopRouterLockedAsync(ct).ConfigureAwait(false);
-            var engine = await _services.EnsureEngineAsync(ct).ConfigureAwait(false);
-            await RefreshLockedAsync(ct).ConfigureAwait(false);
-            var plan = Plan ?? throw new InvalidOperationException("No plan");
-            await PresetWriter.WriteAsync(PresetPath, plan.Globals, plan.Models.Select(m => m.Section), ct).ConfigureAwait(false);
+            var (ownership, attached) = await AcquireAsync(ct).ConfigureAwait(false);
+            if (attached is not null) return await WatchRouterAsync(attached, ownership: null, ct).ConfigureAwait(false);
 
-            var options = new RouterOptions(engine.ServerPath, PresetPath, LogPath, ModelsMax: plan.ModelsMax, ExtraArguments: ["--no-webui"],
-                MaxConsecutiveFailures: Tuning.MaxConsecutiveFailures, RestartDelayBase: Tuning.RestartDelayBase);
-            var router = new RouterProcess(options, _http);
-            router.Exited += OnRouterExited;
-            var client = new RouterClient(_http, () => router.BaseAddress);
             try
             {
-                await router.StartAsync(ct).ConfigureAwait(false);
-                await router.WaitHealthyAsync(Tuning.HealthTimeout, ct).ConfigureAwait(false);
-            }
-            catch (Exception ex) when (ex is TimeoutException or RouterException or IOException)
-            {
-                router.Exited -= OnRouterExited;
-                await router.DisposeAsync().ConfigureAwait(false);
-                throw new ChatException($"The model engine did not start. {ex.Message}", ex);
+                var engine = await _services.EnsureEngineAsync(ct).ConfigureAwait(false);
+                await RefreshLockedAsync(ct).ConfigureAwait(false);
+                var plan = Plan ?? throw new InvalidOperationException("No plan");
+                await PresetWriter.WriteAsync(PresetPath, plan.Globals, plan.Models.Select(m => m.Section), ct).ConfigureAwait(false);
+
+                // A router its owner left running when it died is taken over rather than started twice.
+                if (await TryAdoptAsync(ownership!, engine, plan.ModelsMax, ct).ConfigureAwait(false) is { } adopted)
+                {
+                    var adoptedClient = await WatchRouterAsync(adopted, ownership, ct).ConfigureAwait(false);
+                    lock (_gate) _routerModelsMax = plan.ModelsMax;
+                    return adoptedClient;
+                }
+
+                var options = new RouterOptions(engine.ServerPath, PresetPath, LogPath, ModelsMax: plan.ModelsMax, ExtraArguments: ["--no-webui"],
+                    MaxConsecutiveFailures: Tuning.MaxConsecutiveFailures, RestartDelayBase: Tuning.RestartDelayBase);
+                var router = new RouterProcess(options, _http);
+                router.Exited += OnRouterExited;
+                // Each start, the first and every restart, says where the router listens now.
+                router.Started += (_, _) => ownership!.Publish(new RouterRuntimeInfo(router.BaseAddress.Port, router.ProcessId ?? 0, Environment.ProcessId, engine.Id, plan.ModelsMax, DateTimeOffset.UtcNow));
+                try
+                {
+                    await router.StartAsync(ct).ConfigureAwait(false);
+                    await router.WaitHealthyAsync(Tuning.HealthTimeout, ct).ConfigureAwait(false);
+                }
+                catch (Exception ex) when (ex is TimeoutException or RouterException or IOException)
+                {
+                    router.Exited -= OnRouterExited;
+                    await router.DisposeAsync().ConfigureAwait(false);
+                    throw new ChatException($"The model engine did not start. {ex.Message}", ex);
+                }
+                catch
+                {
+                    router.Exited -= OnRouterExited;
+                    await router.DisposeAsync().ConfigureAwait(false);
+                    throw;
+                }
+
+                var client = await WatchRouterAsync(router, ownership, ct).ConfigureAwait(false);
+                lock (_gate) _routerModelsMax = plan.ModelsMax;
+                return client;
             }
             catch
             {
-                router.Exited -= OnRouterExited;
-                await router.DisposeAsync().ConfigureAwait(false);
+                // Not handed to a router: let go of the profile's lock so the next try (or another process) can have it.
+                bool kept;
+                lock (_gate) kept = ReferenceEquals(_ownership, ownership);
+                if (!kept) ownership?.Dispose();
                 throw;
             }
-
-            var cts = new CancellationTokenSource();
-            lock (_gate)
-            {
-                _router = router;
-                _client = client;
-                _routerModelsMax = plan.ModelsMax;
-                _watchCts = cts;
-                _watcher = Task.Run(() => WatchAsync(router, client, cts.Token));
-            }
-
-            await SyncAsync(client, ct).ConfigureAwait(false);
-            return client;
         }
         finally
         {
             _lifecycle.Release();
         }
+    }
+
+    /// <summary>Makes <paramref name="router"/> the one in use: its client, its event watcher, and a first read of the model list.</summary>
+    private async Task<RouterClient> WatchRouterAsync(IRouterHandle router, RouterOwnership? ownership, CancellationToken ct)
+    {
+        router.Exited -= OnRouterExited;
+        router.Exited += OnRouterExited;
+        var client = new RouterClient(_http, () => router.BaseAddress);
+        var cts = new CancellationTokenSource();
+        lock (_gate)
+        {
+            _router = router;
+            _client = client;
+            _ownership = ownership;
+            _routerModelsMax = router is AttachedRouter a ? a.ModelsMax : null;
+            _watchCts = cts;
+            _watcher = Task.Run(() => WatchAsync(router, client, cts.Token));
+        }
+
+        await SyncAsync(client, ct).ConfigureAwait(false);
+        return client;
+    }
+
+    /// <summary>
+    /// Takes the profile's router lock, or, when another process holds it, attaches to the router that process runs (waiting for it
+    /// to come up when it is mid-start). A lock that frees while waiting is taken: the owner died.
+    /// </summary>
+    private async Task<(RouterOwnership? Ownership, AttachedRouter? Attached)> AcquireAsync(CancellationToken ct)
+    {
+        using var limit = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        limit.CancelAfter(Tuning.AttachTimeout);
+        try
+        {
+            while (true)
+            {
+                if (RouterOwnership.TryAcquire(_paths) is { } taken) return (taken, null);
+                if (RouterOwnership.Read(_paths) is { } info && RouterOwnership.IsAlive(info.RouterPid)
+                    && await AttachedRouter.IsHealthyAsync(_http, info, limit.Token).ConfigureAwait(false))
+                {
+                    Log.Info($"Attached to the router owned by process {info.OwnerPid} (port {info.Port})");
+                    return (null, new AttachedRouter(_paths, _http, info, Tuning.AttachedPoll, Tuning.OwnerGrace));
+                }
+
+                await Task.Delay(100, limit.Token).ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+        {
+            throw new ChatException("Another Wicked process is starting the model engine and it did not answer in time.");
+        }
+    }
+
+    /// <summary>A router left running by an owner that died, started from this engine: attached to with the ownership. One from another engine is ended.</summary>
+    private async Task<AttachedRouter?> TryAdoptAsync(RouterOwnership ownership, EngineInstall engine, int modelsMax, CancellationToken ct)
+    {
+        if (RouterOwnership.Read(_paths) is not { } left) return null;
+        if (!RouterOwnership.IsAlive(left.RouterPid)) return null;
+        if (left.EngineTag == engine.Id && left.ModelsMax == modelsMax && await AttachedRouter.IsHealthyAsync(_http, left, ct).ConfigureAwait(false))
+        {
+            Log.Info($"Took over the router left by process {left.OwnerPid} (port {left.Port})");
+            var mine = left with { OwnerPid = Environment.ProcessId };
+            ownership.Publish(mine);
+            return new AttachedRouter(_paths, _http, mine, Tuning.AttachedPoll, Tuning.OwnerGrace, ownership);
+        }
+
+        if (RouterOwnership.LooksLikeARouter(left.RouterPid))
+        {
+            Log.Info($"Ending the router left by process {left.OwnerPid}; it was not started the way this one would be");
+            try
+            {
+                using var process = System.Diagnostics.Process.GetProcessById(left.RouterPid);
+                process.Kill(entireProcessTree: true);
+                await process.WaitForExitAsync(ct).ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
+            {
+                // It ended on its own meanwhile.
+            }
+        }
+
+        return null;
     }
 
     private async Task StopRouterAsync(CancellationToken ct)
@@ -466,12 +619,15 @@ public sealed class ModelRuntime : IModelRuntime, IAsyncDisposable
 
     private async Task StopRouterLockedAsync(CancellationToken ct)
     {
-        RouterProcess? router;
+        IRouterHandle? router;
+        RouterOwnership? ownership;
         CancellationTokenSource? cts;
         Task? watcher;
         lock (_gate)
         {
             router = _router;
+            ownership = _ownership;
+            _ownership = null;
             cts = _watchCts;
             watcher = _watcher;
             _router = null;
@@ -500,6 +656,8 @@ public sealed class ModelRuntime : IModelRuntime, IAsyncDisposable
             }
         }
 
+        // The router is down; the profile may have another owner now.
+        ownership?.Dispose();
         cts?.Dispose();
         lock (_gate)
         {
@@ -512,7 +670,7 @@ public sealed class ModelRuntime : IModelRuntime, IAsyncDisposable
     private void OnRouterExited(object? sender, RouterExit exit)
     {
         if (exit.Intentional) return;
-        var router = (RouterProcess)sender!;
+        var router = (IRouterHandle)sender!;
         var tail = TailOf(router);
         lock (_gate)
         {
@@ -530,7 +688,7 @@ public sealed class ModelRuntime : IModelRuntime, IAsyncDisposable
     private static string Code(int? code) => code?.ToString(CultureInfo.InvariantCulture) ?? "unknown";
 
     /// <summary>What to show of the router's output after a failure: its error lines (llama.cpp marks them <c> E </c>) when there are any, else the last few lines.</summary>
-    private static string TailOf(RouterProcess router)
+    private static string TailOf(IRouterHandle router)
     {
         var lines = router.RecentOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries);
         var errors = lines.Where(l => l.Contains(" E ", StringComparison.Ordinal)).TakeLast(8).ToList();
@@ -538,7 +696,7 @@ public sealed class ModelRuntime : IModelRuntime, IAsyncDisposable
     }
 
     /// <summary>Follows the router's events for as long as it lives: connect, read the list, then read events until the stream ends (a restart), and again.</summary>
-    private async Task WatchAsync(RouterProcess router, RouterClient client, CancellationToken ct)
+    private async Task WatchAsync(IRouterHandle router, RouterClient client, CancellationToken ct)
     {
         while (!ct.IsCancellationRequested)
         {
@@ -546,9 +704,21 @@ public sealed class ModelRuntime : IModelRuntime, IAsyncDisposable
             {
                 await router.WaitHealthyAsync(TimeSpan.FromSeconds(30), ct).ConfigureAwait(false);
                 await SyncAsync(client, ct).ConfigureAwait(false);
-                await foreach (var ev in client.EventsAsync(ct).ConfigureAwait(false))
+                // What another process does to the router reaches this one by events only; the events a connection missed
+                // while it was being made are caught by reading the list again now and then.
+                using var reconcile = CancellationTokenSource.CreateLinkedTokenSource(ct);
+                var reconciling = router is AttachedRouter ? Task.Run(() => ReconcileAsync(reconcile.Token), CancellationToken.None) : Task.CompletedTask;
+                try
                 {
-                    await ApplyEventAsync(client, ev, ct).ConfigureAwait(false);
+                    await foreach (var ev in client.EventsAsync(ct).ConfigureAwait(false))
+                    {
+                        await ApplyEventAsync(client, ev, ct).ConfigureAwait(false);
+                    }
+                }
+                finally
+                {
+                    await reconcile.CancelAsync().ConfigureAwait(false);
+                    await reconciling.ConfigureAwait(false);
                 }
             }
             catch (OperationCanceledException) when (ct.IsCancellationRequested)
@@ -583,6 +753,22 @@ public sealed class ModelRuntime : IModelRuntime, IAsyncDisposable
             {
                 return;
             }
+        }
+    }
+
+    private async Task ReconcileAsync(CancellationToken ct)
+    {
+        try
+        {
+            while (!ct.IsCancellationRequested)
+            {
+                await Task.Delay(Tuning.PollInterval, ct).ConfigureAwait(false);
+                await SyncQuietlyAsync(ct).ConfigureAwait(false);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // The watcher moved on.
         }
     }
 
@@ -638,7 +824,7 @@ public sealed class ModelRuntime : IModelRuntime, IAsyncDisposable
 
     private void Apply(IReadOnlyList<RouterModel> models)
     {
-        RouterProcess? router;
+        IRouterHandle? router;
         lock (_gate)
         {
             router = _router;
@@ -851,4 +1037,13 @@ internal sealed record RuntimeTuning
     public int MaxConsecutiveFailures { get; init; } = 8;
 
     public TimeSpan PollInterval { get; init; } = TimeSpan.FromSeconds(3);
+
+    /// <summary>How long a process waits for the router another process is starting before it gives up.</summary>
+    public TimeSpan AttachTimeout { get; init; } = TimeSpan.FromSeconds(60);
+
+    /// <summary>How often an attached router checks that its router and owner are still there.</summary>
+    public TimeSpan AttachedPoll { get; init; } = TimeSpan.FromMilliseconds(500);
+
+    /// <summary>How long a dead router is given to be restarted by an owner that still holds the lock (the supervisor waits up to 30 s).</summary>
+    public TimeSpan OwnerGrace { get; init; } = TimeSpan.FromSeconds(45);
 }

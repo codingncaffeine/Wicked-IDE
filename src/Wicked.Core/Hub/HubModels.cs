@@ -61,3 +61,6 @@ public sealed class RateLimitedException(TimeSpan retryAfter) : HubException($"H
 {
     public TimeSpan RetryAfter { get; } = retryAfter;
 }
+
+/// <summary>One commit of a repo: its id, the first line of its message, and when it was made.</summary>
+public sealed record HubCommit(string Id, string Title, DateTimeOffset? Date);
