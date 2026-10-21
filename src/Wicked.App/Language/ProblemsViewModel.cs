@@ -45,6 +45,7 @@ public sealed partial class ProblemsViewModel : ObservableObject
 {
     private readonly LanguageFeatures _owner;
     private readonly Dictionary<string, IReadOnlyList<ProblemItem>> _byFile = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, IReadOnlyList<ProblemItem>> _byOwner = new(StringComparer.Ordinal);
 
     public ProblemsViewModel(LanguageFeatures owner) => _owner = owner;
 
@@ -90,19 +91,36 @@ public sealed partial class ProblemsViewModel : ObservableObject
         Rebuild();
     }
 
+    /// <summary>
+    /// A task's problems (what its problem matchers found), by the task's label: they replace that task's earlier ones, so
+    /// a new run starts clean; none clears them. They show beside the language servers' problems. UI thread.
+    /// </summary>
+    public void SetOwner(string owner, IReadOnlyList<ProblemItem> items)
+    {
+        if (items.Count == 0) _byOwner.Remove(owner);
+        else _byOwner[owner] = items;
+        Rebuild();
+    }
+
     private static string? CodeOf(Diagnostic d) => d.Code is { } code
         ? code.ValueKind == System.Text.Json.JsonValueKind.String ? code.GetString() : code.ValueKind == System.Text.Json.JsonValueKind.Number ? code.GetRawText() : null
         : null;
 
     private void Rebuild()
     {
-        var all = _byFile.Values.SelectMany(x => x).ToList();
+        var byFile = new Dictionary<string, IReadOnlyList<ProblemItem>>(_byFile, StringComparer.Ordinal);
+        foreach (var group in _byOwner.Values.SelectMany(x => x).GroupBy(p => p.Path, StringComparer.Ordinal))
+        {
+            byFile[group.Key] = [.. (byFile.TryGetValue(group.Key, out var known) ? known : []).Concat(group).OrderBy(p => p.Severity).ThenBy(p => p.Line).ThenBy(p => p.Column)];
+        }
+
+        var all = byFile.Values.SelectMany(x => x).ToList();
         Errors = all.Count(p => p.IsError);
         Warnings = all.Count(p => p.IsWarning);
         Infos = all.Count(p => p.IsInfo);
         var filter = Filter.Trim();
         Files.Clear();
-        foreach (var (path, items) in _byFile.OrderBy(kv => kv.Value.Min(p => p.Severity)).ThenBy(kv => kv.Key, StringComparer.Ordinal))
+        foreach (var (path, items) in byFile.OrderBy(kv => kv.Value.Min(p => p.Severity)).ThenBy(kv => kv.Key, StringComparer.Ordinal))
         {
             var shown = filter.Length == 0 ? items : [.. items.Where(p =>
                 p.Message.Contains(filter, StringComparison.OrdinalIgnoreCase) || (p.Origin.Contains(filter, StringComparison.OrdinalIgnoreCase)) || path.Contains(filter, StringComparison.OrdinalIgnoreCase))];

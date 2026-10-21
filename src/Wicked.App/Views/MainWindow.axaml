@@ -6,6 +6,7 @@
         xmlns:chat="using:Wicked.App.Chat"
         xmlns:search="using:Wicked.App.Search"
         xmlns:git="using:Wicked.App.Git"
+        xmlns:tasks="using:Wicked.App.Tasks"
         x:Class="Wicked.App.Views.MainWindow"
         x:DataType="vm:ShellViewModel"
         Title="{Binding Title}"
@@ -88,6 +89,10 @@
                     Command="{Binding ShowPanelCommand}" CommandParameter="{x:Static vm:SidePanel.Outline}">
               <shell:Icon Data="{StaticResource Icon.ListTree}" Size="19" />
             </Button>
+            <Button Name="RailTesting" Classes="rail" Classes.active="{Binding IsTesting}" ToolTip.Tip="Testing"
+                    Command="{Binding ShowPanelCommand}" CommandParameter="{x:Static vm:SidePanel.Testing}">
+              <shell:Icon Data="{StaticResource Icon.FlaskConical}" Size="19" />
+            </Button>
             <Button Name="RailModels" Classes="rail" Classes.active="{Binding IsModels}" ToolTip.Tip="Models (Ctrl+Shift+M)"
                     Command="{Binding ShowPanelCommand}" CommandParameter="{x:Static vm:SidePanel.Models}">
               <shell:Icon Data="{StaticResource Icon.Boxes}" Size="19" />
@@ -107,6 +112,7 @@
               <views:OutlineView DataContext="{Binding Outline}" IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).IsOutline}" />
               <search:SearchView Name="SearchPanel" DataContext="{Binding Search}" IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).IsSearch}" />
               <git:SourceControlView DataContext="{Binding SourceControl}" IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).IsSourceControl}" />
+              <tasks:TestingView DataContext="{Binding Testing}" IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).IsTesting}" />
               <StackPanel Margin="14,8" Spacing="4" IsVisible="{Binding ShowsPanelPlaceholder}">
                 <TextBlock Text="{Binding PanelEmptyTitle}" />
                 <TextBlock Classes="muted" Text="{Binding PanelEmptyText}" TextWrapping="Wrap" />
