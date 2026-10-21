@@ -62,6 +62,9 @@ public static class Recommender
 {
     private const long Gib = 1L << 30;
 
+    /// <summary>The least video memory left for the desktop and the engine's spare (see <see cref="BudgetFor"/>).</summary>
+    private const long VramReserve = 3 * Gib / 2;
+
     public static IReadOnlyList<Pick> Recommend(HardwareInfo hardware, ModelCatalog catalog, RecommenderOptions? options = null)
     {
         options ??= new RecommenderOptions();
@@ -99,15 +102,20 @@ public static class Recommender
         return picks;
     }
 
-    /// <summary>The memory the machine offers: all of the primary GPU's memory, and three quarters of RAM less 2 GB for what spills over.</summary>
+    /// <summary>
+    /// The memory the machine offers: the primary GPU's memory less what the desktop and the engine keep (the larger of 1.5 GiB or
+    /// a tenth: the compositor, browsers and chat apps take 1–3 GB, and the engine keeps 1 GiB spare for its buffers), and three
+    /// quarters of RAM less 2 GB for what spills over. Counting the whole card called models "fits on the GPU" that did not.
+    /// </summary>
     public static FitBudget BudgetFor(HardwareInfo hardware)
     {
         var gpu = hardware.PrimaryGpu;
-        var vram = gpu?.VramTotal ?? 0;
+        var total = gpu?.VramTotal ?? 0;
+        var vram = gpu?.Vendor == GpuVendor.Apple ? total : Math.Max(0, total - Math.Max(VramReserve, total / 10));
         var ram = Math.Max(0, hardware.RamTotal * 3 / 4 - 2 * Gib);
         // Apple's GPU memory is the same pool as RAM: do not count it twice.
         if (gpu?.Vendor == GpuVendor.Apple) ram = 0;
-        return new FitBudget(vram, ram);
+        return new FitBudget(vram, ram, total);
     }
 
     private static Pick? BestFor(Role role, List<CatalogModel> models, FitBudget budget, bool gpuMode, RecommenderOptions o)
@@ -239,7 +247,7 @@ public static class Recommender
 
     /// <summary>The sentence behind a card: what the pick needs and how much context the memory allows.</summary>
     private static string Fits(bool gpuMode, FitBudget budget, FitResult fit, int room) => gpuMode
-        ? $"Fits your {Gb(budget.VramBytes)} GB GPU with room for {Label(room)} context"
+        ? $"Fits your {Gb(budget.CardVramBytes > 0 ? budget.CardVramBytes : budget.VramBytes)} GB GPU with room for {Label(room)} context"
         : $"Runs on your CPU using about {Gb(fit.RequiredBytes)} GB of RAM, with room for {Label(room)} context";
 
     /// <summary>The context to start the model with: what fits, but no more than the comfortable size (a huge cache costs load time for nothing) and never below 8k.</summary>

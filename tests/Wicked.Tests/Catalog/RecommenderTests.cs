@@ -16,14 +16,16 @@ public sealed class RecommenderTests
         $"{string.Join("+", new[] { p.Kind }.Concat(p.AlsoFor))}:{p.Model.Id}:{p.Tier.Quant}:{p.Context}{(p.Companion is { } c ? "+" + c.Model.Id : "")}"));
 
     [Theory]
-    // 8 GiB GPU: only the 4B fits (Q8 with room for 64k); the tiny model is the quick one; fim-small fits beside it, which trims the context to 16k.
-    [InlineData(8.0, 16L, "Everyday+Coding:small:Q8_0:16384+fim-small | Fast:tiny:Q8_0:32768")]
-    // 12 GiB: the 14B at Q4 (16k of room); the companion would push it under 16k so there is none; no offload candidate is mostly on the GPU.
-    [InlineData(12.0, 32L, "Everyday+Coding:mid-new:Q4_K_M:16384 | Fast:tiny:Q8_0:32768")]
-    // 16 GiB: the 14B at Q4 with 32k; the 1.5B completion model fits beside it; the 32B would be only 72% on the GPU, below the 75% bar.
-    [InlineData(16.0, 64L, "Everyday+Coding:mid-new:Q4_K_M:32768+fim-small | Fast:tiny:Q8_0:32768")]
-    // 24 GiB: the 32B at Q4 fits with 16k of room (22.0 needed); the companion would take it to 22.2 so there is none.
-    [InlineData(24.0, 64L, "Everyday+Coding:big:Q4_K_M:16384 | Fast:tiny:Q8_0:32768")]
+    // The budget is the card less what the desktop and the engine keep: the larger of 1.5 GiB or a tenth (8 → 6.5, 12 → 10.5,
+    // 16 → 14.4, 24 → 21.6 GiB). Counting the whole card called models "fits" that crashed on a 16 GB card (2026-10-21).
+    // 8 GiB: only the 4B fits (Q8, room for 32k); fim-small no longer fits beside it; the tiny model is the quick one.
+    [InlineData(8.0, 16L, "Everyday+Coding:small:Q8_0:32768 | Fast:tiny:Q8_0:32768")]
+    // 12 GiB: the 14B at Q4 needs 11.55 at 16k, over 10.5: the 4B is the pick, with fim-small; the 14B is the Big pick, 30 of 32 layers on the GPU.
+    [InlineData(12.0, 32L, "Everyday+Coding:small:Q8_0:32768+fim-small | Big:mid-new:Q4_K_M:16384")]
+    // 16 GiB: the 14B at Q4; fim-small beside it trims the room to 16k; the 32B would be well under 75% on the GPU.
+    [InlineData(16.0, 64L, "Everyday+Coding:mid-new:Q4_K_M:16384+fim-small | Fast:tiny:Q8_0:32768")]
+    // 24 GiB: the 32B at Q4 needs 22.0, over 21.6: it is the Big pick (31 of 32 layers on the GPU); the 14B at Q8 is the everyday pick and the MoE the coding one.
+    [InlineData(24.0, 64L, "Everyday:mid-new:Q8_0:32768 | Coding:coder-moe:Q4_K_M:16384 | Big:big:Q4_K_M:16384")]
     public void PicksForPlantedGpus(double vram, long ram, string expected) =>
         Assert.Equal(expected, Summary(Recommender.Recommend(CatalogTestData.Machine(vram, ram), Catalog)));
 
@@ -62,29 +64,29 @@ public sealed class RecommenderTests
     [Fact]
     public void ABigPickAppearsWhenOffloadKeepsMostLayersOnTheGpu()
     {
-        // 20 GiB of VRAM: "big" at Q4 needs 22.0, so it offloads; 20 / (22/32) = 29 of 32 layers (90%) stay on the GPU.
+        // 20 GiB of VRAM, 18 of them usable: "big" at Q4 needs 22.0, so it offloads; 18 / (22/32) = 26 of 32 layers (81%) stay on the GPU.
         var picks = Recommender.Recommend(CatalogTestData.Machine(20, 64), Catalog);
 
         var big = picks.Single(p => p.Kind == PickKind.Big);
         Assert.Equal("big", big.Model.Id);
         Assert.Equal("Q4_K_M", big.Tier.Quant);
         Assert.Equal(FitLevel.FitsWithOffload, big.Fit.Level);
-        Assert.Equal(29, big.Fit.GpuLayers);
+        Assert.Equal(26, big.Fit.GpuLayers);
         Assert.Equal("mid-new", picks[0].Model.Id);
-        Assert.Contains("29 of 32 layers on the GPU", big.Reason, StringComparison.Ordinal);
+        Assert.Contains("26 of 32 layers on the GPU", big.Reason, StringComparison.Ordinal);
     }
 
     [Fact]
     public void TheNewerReleaseWinsATieAndThenTheIdDoes()
     {
-        var picks = Recommender.Recommend(CatalogTestData.Machine(12, 32), Catalog);
+        var picks = Recommender.Recommend(CatalogTestData.Machine(16, 64), Catalog);
         Assert.Equal("mid-new", picks[0].Model.Id);
 
         var sameDay = CatalogTestData.Catalog() with
         {
             Families = [CatalogTestData.Catalog().Families[0] with { Models = [.. CatalogTestData.Catalog().Families[0].Models.Select(m => m.Id == "mid-new" ? m with { Released = new DateOnly(2026, 3, 1) } : m)] }],
         };
-        Assert.Equal("mid", Recommender.Recommend(CatalogTestData.Machine(12, 32), sameDay)[0].Model.Id);
+        Assert.Equal("mid", Recommender.Recommend(CatalogTestData.Machine(16, 64), sameDay)[0].Model.Id);
     }
 
     [Fact]
@@ -92,7 +94,7 @@ public sealed class RecommenderTests
     {
         var picks = Recommender.Recommend(CatalogTestData.Machine(16, 64), Catalog);
 
-        Assert.Equal("Fits your 16 GB GPU with room for 32k context, with fim-small alongside for code completion", picks[0].Reason);
+        Assert.Equal("Fits your 16 GB GPU with room for 16k context, with fim-small alongside for code completion", picks[0].Reason);
         Assert.StartsWith("Small and quick: fits your 16 GB GPU with room for 128k context", picks[1].Reason, StringComparison.Ordinal);
         Assert.Equal("fim-small", picks[0].Companion!.Model.Id);
         Assert.Contains("completions as you type", picks[0].Companion!.Reason, StringComparison.Ordinal);
@@ -120,7 +122,9 @@ public sealed class RecommenderTests
     public void BudgetsFollowTheHardware()
     {
         var gpu = Recommender.BudgetFor(CatalogTestData.Machine(16, 64));
-        Assert.Equal(16 * CatalogTestData.Gib, gpu.VramBytes);
+        Assert.Equal(16 * CatalogTestData.Gib - 16 * CatalogTestData.Gib / 10, gpu.VramBytes); // a tenth kept back
+        Assert.Equal(16 * CatalogTestData.Gib, gpu.CardVramBytes);
+        Assert.Equal(8 * CatalogTestData.Gib - 3 * CatalogTestData.Gib / 2, Recommender.BudgetFor(CatalogTestData.Machine(8, 16)).VramBytes); // at least 1.5 GiB kept back
         Assert.Equal(46 * CatalogTestData.Gib, gpu.RamBytes);
         Assert.Equal(0, Recommender.BudgetFor(CatalogTestData.Machine(24, 32, GpuVendor.Apple)).RamBytes);
         Assert.Equal(0, Recommender.BudgetFor(CatalogTestData.Machine(null, 1)).RamBytes);

@@ -26,8 +26,11 @@ public sealed class RunPlannerTests
         RunPlanner.Plan(models, null, hardware, backend, settings ?? (_ => new ModelRunSettings()), max).Render();
 
     [Fact]
-    public void AutomaticDefaultsOnACudaCardFillTheTrainedContextAndOffloadEverything()
+    public void AutomaticDefaultsOnACudaCardLeaveTheContextAndTheLayersToTheEngine()
     {
+        // The engine's --fit sets both from the memory free when the model loads: Wicked setting either turns that off, and its
+        // arithmetic from the card's total memory set them too large (a 99k context and every layer on a card that had 13.6 of
+        // its 16 GB free failed to load).
         var text = Render([Model("a/chat", "Q4_K_M", 5 * Gib, Gguf())], Machine(16 * Gib), EngineBackendKind.Cuda);
 
         Assert.Equal("""
@@ -38,10 +41,8 @@ public sealed class RunPlannerTests
             reasoning-format = deepseek
 
             [a/chat:Q4_K_M]
-            c = 40960
             flash-attn = on
             model = /m/a/chat/Q4_K_M.gguf
-            n-gpu-layers = all
             """.Replace("\r", "", StringComparison.Ordinal) + "\n", text.Replace("\r", "", StringComparison.Ordinal));
     }
 
@@ -52,29 +53,26 @@ public sealed class RunPlannerTests
 
         Assert.Contains("n-gpu-layers = 0\n", text, StringComparison.Ordinal);
         Assert.DoesNotContain("flash-attn", text, StringComparison.Ordinal);
-        Assert.Contains("c = 40960\n", text, StringComparison.Ordinal); // 64 GiB of RAM holds it
+        Assert.DoesNotContain("c =", text, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void AModelTooBigForVideoMemoryOffloadsSomeLayersAndKeepsAComfortableContext()
+    public void AModelTooBigForVideoMemoryIsLeftToTheEngineToOffload()
     {
+        // A 20 GiB model on a 16 GiB card: the engine keeps as many layers on the GPU as the free memory holds and the rest in RAM.
         var text = Render([Model("a/big", "Q4_K_M", 20 * Gib, Gguf(layers: 64))], Machine(16 * Gib), EngineBackendKind.Cuda);
 
-        Assert.Contains("c = 32768\n", text, StringComparison.Ordinal);
-        var layers = int.Parse(text.Split("n-gpu-layers = ")[1].Split('\n')[0], System.Globalization.CultureInfo.InvariantCulture);
-        Assert.InRange(layers, 30, 55); // roughly (16 GiB - 1 GiB margin) / (20 GiB + cache) of 64 layers
+        Assert.DoesNotContain("n-gpu-layers", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("c =", text, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void ContextIsCappedByWhatFitsAndByTheCeiling()
+    public void AHugeTrainedContextIsNotWrittenEitherTheEngineFitsItDown()
     {
-        var tight = Render([Model("a/chat", "Q8_0", 12 * Gib, Gguf(context: 262144))], Machine(16 * Gib, ram: 8 * Gib), EngineBackendKind.Cuda);
-        var roomy = Render([Model("a/chat", "Q4_K_M", 2 * Gib, Gguf(context: 1_048_576))], Machine(24 * Gib), EngineBackendKind.Cuda);
+        var text = Render([Model("a/chat", "Q4_K_M", 2 * Gib, Gguf(context: 1_048_576))], Machine(24 * Gib), EngineBackendKind.Cuda);
 
-        var tightContext = int.Parse(tight.Split("c = ")[1].Split('\n')[0], System.Globalization.CultureInfo.InvariantCulture);
-        Assert.InRange(tightContext, 2048, 32768);
-        Assert.Equal(0, tightContext % 1024);
-        Assert.Contains($"c = {RunPlanner.MaxAutoContext}\n", roomy, StringComparison.Ordinal);
+        Assert.DoesNotContain("c =", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("n-gpu-layers", text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -172,12 +170,16 @@ public sealed class RunPlannerTests
     }
 
     [Fact]
-    public void SeveralModelsShareVideoMemoryWhenSeveralMayBeLoaded()
+    public void WithSeveralModelsLoadedEachIsFittedByTheEngineToWhatIsFreeWhenItLoads()
     {
         var model = Model("a/chat", "Q4_K_M", 5 * Gib, Gguf());
-        int ContextFor(int? max) => int.Parse(Render([model], Machine(16 * Gib), EngineBackendKind.Cuda, max: max).Split("c = ")[1].Split('\n')[0], System.Globalization.CultureInfo.InvariantCulture);
 
-        Assert.True(ContextFor(1) > ContextFor(3));
+        foreach (var max in new int?[] { 1, 3 })
+        {
+            var text = Render([model], Machine(16 * Gib), EngineBackendKind.Cuda, max: max);
+            Assert.DoesNotContain("c =", text, StringComparison.Ordinal);
+            Assert.DoesNotContain("n-gpu-layers", text, StringComparison.Ordinal);
+        }
     }
 
     [Fact]

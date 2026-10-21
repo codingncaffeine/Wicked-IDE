@@ -76,7 +76,10 @@ public enum FitLevel
 }
 
 /// <summary>The memory a run may use: video memory and, for layers that spill over, system memory.</summary>
-public sealed record FitBudget(long VramBytes, long RamBytes);
+/// <param name="VramBytes">Video memory a model may use (the card's, less what the desktop and the engine keep).</param>
+/// <param name="RamBytes">System memory for what spills over.</param>
+/// <param name="CardVramBytes">The card's own size, for the words on a card ("your 16 GB GPU"); 0 when unknown.</param>
+public sealed record FitBudget(long VramBytes, long RamBytes, long CardVramBytes = 0);
 
 /// <summary>
 /// The verdict for one model file at one context. <c>GpuLayers</c> is the <c>-ngl</c> to use (all layers when it fits in VRAM,
