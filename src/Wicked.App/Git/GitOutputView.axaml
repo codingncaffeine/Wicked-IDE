@@ -1,0 +1,23 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:git="using:Wicked.App.Git"
+             x:Class="Wicked.App.Git.GitOutputView"
+             x:DataType="git:GitOutputLog">
+  <!-- The Git output: one row per line, in the editor's monospace face. The bottom panel mounts this in its Output tab. -->
+  <ListBox Name="OutputLines" ItemsSource="{Binding Lines}" Background="Transparent" Padding="0" BorderThickness="0">
+    <ListBox.ItemTemplate>
+      <DataTemplate DataType="git:GitOutputLine">
+        <TextBlock Text="{Binding Text}" FontSize="{DynamicResource Font.Size.Small}" Classes.error="{Binding IsError}" TextWrapping="NoWrap" />
+      </DataTemplate>
+    </ListBox.ItemTemplate>
+    <ListBox.Styles>
+      <Style Selector="TextBlock.error">
+        <Setter Property="Foreground" Value="{DynamicResource Brush.Danger}" />
+      </Style>
+      <Style Selector="ListBoxItem">
+        <Setter Property="Padding" Value="8,0" />
+        <Setter Property="MinHeight" Value="0" />
+      </Style>
+    </ListBox.Styles>
+  </ListBox>
+</UserControl>

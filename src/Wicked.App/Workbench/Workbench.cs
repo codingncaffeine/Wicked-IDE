@@ -214,10 +214,14 @@ public sealed partial class Workbench : ObservableObject, IDisposable
         }
     }
 
+    /// <summary>A file or folder under the open folder changed on disk (raised on the watcher's thread, git's own folder left out); Source Control listens.</summary>
+    public event Action<string>? PathChanged;
+
     // On the watcher's thread: note the path, settle on the UI thread.
     private void Changed(string path)
     {
         if (path.Contains($"{Path.DirectorySeparatorChar}.git{Path.DirectorySeparatorChar}", StringComparison.Ordinal)) return;
+        PathChanged?.Invoke(path);
         lock (_changedPaths) _changedPaths.Add(path);
         Dispatcher.UIThread.Post(() =>
         {
@@ -333,6 +337,20 @@ public sealed partial class Workbench : ObservableObject, IDisposable
         return tab;
     }
 
+    /// <summary>A tab showing a view of its own (a diff), or the open one with the same title brought forward.</summary>
+    public EditorTab OpenView(string label, Func<Avalonia.Controls.Control> make)
+    {
+        if (ActiveGroup.Tabs.FirstOrDefault(t => t.ViewFactory is not null && t.Label == label) is { } open)
+        {
+            ActiveGroup.Activate(open);
+            return open;
+        }
+
+        var tab = new EditorTab(null, new Document(Rope.Empty), null, FileEncoding.Utf8, default) { Label = label, ViewFactory = make };
+        ActiveGroup.Add(tab);
+        return tab;
+    }
+
     public void NewFile()
     {
         var tab = new EditorTab(null, new Document(Rope.Empty), null, FileEncoding.Utf8, default);
@@ -399,6 +417,7 @@ public sealed partial class Workbench : ObservableObject, IDisposable
     /// <summary>Saves a tab; one never saved asks for a name. Returns false when nothing was saved.</summary>
     public async Task<bool> SaveAsync(EditorTab tab, WickedSettingsView? settings = null, bool auto = false)
     {
+        if (tab.ViewFactory is not null) return false; // a diff or another view: nothing of its own to save
         if (tab.Path is null) return await SaveAsAsync(tab, settings);
         // The project's .editorconfig has the last word on tidying a file it governs.
         settings = new WickedSettingsView(

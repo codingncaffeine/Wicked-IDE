@@ -16,6 +16,9 @@ public sealed partial class CodeEditor
     /// <summary>A key, before the editor's own bindings: true when it was taken (an open suggestion list's arrows).</summary>
     public Func<KeyEventArgs, bool>? KeyPreview { get; set; }
 
+    /// <summary>More features' keys, asked in order after <see cref="KeyPreview"/> (ghost text takes Tab when no list is open).</summary>
+    public List<Func<KeyEventArgs, bool>> KeyPreviews { get; } = [];
+
     /// <summary>Text about to be typed: true when it was dealt with (a commit character accepting a suggestion).</summary>
     public Func<string, bool>? TypePreview { get; set; }
 
@@ -33,6 +36,39 @@ public sealed partial class CodeEditor
 
     /// <summary>The view scrolled (popups anchored to text close or move).</summary>
     public event Action? Scrolled;
+
+    /// <summary>The view's scroll changed by any means (wheel, keys, thumb), seen when it is drawn: a diff's other side follows.</summary>
+    public event Action? ViewScrolled;
+
+    private float _lastScrollY = -1;
+
+    public float ScrollY => _view.ScrollY;
+
+    public void ScrollToY(float y)
+    {
+        _view.ScrollTo(_view.ScrollX, y);
+        _lastScrollY = _view.ScrollY;
+        InvalidateVisual();
+    }
+
+    private void NoteScroll()
+    {
+        if (Math.Abs(_view.ScrollY - _lastScrollY) < 0.01f) return;
+        _lastScrollY = _view.ScrollY;
+        // Seen while drawing: the listeners (another view following) run after the frame, not inside it.
+        if (ViewScrolled is { } scrolled) Avalonia.Threading.Dispatcher.UIThread.Post(scrolled);
+    }
+
+    /// <summary>The number shown beside each line (null for none), for views whose lines are not a file's (a diff side).</summary>
+    public Func<int, int?>? LineNumber
+    {
+        get => _view.LineNumber;
+        set
+        {
+            _view.LineNumber = value;
+            InvalidateVisual();
+        }
+    }
 
     /// <summary>Shows the glyph margin (for breakpoints) left of the line numbers.</summary>
     public bool ShowGlyphMargin

@@ -10,7 +10,7 @@ ICONS=(arrow-down arrow-up bot boxes brain check paperclip pencil history image 
        download ellipsis external-link hard-drive key-round pause play trash-2 undo-2
        chevron-up circle-x triangle-alert info lightbulb list-tree bug circle-dot redo arrow-down-to-dot arrow-up-from-dot rotate-ccw
        step-forward list-checks flask-conical bookmark list-filter braces box variable square-function wrench palette puzzle keyboard
-       columns-2 plug zap circle-play diff git-commit-horizontal git-merge git-pull-request-arrow archive tag cloud-download cloud-upload)
+       columns-2 plug zap circle-play diff git-commit-horizontal git-merge git-pull-request-arrow archive tag cloud-download cloud-upload list file-diff arrow-down-up eye)
 dir=scratch/lucide-$VERSION
 mkdir -p "$dir"
 for name in "${ICONS[@]}"; do

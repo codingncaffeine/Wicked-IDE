@@ -105,6 +105,9 @@ public sealed record EditorFrame
     /// <summary>Ticks in the vertical scrollbar's track: where the problems, changes and matches are in the whole text.</summary>
     public IReadOnlyList<(float Y, uint Color)> Overview { get; init; } = [];
 
+    /// <summary>The number shown beside a document line, when it is not the line's own (a diff side's filler rows show none).</summary>
+    public Func<int, int?>? LineNumber { get; init; }
+
     /// <summary>The glyph margin's width at the gutter's left (0 when it is off).</summary>
     public float GlyphMargin { get; init; }
 

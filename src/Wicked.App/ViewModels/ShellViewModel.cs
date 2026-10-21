@@ -40,6 +40,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         _daemonPoll = daemonPoll ?? TimeSpan.FromSeconds(5);
         Notices.Changed += () => _post(RefreshNotice);
         Workbench = new Bench(Notices);
+        SourceControl = new Git.SourceControlViewModel(this, paths, Notices, _post);
         Workbench.ActiveEditorChanged += OnActiveEditorChanged;
         Workbench.FolderOpened += folder => _ = RememberFolderAsync(folder);
         Workbench.PropertyChanged += (_, e) =>
@@ -63,6 +64,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         BottomPanel.Add(PanelIds.Output, "OUTPUT", () => new Views.OutputView(Output, () => Settings));
         BottomPanel.IsVisible = false;
         WireLanguage();
+        WireSourceControl();
         Commands = BuildCommands();
         QuickInput = new QuickInputViewModel(this);
         Models = new ModelsViewModel(paths, Notices);
@@ -119,6 +121,18 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     public BottomPanel BottomPanel { get; } = new();
 
     public ModelsViewModel Models { get; }
+
+    // ── Source Control ──────────────────────────────────────────────────────────────────────────
+
+    /// <summary>The Source Control panel: repositories, changes, commit box, graph, stashes.</summary>
+    public Git.SourceControlViewModel SourceControl { get; }
+
+    /// <summary>Shows a list of choices in the palette (the branch picker); typing filters it, Enter chooses.</summary>
+    public void ShowList(string placeholder, IReadOnlyList<QuickItem> items, int selected)
+    {
+        QuickInput.OpenList(placeholder, items, selected, null);
+        PaletteRequested?.Invoke("");
+    }
 
     /// <summary>The Assistant panel.</summary>
     public ChatViewModel Chat { get; }
@@ -205,6 +219,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             .. LanguageCommands(),
             new("workbench.action.openSnippets", "Snippets", "Configure Snippets", null, ConfigureSnippetsAsync),
             new("workbench.action.openGlobalKeybindingsFile", "Preferences", "Open Keyboard Shortcuts (JSON)", null, OpenKeybindingsJsonAsync),
+            .. SourceControl.Commands,
         ];
     }
 
@@ -555,8 +570,8 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
 
     public bool IsModels => SidebarVisible && Panel == SidePanel.Models;
 
-    /// <summary>The panels not built yet (search, source control) show what they will hold.</summary>
-    public bool ShowsPanelPlaceholder => Panel is SidePanel.SourceControl;
+    /// <summary>Every side panel has its view now; kept for a panel added before its view is.</summary>
+    public bool ShowsPanelPlaceholder => false;
 
     /// <summary>Ctrl+Shift+F: the Search panel with the editor's selection (a single line of it) as the query.</summary>
     private void ShowSearch()
@@ -723,6 +738,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     {
         _settingsWatcher?.Dispose();
         Snippets.Dispose();
+        SourceControl.Dispose();
         Workbench.Dispose();
         _ = Language.DisposeAsync().AsTask();
         _ = Models.DisposeAsync().AsTask();

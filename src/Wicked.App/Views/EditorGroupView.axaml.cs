@@ -60,6 +60,13 @@ public partial class EditorGroupView : UserControl
             return;
         }
 
+        if (tab.CustomView is { } custom)
+        {
+            Host.Content = custom;
+            FindBar.IsVisible = false;
+            return;
+        }
+
         var services = await EditorServices.Ready;
         if (_group?.Active != tab) return;
         var fresh = tab.Editor is null;

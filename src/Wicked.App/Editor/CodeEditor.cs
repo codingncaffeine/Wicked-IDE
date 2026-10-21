@@ -329,6 +329,7 @@ public sealed partial class CodeEditor : Control
     public override void Render(DrawingContext context)
     {
         var frame = _view.BuildFrame();
+        NoteScroll();
         _syntax.SetViewport(_view.FirstVisibleLine, _view.LastVisibleLine);
         context.Custom(new EditorDrawOperation(new Rect(Bounds.Size), frame));
     }
@@ -408,7 +409,7 @@ public sealed partial class CodeEditor : Control
     protected override void OnKeyDown(KeyEventArgs e)
     {
         // An open suggestion list or hover takes its keys first (arrows, Enter, Tab, Escape).
-        if (KeyPreview?.Invoke(e) == true)
+        if (KeyPreview?.Invoke(e) == true || KeyPreviews.Any(p => p(e)))
         {
             e.Handled = true;
             return;

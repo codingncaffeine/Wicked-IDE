@@ -400,6 +400,9 @@ public sealed class TextView
         return true;
     }
 
+    /// <summary>The number to show beside a line (1-based, or null for none); unset, every line shows its own.</summary>
+    public Func<int, int?>? LineNumber { get; set; }
+
     /// <summary>Room left of the line numbers for breakpoints and other glyphs (VS Code's glyph margin).</summary>
     public bool ShowGlyphMargin { get; set; }
 
@@ -627,6 +630,7 @@ public sealed class TextView
             GutterMarks = glyphs,
             Overview = OverviewMarks(),
             GlyphMargin = GlyphMargin,
+            LineNumber = LineNumber,
             CaretsVisible = CaretsVisible && Focused,
             Focused = Focused,
             VerticalThumb = vThumb,

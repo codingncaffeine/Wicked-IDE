@@ -5,6 +5,7 @@
         xmlns:shell="using:Wicked.App.Shell"
         xmlns:chat="using:Wicked.App.Chat"
         xmlns:search="using:Wicked.App.Search"
+        xmlns:git="using:Wicked.App.Git"
         x:Class="Wicked.App.Views.MainWindow"
         x:DataType="vm:ShellViewModel"
         Title="{Binding Title}"
@@ -100,6 +101,7 @@
               <views:ExplorerView DataContext="{Binding Workbench}" IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).IsExplorer}" />
               <views:ModelsView DataContext="{Binding Models}" IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).IsModels}" />
               <search:SearchView Name="SearchPanel" DataContext="{Binding Search}" IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).IsSearch}" />
+              <git:SourceControlView DataContext="{Binding SourceControl}" IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).IsSourceControl}" />
               <StackPanel Margin="14,8" Spacing="4" IsVisible="{Binding ShowsPanelPlaceholder}">
                 <TextBlock Text="{Binding PanelEmptyTitle}" />
                 <TextBlock Classes="muted" Text="{Binding PanelEmptyText}" TextWrapping="Wrap" />
@@ -182,6 +184,15 @@
           </StackPanel>
         </Button>
         <StackPanel Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,10,0" Spacing="2">
+          <Button Name="BranchStatus" Classes="status" Command="{Binding ShowSourceControlCommand}" IsVisible="{Binding SourceControl.BranchName.Length}"
+                  ToolTip.Tip="Source control: the branch, and commits to pull and push" AutomationProperties.Name="Branch">
+            <StackPanel Orientation="Horizontal" Spacing="5">
+              <shell:Icon Data="{StaticResource Icon.GitBranch}" Size="13" />
+              <TextBlock Name="BranchText" Text="{Binding SourceControl.BranchName}" VerticalAlignment="Center" />
+              <TextBlock Name="SyncStatus" Text="{Binding SourceControl.SyncText}" VerticalAlignment="Center" />
+            </StackPanel>
+          </Button>
+          <TextBlock Name="BlameStatus" Text="{Binding SourceControl.BlameStatus}" Classes="status" MaxWidth="360" TextTrimming="CharacterEllipsis" />
           <Button Name="ProblemsStatus" Classes="status" Command="{Binding ShowProblemsCommand}" ToolTip.Tip="{Binding ProblemsTip}" AutomationProperties.Name="Problems">
             <StackPanel Orientation="Horizontal" Spacing="5">
               <shell:Icon Data="{StaticResource Icon.CircleX}" Size="13" />
@@ -227,6 +238,11 @@
 
       <Border Name="PromptsLayer" Grid.RowSpan="3" Background="#99000000" IsVisible="{Binding Chat.PromptEditor, Converter={x:Static ObjectConverters.IsNotNull}}">
         <chat:SystemPromptsView DataContext="{Binding Chat.PromptEditor}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+      </Border>
+
+      <!-- Git asking for a credential: above the sheets, below the save prompt. -->
+      <Border Name="GitPromptLayer" Grid.RowSpan="3" Background="#99000000" IsVisible="{Binding SourceControl.Prompt, Converter={x:Static ObjectConverters.IsNotNull}}">
+        <git:GitPromptView DataContext="{Binding SourceControl.Prompt}" HorizontalAlignment="Center" VerticalAlignment="Center" />
       </Border>
 
       <Border Name="DialogLayer" Grid.RowSpan="3" Background="#99000000" IsVisible="False">
