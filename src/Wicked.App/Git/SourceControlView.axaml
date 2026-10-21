@@ -1,0 +1,410 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:git="using:Wicked.App.Git"
+             xmlns:shell="using:Wicked.App.Shell"
+             xmlns:core="using:Wicked.Core.Git"
+             x:Class="Wicked.App.Git.SourceControlView"
+             x:DataType="git:SourceControlViewModel">
+  <UserControl.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceInclude Source="/Themes/GitTokens.axaml" />
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
+  </UserControl.Resources>
+
+  <UserControl.Styles>
+    <Style Selector="TextBlock.long">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Warning}" />
+    </Style>
+    <Style Selector="ListBox.scm">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="ListBox.scm ListBoxItem">
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="MinHeight" Value="0" />
+      <Setter Property="CornerRadius" Value="0" />
+    </Style>
+    <Style Selector="ListBox.scm ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource Brush.Hover}" />
+    </Style>
+    <Style Selector="ListBox.scm ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource Brush.Accent.Subtle}" />
+    </Style>
+    <Style Selector="StackPanel.rowactions">
+      <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <Style Selector="ListBoxItem:pointerover StackPanel.rowactions">
+      <Setter Property="IsVisible" Value="True" />
+    </Style>
+    <Style Selector="ListBoxItem:selected StackPanel.rowactions">
+      <Setter Property="IsVisible" Value="True" />
+    </Style>
+    <Style Selector="Button.mini">
+      <Setter Property="Padding" Value="3" />
+      <Setter Property="Margin" Value="0" />
+      <Setter Property="MinHeight" Value="0" />
+      <Setter Property="MinWidth" Value="0" />
+    </Style>
+    <Style Selector="TextBlock.deleted">
+      <Setter Property="TextDecorations" Value="Strikethrough" />
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Muted}" />
+    </Style>
+    <Style Selector="Border.count">
+      <Setter Property="Background" Value="{DynamicResource Brush.Hover}" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Padding" Value="6,0" />
+      <Setter Property="Margin" Value="4,0,10,0" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Border.count > TextBlock">
+      <Setter Property="FontSize" Value="{DynamicResource Font.Size.Small}" />
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}" />
+    </Style>
+    <Style Selector="Button.sectionhead">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="Padding" Value="8,5" />
+      <Setter Property="CornerRadius" Value="0" />
+    </Style>
+    <Style Selector="Button.sectionhead:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource Brush.Hover}" />
+    </Style>
+    <Style Selector="TextBox.commit">
+      <Setter Property="Background" Value="{DynamicResource Brush.Editor}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}" />
+      <Setter Property="CornerRadius" Value="{DynamicResource Radius.Control}" />
+      <Setter Property="Padding" Value="8,6" />
+    </Style>
+    <Style Selector="Border.refchip">
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Padding" Value="6,0" />
+      <Setter Property="Margin" Value="0,0,4,0" />
+      <Setter Property="Background" Value="{DynamicResource Brush.Ref.Local}" />
+    </Style>
+    <Style Selector="Border.refchip.head">
+      <Setter Property="Background" Value="{DynamicResource Brush.Ref.Head}" />
+    </Style>
+    <Style Selector="Border.refchip.remote">
+      <Setter Property="Background" Value="{DynamicResource Brush.Ref.Remote}" />
+    </Style>
+    <Style Selector="Border.refchip.tag">
+      <Setter Property="Background" Value="{DynamicResource Brush.Ref.Tag}" />
+    </Style>
+    <Style Selector="Border.refchip > TextBlock">
+      <Setter Property="FontSize" Value="11" />
+    </Style>
+  </UserControl.Styles>
+
+  <Panel>
+    <!-- No folder open. -->
+    <StackPanel Margin="14,4" Spacing="8" IsVisible="{Binding ShowsNoFolder}">
+      <TextBlock Name="NoFolderText" Classes="muted" Text="Open a folder that is a Git repository to see its changes." TextWrapping="Wrap" />
+    </StackPanel>
+
+    <!-- A folder that is not a repository. -->
+    <StackPanel Margin="14,4" Spacing="8" IsVisible="{Binding ShowsInit}">
+      <TextBlock Name="NoRepositoryText" Classes="muted" Text="{Binding EmptyText}" TextWrapping="Wrap" />
+      <Button Name="InitButton" Classes="accent-soft" HorizontalAlignment="Stretch" Command="{Binding InitializeCommand}">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <shell:Icon Data="{StaticResource Icon.GitBranch}" Size="15" />
+          <TextBlock Text="Initialize Repository" />
+        </StackPanel>
+      </Button>
+    </StackPanel>
+
+    <DockPanel IsVisible="{Binding ShowsRepository}">
+      <!-- The repository, when the folder holds several. -->
+      <ComboBox Name="RepositoryPicker" DockPanel.Dock="Top" Margin="10,0,10,6" HorizontalAlignment="Stretch" IsVisible="{Binding ShowsRepositoryPicker}"
+                ItemsSource="{Binding Repositories}" SelectedItem="{Binding ActiveRepository, Mode=TwoWay}">
+        <ComboBox.ItemTemplate>
+          <DataTemplate DataType="git:RepositoryChoice">
+            <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" />
+          </DataTemplate>
+        </ComboBox.ItemTemplate>
+      </ComboBox>
+
+      <!-- The branch and the toolbar. -->
+      <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="8,0,6,6">
+        <Button Name="BranchButton" Classes="quiet" HorizontalAlignment="Left" Padding="6,4" Click="OnBranchClick" ToolTip.Tip="Checkout to a branch or tag">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <shell:Icon Data="{StaticResource Icon.GitBranch}" Size="14" />
+            <TextBlock Name="BranchText" Text="{Binding BranchName}" Foreground="{DynamicResource Brush.Text}" MaxWidth="150" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+            <TextBlock Name="SyncState" Text="{Binding SyncText}" Foreground="{DynamicResource Brush.Text.Secondary}" FontSize="{DynamicResource Font.Size.Small}" VerticalAlignment="Center" />
+          </StackPanel>
+        </Button>
+        <StackPanel Grid.Column="1" Orientation="Horizontal">
+          <ToggleButton Name="TreeToggle" Classes="quiet" Padding="5" IsChecked="{Binding TreeMode, Mode=TwoWay}" ToolTip.Tip="View as tree or list">
+            <Panel>
+              <shell:Icon Data="{StaticResource Icon.ListTree}" Size="15" IsVisible="{Binding !TreeMode}" />
+              <shell:Icon Data="{StaticResource Icon.List}" Size="15" IsVisible="{Binding TreeMode}" />
+            </Panel>
+          </ToggleButton>
+          <Button Name="RefreshButton" Classes="quiet" Padding="5" Command="{Binding RefreshCommand}" ToolTip.Tip="Refresh">
+            <shell:Icon Data="{StaticResource Icon.RefreshCw}" Size="15" />
+          </Button>
+          <Button Name="MoreButton" Classes="quiet" Padding="5" Click="OnMoreClick" ToolTip.Tip="More actions: pull, push, fetch, branches, stash">
+            <shell:Icon Data="{StaticResource Icon.Ellipsis}" Size="15" />
+          </Button>
+        </StackPanel>
+      </Grid>
+
+      <ProgressBar DockPanel.Dock="Top" Height="2" MinHeight="2" Margin="10,0,10,4" IsIndeterminate="True" IsVisible="{Binding IsBusy}" />
+
+      <!-- A merge, rebase or cherry-pick waiting for the user. -->
+      <Border Name="OperationBanner" DockPanel.Dock="Top" Classes="alert" Margin="10,0,10,8" IsVisible="{Binding HasOperation}">
+        <StackPanel Spacing="6">
+          <TextBlock Text="{Binding OperationText}" TextWrapping="Wrap" FontSize="{DynamicResource Font.Size.Small}" />
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <Button Classes="secondary small" Content="Abort" Command="{Binding AbortOperationCommand}" />
+            <Button Name="ContinueButton" Classes="primary small" Content="Continue" Command="{Binding ContinueOperationCommand}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <!-- The last error, in git's words. -->
+      <Border Name="ErrorStrip" DockPanel.Dock="Top" Classes="alert" Margin="10,0,10,8" IsVisible="{Binding HasError}">
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Name="ErrorText" Text="{Binding ErrorText}" TextWrapping="Wrap" FontSize="{DynamicResource Font.Size.Small}" />
+          <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
+            <Button Classes="quiet mini" Command="{Binding ShowOutputCommand}" ToolTip.Tip="Show the Git output"><shell:Icon Data="{StaticResource Icon.Terminal}" Size="13" /></Button>
+            <Button Name="DismissError" Classes="quiet mini" Command="{Binding DismissErrorCommand}" ToolTip.Tip="Dismiss"><shell:Icon Data="{StaticResource Icon.X}" Size="13" /></Button>
+          </StackPanel>
+        </Grid>
+      </Border>
+
+      <!-- The commit box. -->
+      <StackPanel DockPanel.Dock="Top" Margin="10,0,10,8" Spacing="6">
+        <Grid>
+          <TextBox Name="CommitBox" Classes="commit" AcceptsReturn="True" TextWrapping="Wrap" MinHeight="62" MaxHeight="200"
+                   PlaceholderText="{Binding CommitPlaceholder}" Text="{Binding CommitMessage, Mode=TwoWay}">
+            <TextBox.KeyBindings>
+              <KeyBinding Gesture="Ctrl+Enter" Command="{Binding CommitCommand}" />
+            </TextBox.KeyBindings>
+          </TextBox>
+          <TextBlock Name="SubjectHint" Text="{Binding SubjectHint}" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,10,6" IsHitTestVisible="False"
+                     FontSize="{DynamicResource Font.Size.Small}" Foreground="{DynamicResource Brush.Text.Muted}" Classes.long="{Binding SubjectTooLong}" />
+        </Grid>
+        <Grid ColumnDefinitions="*,Auto">
+          <Button Name="CommitButton" Classes="primary" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Command="{Binding CommitCommand}" IsEnabled="{Binding CanCommit}">
+            <StackPanel Orientation="Horizontal" Spacing="7">
+              <shell:Icon Data="{StaticResource Icon.Check}" Size="14" />
+              <TextBlock Name="CommitLabel" Text="Commit" />
+            </StackPanel>
+          </Button>
+          <Button Name="CommitMoreButton" Grid.Column="1" Classes="secondary" Margin="4,0,0,0" Padding="7,0" Click="OnCommitMoreClick" ToolTip.Tip="Commit and push, undo the last commit">
+            <shell:Icon Data="{StaticResource Icon.ChevronDown}" Size="14" />
+          </Button>
+        </Grid>
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <ToggleButton Name="AmendToggle" Classes="chip" IsChecked="{Binding Amend, Mode=TwoWay}" Content="Amend" ToolTip.Tip="Replace the last commit with this one" />
+          <ToggleButton Name="SignOffToggle" Classes="chip" IsChecked="{Binding SignOff, Mode=TwoWay}" Content="Sign-off" ToolTip.Tip="Add a Signed-off-by line" />
+        </StackPanel>
+        <Button Name="SyncButton" Classes="accent-soft" HorizontalAlignment="Stretch" IsVisible="{Binding ShowsSync}" Command="{Binding SyncCommand}">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <shell:Icon Data="{StaticResource Icon.ArrowDownUp}" Size="14" />
+            <TextBlock Name="SyncLabel" Text="{Binding SyncLabel}" />
+          </StackPanel>
+        </Button>
+      </StackPanel>
+
+      <!-- Changes, stashes, the graph and the file's history share the rest of the height. -->
+      <Grid Name="Sections" RowDefinitions="2*,Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+        <Panel Grid.Row="0" MinHeight="90">
+          <ListBox Name="ChangeList" Classes="scm" ItemsSource="{Binding Rows}" SelectionMode="Multiple" IsVisible="{Binding HasChanges}">
+            <ListBox.DataTemplates>
+              <DataTemplate DataType="git:ScmGroupRow">
+                <Grid ColumnDefinitions="Auto,*,Auto,Auto" Height="24" Background="Transparent">
+                  <shell:Icon Margin="8,0,4,0" Size="13" Data="{Binding Chevron, Converter={x:Static shell:FileIcons.Instance}}" VerticalAlignment="Center" />
+                  <TextBlock Grid.Column="1" Classes="heading" Text="{Binding Title}" VerticalAlignment="Center" />
+                  <StackPanel Grid.Column="2" Classes="rowactions" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Classes="quiet mini" IsVisible="{Binding CanDiscardAll}" ToolTip.Tip="Discard all" AutomationProperties.Name="Discard group"
+                            Command="{Binding $parent[ListBox].((git:SourceControlViewModel)DataContext).DiscardGroupCommand}" CommandParameter="{Binding}">
+                      <shell:Icon Data="{StaticResource Icon.Undo2}" Size="13" />
+                    </Button>
+                    <Button Classes="quiet mini" IsVisible="{Binding CanUnstageAll}" ToolTip.Tip="Unstage all" AutomationProperties.Name="Unstage group"
+                            Command="{Binding $parent[ListBox].((git:SourceControlViewModel)DataContext).UnstageGroupCommand}" CommandParameter="{Binding}">
+                      <shell:Icon Data="{StaticResource Icon.Minus}" Size="13" />
+                    </Button>
+                    <Button Classes="quiet mini" IsVisible="{Binding CanStageAll}" ToolTip.Tip="{Binding StageAllTip}" AutomationProperties.Name="Stage group"
+                            Command="{Binding $parent[ListBox].((git:SourceControlViewModel)DataContext).StageGroupCommand}" CommandParameter="{Binding}">
+                      <shell:Icon Data="{StaticResource Icon.Plus}" Size="13" />
+                    </Button>
+                  </StackPanel>
+                  <Border Grid.Column="3" Classes="count"><TextBlock Text="{Binding Count}" /></Border>
+                </Grid>
+              </DataTemplate>
+
+              <DataTemplate DataType="git:ScmFolderRow">
+                <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto" Height="24" Background="Transparent">
+                  <Border Width="{Binding Indent}" />
+                  <shell:Icon Grid.Column="1" Margin="0,0,4,0" Size="13" Data="{Binding Chevron, Converter={x:Static shell:FileIcons.Instance}}" VerticalAlignment="Center" />
+                  <shell:Icon Grid.Column="2" Margin="0,0,6,0" Size="14" Data="{StaticResource Icon.Folder}" VerticalAlignment="Center" />
+                  <TextBlock Grid.Column="3" Text="{Binding Name}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                  <Border Grid.Column="4" Classes="count"><TextBlock Text="{Binding Count}" /></Border>
+                </Grid>
+              </DataTemplate>
+
+              <DataTemplate DataType="git:ScmFileRow">
+                <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" Height="24" Background="Transparent" ToolTip.Tip="{Binding Tooltip}">
+                  <Border Width="{Binding Indent}" />
+                  <shell:Icon Grid.Column="1" Margin="0,0,6,0" Size="14" Data="{StaticResource Icon.FileCode}" VerticalAlignment="Center" />
+                  <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                    <TextBlock Name="FileName" Text="{Binding Name}" TextTrimming="CharacterEllipsis" Classes.deleted="{Binding IsDeleted}" />
+                    <TextBlock Text="{Binding Directory}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding Detail}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                  </StackPanel>
+                  <StackPanel Grid.Column="3" Classes="rowactions" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Classes="quiet mini" ToolTip.Tip="Open File" AutomationProperties.Name="Open File"
+                            Command="{Binding $parent[ListBox].((git:SourceControlViewModel)DataContext).OpenFileCommand}" CommandParameter="{Binding}">
+                      <shell:Icon Data="{StaticResource Icon.FileText}" Size="13" />
+                    </Button>
+                    <Button Classes="quiet mini" IsVisible="{Binding CanDiscard}" ToolTip.Tip="Discard Changes" AutomationProperties.Name="Discard Changes"
+                            Command="{Binding $parent[ListBox].((git:SourceControlViewModel)DataContext).DiscardRowCommand}" CommandParameter="{Binding}">
+                      <shell:Icon Data="{StaticResource Icon.Undo2}" Size="13" />
+                    </Button>
+                    <Button Classes="quiet mini" IsVisible="{Binding IsStaged}" ToolTip.Tip="Unstage Changes" AutomationProperties.Name="Unstage Changes"
+                            Command="{Binding $parent[ListBox].((git:SourceControlViewModel)DataContext).UnstageRowCommand}" CommandParameter="{Binding}">
+                      <shell:Icon Data="{StaticResource Icon.Minus}" Size="13" />
+                    </Button>
+                    <Button Classes="quiet mini" IsVisible="{Binding CanStage}" ToolTip.Tip="Stage Changes" AutomationProperties.Name="Stage Changes"
+                            Command="{Binding $parent[ListBox].((git:SourceControlViewModel)DataContext).StageRowCommand}" CommandParameter="{Binding}">
+                      <shell:Icon Data="{StaticResource Icon.Plus}" Size="13" />
+                    </Button>
+                  </StackPanel>
+                  <TextBlock Grid.Column="4" Width="22" TextAlignment="Center" Text="{Binding Letter}" FontWeight="SemiBold" Foreground="{Binding Tone, Converter={x:Static git:ScmToneBrush.Instance}}" VerticalAlignment="Center" />
+                </Grid>
+              </DataTemplate>
+            </ListBox.DataTemplates>
+          </ListBox>
+          <TextBlock Name="CleanText" Classes="muted" Margin="14,6" TextWrapping="Wrap" IsVisible="{Binding !HasChanges}" Text="No changes. The working tree is clean." />
+        </Panel>
+
+        <!-- Stashes -->
+        <Button Name="StashHead" Grid.Row="1" Classes="sectionhead" Command="{Binding ToggleStashesCommand}">
+          <Grid ColumnDefinitions="Auto,*,Auto">
+            <Panel Margin="0,0,4,0">
+              <shell:Icon Data="{StaticResource Icon.ChevronRight}" Size="13" IsVisible="{Binding !StashesExpanded}" />
+              <shell:Icon Data="{StaticResource Icon.ChevronDown}" Size="13" IsVisible="{Binding StashesExpanded}" />
+            </Panel>
+            <TextBlock Grid.Column="1" Classes="heading" Text="STASHES" VerticalAlignment="Center" />
+            <Border Grid.Column="2" Classes="count"><TextBlock Name="StashCount" Text="{Binding Stashes.Length}" /></Border>
+          </Grid>
+        </Button>
+        <ListBox Name="StashList" Grid.Row="2" Classes="scm" MaxHeight="150" ItemsSource="{Binding Stashes}" IsVisible="{Binding StashesExpanded}">
+          <ListBox.ItemTemplate>
+            <DataTemplate DataType="core:GitStash">
+              <Grid ColumnDefinitions="Auto,*,Auto" Height="24" Background="Transparent" ToolTip.Tip="{Binding Ref}">
+                <shell:Icon Margin="10,0,6,0" Size="14" Data="{StaticResource Icon.Archive}" VerticalAlignment="Center" />
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                  <TextBlock Text="{Binding Message}" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Text="{Binding Branch}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" />
+                </StackPanel>
+                <StackPanel Grid.Column="2" Classes="rowactions" Orientation="Horizontal" VerticalAlignment="Center">
+                  <Button Classes="quiet mini" ToolTip.Tip="Apply Stash" AutomationProperties.Name="Apply Stash"
+                          Command="{Binding $parent[ListBox].((git:SourceControlViewModel)DataContext).ApplyStashCommand}" CommandParameter="{Binding}">
+                    <shell:Icon Data="{StaticResource Icon.Check}" Size="13" />
+                  </Button>
+                  <Button Classes="quiet mini" ToolTip.Tip="Pop Stash" AutomationProperties.Name="Pop Stash"
+                          Command="{Binding $parent[ListBox].((git:SourceControlViewModel)DataContext).PopStashCommand}" CommandParameter="{Binding}">
+                    <shell:Icon Data="{StaticResource Icon.Download}" Size="13" />
+                  </Button>
+                  <Button Classes="quiet mini" ToolTip.Tip="Drop Stash" AutomationProperties.Name="Drop Stash"
+                          Command="{Binding $parent[ListBox].((git:SourceControlViewModel)DataContext).DropStashCommand}" CommandParameter="{Binding}">
+                    <shell:Icon Data="{StaticResource Icon.Trash2}" Size="13" />
+                  </Button>
+                </StackPanel>
+              </Grid>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+
+        <!-- The graph -->
+        <Button Name="GraphHead" Grid.Row="3" Classes="sectionhead" Command="{Binding ToggleGraphCommand}">
+          <Grid ColumnDefinitions="Auto,*">
+            <Panel Margin="0,0,4,0">
+              <shell:Icon Data="{StaticResource Icon.ChevronRight}" Size="13" IsVisible="{Binding !GraphExpanded}" />
+              <shell:Icon Data="{StaticResource Icon.ChevronDown}" Size="13" IsVisible="{Binding GraphExpanded}" />
+            </Panel>
+            <TextBlock Grid.Column="1" Classes="heading" Text="GRAPH" VerticalAlignment="Center" />
+          </Grid>
+        </Button>
+        <ListBox Name="GraphList" Grid.Row="4" Classes="scm" MinHeight="100" ItemsSource="{Binding GraphRows}" IsVisible="{Binding GraphExpanded}">
+          <ListBox.ItemTemplate>
+            <DataTemplate DataType="git:GraphRowVm">
+              <Grid ColumnDefinitions="Auto,*,Auto" Height="24" Background="Transparent" ToolTip.Tip="{Binding Tooltip}">
+                <git:GraphLanes Row="{Binding Row}" Lanes="{Binding $parent[ListBox].((git:SourceControlViewModel)DataContext).GraphLanes}" />
+                <Grid Grid.Column="1" ColumnDefinitions="Auto,*" VerticalAlignment="Center" ClipToBounds="True">
+                  <ItemsControl ItemsSource="{Binding Refs}" IsVisible="{Binding HasRefs}" MaxWidth="140" ClipToBounds="True">
+                    <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate DataType="git:GraphRefChip">
+                        <Border Classes="refchip" Classes.head="{Binding IsHead}" Classes.remote="{Binding IsRemote}" Classes.tag="{Binding IsTag}">
+                          <TextBlock Text="{Binding Name}" />
+                        </Border>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                  <TextBlock Grid.Column="1" Text="{Binding Subject}" TextTrimming="CharacterEllipsis" />
+                </Grid>
+                <TextBlock Grid.Column="2" Margin="6,0,10,0" Text="{Binding DateText}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" VerticalAlignment="Center" />
+              </Grid>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+        <!-- The selected commit and its files. -->
+        <Border Name="CommitDetails" Grid.Row="5" MaxHeight="170" BorderBrush="{DynamicResource Brush.Border.Subtle}" BorderThickness="0,1,0,0"
+                IsVisible="{Binding SelectedCommit, Converter={x:Static ObjectConverters.IsNotNull}}">
+          <DockPanel>
+            <StackPanel DockPanel.Dock="Top" Margin="10,6,10,4" Spacing="1">
+              <TextBlock Name="CommitSubject" Text="{Binding SelectedCommit.Subject}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+              <TextBlock Classes="muted" FontSize="{DynamicResource Font.Size.Small}" Text="{Binding SelectedCommit.Author}" />
+            </StackPanel>
+            <ListBox Name="CommitFileList" Classes="scm" ItemsSource="{Binding CommitFiles}">
+              <ListBox.ItemTemplate>
+                <DataTemplate DataType="git:CommitFileRow">
+                  <Grid ColumnDefinitions="Auto,*,Auto" Height="24" Background="Transparent" ToolTip.Tip="{Binding Tooltip}">
+                    <shell:Icon Margin="10,0,6,0" Size="14" Data="{StaticResource Icon.FileCode}" VerticalAlignment="Center" />
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                      <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                      <TextBlock Text="{Binding Directory}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                    <TextBlock Grid.Column="2" Width="22" TextAlignment="Center" Text="{Binding Letter}" FontWeight="SemiBold" Foreground="{Binding Tone, Converter={x:Static git:ScmToneBrush.Instance}}" VerticalAlignment="Center" />
+                  </Grid>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </DockPanel>
+        </Border>
+
+        <!-- The active file's history -->
+        <Button Name="HistoryHead" Grid.Row="6" Classes="sectionhead" Command="{Binding ToggleHistoryCommand}">
+          <Grid ColumnDefinitions="Auto,*">
+            <Panel Margin="0,0,4,0">
+              <shell:Icon Data="{StaticResource Icon.ChevronRight}" Size="13" IsVisible="{Binding !HistoryExpanded}" />
+              <shell:Icon Data="{StaticResource Icon.ChevronDown}" Size="13" IsVisible="{Binding HistoryExpanded}" />
+            </Panel>
+            <TextBlock Grid.Column="1" Classes="heading" Text="FILE HISTORY" VerticalAlignment="Center" />
+          </Grid>
+        </Button>
+        <ListBox Name="HistoryList" Grid.Row="7" Classes="scm" MinHeight="80" ItemsSource="{Binding HistoryRows}" IsVisible="{Binding HistoryExpanded}">
+          <ListBox.ItemTemplate>
+            <DataTemplate DataType="git:CommitRowVm">
+              <Grid ColumnDefinitions="*,Auto" Height="24" Background="Transparent" ToolTip.Tip="{Binding Tooltip}">
+                <StackPanel Margin="10,0,0,0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                  <TextBlock Text="{Binding Subject}" TextTrimming="CharacterEllipsis" />
+                  <TextBlock Text="{Binding Author}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" />
+                </StackPanel>
+                <TextBlock Grid.Column="1" Margin="6,0,10,0" Text="{Binding DateText}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" VerticalAlignment="Center" />
+              </Grid>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </Grid>
+    </DockPanel>
+  </Panel>
+</UserControl>

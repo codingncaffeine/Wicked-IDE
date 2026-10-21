@@ -1,0 +1,21 @@
+<!-- The Source Control panel's own tokens: the colours of the commit graph's lanes and of the names on a commit. A theme replaces
+     this dictionary together with Tokens.axaml. -->
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- Lanes, in the order they are handed out. -->
+  <SolidColorBrush x:Key="Brush.Graph.0" Color="#8B7BF7" />
+  <SolidColorBrush x:Key="Brush.Graph.1" Color="#3FCF8E" />
+  <SolidColorBrush x:Key="Brush.Graph.2" Color="#F2B84B" />
+  <SolidColorBrush x:Key="Brush.Graph.3" Color="#5DB7F0" />
+  <SolidColorBrush x:Key="Brush.Graph.4" Color="#E07BD6" />
+  <SolidColorBrush x:Key="Brush.Graph.5" Color="#F0616D" />
+  <SolidColorBrush x:Key="Brush.Graph.6" Color="#5FD3C8" />
+  <SolidColorBrush x:Key="Brush.Graph.7" Color="#F29A5B" />
+
+  <!-- The names on a commit: HEAD, local branches, remote branches, tags. -->
+  <SolidColorBrush x:Key="Brush.Ref.Head" Color="#338B7BF7" />
+  <SolidColorBrush x:Key="Brush.Ref.Local" Color="#263FCF8E" />
+  <SolidColorBrush x:Key="Brush.Ref.Remote" Color="#265DB7F0" />
+  <SolidColorBrush x:Key="Brush.Ref.Tag" Color="#26F2B84B" />
+</ResourceDictionary>

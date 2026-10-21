@@ -4,6 +4,7 @@
         xmlns:views="using:Wicked.App.Views"
         xmlns:shell="using:Wicked.App.Shell"
         xmlns:chat="using:Wicked.App.Chat"
+        xmlns:git="using:Wicked.App.Git"
         x:Class="Wicked.App.Views.MainWindow"
         x:DataType="vm:ShellViewModel"
         Title="{Binding Title}"
@@ -98,6 +99,7 @@
             <Panel>
               <views:ExplorerView DataContext="{Binding Workbench}" IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).IsExplorer}" />
               <views:ModelsView DataContext="{Binding Models}" IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).IsModels}" />
+              <git:SourceControlView DataContext="{Binding SourceControl}" IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).IsSourceControl}" />
               <StackPanel Margin="14,8" Spacing="4" IsVisible="{Binding ShowsPanelPlaceholder}">
                 <TextBlock Text="{Binding PanelEmptyTitle}" />
                 <TextBlock Classes="muted" Text="{Binding PanelEmptyText}" TextWrapping="Wrap" />
@@ -180,6 +182,11 @@
 
       <Border Name="PromptsLayer" Grid.RowSpan="3" Background="#99000000" IsVisible="{Binding Chat.PromptEditor, Converter={x:Static ObjectConverters.IsNotNull}}">
         <chat:SystemPromptsView DataContext="{Binding Chat.PromptEditor}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+      </Border>
+
+      <!-- Git asking for a credential: above the sheets, below the save prompt. -->
+      <Border Name="GitPromptLayer" Grid.RowSpan="3" Background="#99000000" IsVisible="{Binding SourceControl.Prompt, Converter={x:Static ObjectConverters.IsNotNull}}">
+        <git:GitPromptView DataContext="{Binding SourceControl.Prompt}" HorizontalAlignment="Center" VerticalAlignment="Center" />
       </Border>
 
       <Border Name="DialogLayer" Grid.RowSpan="3" Background="#99000000" IsVisible="False">

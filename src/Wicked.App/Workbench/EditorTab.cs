@@ -52,7 +52,10 @@ public sealed partial class EditorTab : ObservableObject
 
     private string? UntitledName { get; }
 
-    public string Title => Path is null ? UntitledName! : System.IO.Path.GetFileName(Path);
+    /// <summary>A name for a tab that shows generated text and has no file (a diff): shown in place of "Untitled-N".</summary>
+    public string? Label { get; init; }
+
+    public string Title => Path is null ? Label ?? UntitledName! : System.IO.Path.GetFileName(Path);
 
     public string Tooltip => Path ?? UntitledName!;
 

@@ -1,0 +1,22 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:git="using:Wicked.App.Git"
+             x:Class="Wicked.App.Git.GitPromptView"
+             x:DataType="git:GitPromptViewModel">
+  <Border Classes="dialog" Width="440">
+    <StackPanel Spacing="10">
+      <TextBlock Name="GitPromptTitle" Text="{Binding Title}" FontSize="15" FontWeight="SemiBold" TextWrapping="Wrap" />
+      <TextBlock Name="GitPromptText" Text="{Binding Prompt}" Classes="secondary" TextWrapping="Wrap" />
+      <TextBox Name="GitPromptAnswer" Text="{Binding Answer, Mode=TwoWay}" PasswordChar="{Binding PasswordChar}" RevealPassword="False" AcceptsReturn="False">
+        <TextBox.KeyBindings>
+          <KeyBinding Gesture="Enter" Command="{Binding AcceptCommand}" />
+          <KeyBinding Gesture="Escape" Command="{Binding CancelCommand}" />
+        </TextBox.KeyBindings>
+      </TextBox>
+      <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,6,0,0">
+        <Button Name="GitPromptCancel" Classes="secondary" Content="Cancel" Command="{Binding CancelCommand}" />
+        <Button Name="GitPromptOk" Classes="primary" Content="OK" Command="{Binding AcceptCommand}" />
+      </StackPanel>
+    </StackPanel>
+  </Border>
+</UserControl>

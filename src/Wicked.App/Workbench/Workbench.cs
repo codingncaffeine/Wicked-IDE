@@ -198,10 +198,14 @@ public sealed partial class Workbench : ObservableObject, IDisposable
         }
     }
 
+    /// <summary>A file or folder under the open folder changed on disk (raised on the watcher's thread, git's own folder left out); Source Control listens.</summary>
+    public event Action<string>? PathChanged;
+
     // On the watcher's thread: note the path, settle on the UI thread.
     private void Changed(string path)
     {
         if (path.Contains($"{Path.DirectorySeparatorChar}.git{Path.DirectorySeparatorChar}", StringComparison.Ordinal)) return;
+        PathChanged?.Invoke(path);
         lock (_changedPaths) _changedPaths.Add(path);
         Dispatcher.UIThread.Post(() =>
         {
