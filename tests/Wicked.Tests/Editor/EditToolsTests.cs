@@ -171,5 +171,9 @@ public sealed class TagAndWordTests
         var list = Wicked.App.Language.WordSuggestions.From([current, other], current, (11, 13));
         Assert.Equal(["alpha", "beta", "x_y", "gamma", "$dollar"], list.Items.Select(i => i.Label));
         Assert.All(list.Items, i => Assert.Equal(Wicked.App.Language.WordSuggestions.TextKind, i.Kind));
+
+        // Typed in front of a word, the word it runs into ("new" before "beta" makes "newbeta") is not offered either.
+        var before = new Wicked.Editor.Model.Document("alpha\nnewbeta").Text;
+        Assert.Equal(["alpha"], Wicked.App.Language.WordSuggestions.From([before], before, (6, 9)).Items.Select(i => i.Label));
     }
 }

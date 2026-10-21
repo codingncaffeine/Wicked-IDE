@@ -28,8 +28,8 @@ public static class WordSuggestions
                 if (isWord && start < 0) start = i;
                 else if (!isWord && start >= 0)
                 {
-                    // The word under the caret, as far as it is typed, is skipped in the text being edited.
-                    var isTyped = ReferenceEquals(text, current) && start == typed.Start && i == typed.End;
+                    // The word the caret is in (the typed part and whatever it runs into) is never offered back to itself.
+                    var isTyped = ReferenceEquals(text, current) && start <= typed.Start && i >= typed.End;
                     if (i - start >= 2 && !char.IsDigit(text[start]) && !isTyped) words.Add(text.Substring(start, i - start));
                     start = -1;
                 }
