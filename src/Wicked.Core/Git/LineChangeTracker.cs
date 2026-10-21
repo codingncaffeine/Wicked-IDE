@@ -82,6 +82,8 @@ public sealed class LineChangeTracker : IDisposable
                 string[]? baseLines;
                 lock (_gate)
                 {
+                    // A newer change came while this one waited for a thread: its text is not to be taken.
+                    if (generation != _generation) return;
                     snapshot = _latest;
                     baseLines = _baseLines;
                 }
