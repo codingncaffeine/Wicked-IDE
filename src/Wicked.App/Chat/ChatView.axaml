@@ -1,0 +1,302 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Wicked.App.ViewModels"
+             xmlns:shell="using:Wicked.App.Shell"
+             xmlns:chat="using:Wicked.App.Chat"
+             x:Class="Wicked.App.Chat.ChatView"
+             x:DataType="chat:ChatViewModel">
+  <DockPanel>
+    <!-- ── Header: the conversation's name, its history and a new one. ── -->
+    <Grid DockPanel.Dock="Top" ColumnDefinitions="Auto,*,Auto,Auto,Auto" Margin="14,8,8,4">
+      <shell:Icon Data="{StaticResource Icon.Sparkles}" Size="15" Foreground="{DynamicResource Brush.Accent}" />
+      <TextBlock Grid.Column="1" Name="ChatTitle" Text="{Binding CurrentTitle}" FontWeight="SemiBold" Margin="8,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+      <Button Grid.Column="2" Name="HistoryButton" Classes="quiet" Command="{Binding ToggleHistoryCommand}" ToolTip.Tip="Past chats" AutomationProperties.Name="Past chats">
+        <shell:Icon Data="{StaticResource Icon.History}" Size="14" />
+      </Button>
+      <Button Grid.Column="3" Name="NewChatButton" Classes="quiet" Command="{Binding NewChatCommand}" ToolTip.Tip="New chat (Ctrl+N)" AutomationProperties.Name="New chat">
+        <shell:Icon Data="{StaticResource Icon.Plus}" Size="14" />
+      </Button>
+      <Button Grid.Column="4" Classes="quiet" Command="{Binding $parent[Window].((vm:ShellViewModel)DataContext).ToggleAssistantCommand}" ToolTip.Tip="Hide (Ctrl+L)">
+        <shell:Icon Data="{StaticResource Icon.X}" Size="14" />
+      </Button>
+    </Grid>
+
+    <!-- ── The composer, as the AI editors set it: a rounded box at the foot of the panel. ── -->
+    <Border DockPanel.Dock="Bottom" Name="ComposerBox" Margin="10" Padding="10,8" CornerRadius="10" DragDrop.AllowDrop="True"
+            Background="{DynamicResource Brush.Raised}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1">
+      <StackPanel Spacing="6">
+        <ItemsControl Name="AttachmentList" ItemsSource="{Binding Attachments}" IsVisible="{Binding Attachments.Count}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel Orientation="Horizontal" Spacing="6" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="chat:AttachmentViewModel">
+              <Grid Width="56" Height="56">
+                <Border CornerRadius="6" ClipToBounds="True" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1">
+                  <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
+                </Border>
+                <Button Classes="quiet" Command="{Binding Remove}" Padding="2" HorizontalAlignment="Right" VerticalAlignment="Top"
+                        Background="{DynamicResource Brush.Surface}" ToolTip.Tip="Remove" AutomationProperties.Name="Remove picture">
+                  <shell:Icon Data="{StaticResource Icon.X}" Size="10" />
+                </Button>
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <TextBox Name="Composer" Classes="composer" Text="{Binding Draft}" PlaceholderText="{Binding ComposerHint}"
+                 AcceptsReturn="True" TextWrapping="Wrap" MaxHeight="170" MinHeight="22" IsEnabled="{Binding HasSelectedModel}" />
+        <TextBlock Name="ComposerNote" Text="{Binding ComposerNote}" Foreground="{DynamicResource Brush.Warning}" TextWrapping="Wrap"
+                   FontSize="{DynamicResource Font.Size.Small}" IsVisible="{Binding ComposerNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
+        <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto" ColumnSpacing="6">
+          <!-- The model chip: switches the model, mid-conversation too. -->
+          <Button Name="ModelChip" Classes="chipbutton" ToolTip.Tip="Model for this chat" AutomationProperties.Name="Model">
+            <StackPanel Orientation="Horizontal" Spacing="5">
+              <shell:Icon Data="{StaticResource Icon.Cpu}" Size="12" />
+              <TextBlock Name="ModelChipText" Text="{Binding ModelLabel}" FontSize="{DynamicResource Font.Size.Small}" MaxWidth="150" TextTrimming="CharacterEllipsis" />
+              <shell:Icon Data="{StaticResource Icon.ChevronDown}" Size="10" />
+            </StackPanel>
+            <Button.Flyout>
+              <Flyout Placement="TopEdgeAlignedLeft" ShowMode="Standard">
+                <StackPanel Width="280" Spacing="2">
+                  <ItemsControl Name="ModelList" ItemsSource="{Binding Models}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="chat:ModelChoice">
+                        <Button Classes="menurow" Click="OnMenuRowClick" Command="{Binding SelectCommand}" AutomationProperties.Name="{Binding Name}">
+                          <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                            <Ellipse Classes="state" Classes.loaded="{Binding IsLoaded}" Classes.loading="{Binding IsLoading}" Classes.failed="{Binding IsFailed}" />
+                            <StackPanel Grid.Column="1">
+                              <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                              <TextBlock Text="{Binding StateText}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" TextTrimming="CharacterEllipsis" />
+                            </StackPanel>
+                            <shell:Icon Grid.Column="2" Data="{StaticResource Icon.Check}" Size="13" Foreground="{DynamicResource Brush.Accent}" IsVisible="{Binding IsSelected}" />
+                          </Grid>
+                        </Button>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                  <Button Name="OpenModelsFromChip" Classes="menurow" Click="OnMenuRowClick" Command="{Binding ShowModelsCommand}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <shell:Icon Data="{StaticResource Icon.Boxes}" Size="13" />
+                      <TextBlock Text="Manage models…" />
+                    </StackPanel>
+                  </Button>
+                </StackPanel>
+              </Flyout>
+            </Button.Flyout>
+          </Button>
+
+          <!-- The system prompt this chat keeps. -->
+          <Button Grid.Column="1" Name="PromptChip" Classes="chipbutton" ToolTip.Tip="System prompt for this chat" AutomationProperties.Name="System prompt">
+            <StackPanel Orientation="Horizontal" Spacing="5">
+              <shell:Icon Data="{StaticResource Icon.SlidersHorizontal}" Size="12" />
+              <TextBlock Name="PromptChipText" Text="{Binding PromptLabel}" FontSize="{DynamicResource Font.Size.Small}" MaxWidth="110" TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+            <Button.Flyout>
+              <Flyout Placement="TopEdgeAlignedLeft" ShowMode="Standard">
+                <StackPanel Width="250" Spacing="2">
+                  <ItemsControl Name="PromptList" ItemsSource="{Binding PromptChoices}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="chat:PromptChoice">
+                        <Button Classes="menurow" Click="OnMenuRowClick" Command="{Binding SelectCommand}" AutomationProperties.Name="{Binding Name}">
+                          <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                            <shell:Icon Grid.Column="1" Data="{StaticResource Icon.Check}" Size="13" Foreground="{DynamicResource Brush.Accent}" IsVisible="{Binding IsCurrent}" />
+                          </Grid>
+                        </Button>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                  <Button Name="EditPromptsButton" Classes="menurow" Click="OnMenuRowClick" Command="{Binding EditPromptsCommand}">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <shell:Icon Data="{StaticResource Icon.Pencil}" Size="13" />
+                      <TextBlock Text="Edit prompts…" />
+                    </StackPanel>
+                  </Button>
+                </StackPanel>
+              </Flyout>
+            </Button.Flyout>
+          </Button>
+
+          <!-- Pictures: only for a model that can see. -->
+          <Button Grid.Column="3" Name="AttachButton" Classes="quiet" Click="OnAttach" IsVisible="{Binding AcceptsImages}"
+                  ToolTip.Tip="Attach a picture (or paste or drop one)" AutomationProperties.Name="Attach picture">
+            <shell:Icon Data="{StaticResource Icon.Paperclip}" Size="15" />
+          </Button>
+
+          <!-- How much of the model's context the conversation fills. -->
+          <StackPanel Grid.Column="4" Name="ContextMeter" Orientation="Horizontal" Spacing="5" VerticalAlignment="Center" IsVisible="{Binding HasContext}"
+                      ToolTip.Tip="{Binding ContextText}">
+            <ProgressBar Width="38" MinWidth="0" Height="4" MinHeight="4" Minimum="0" Maximum="1" Value="{Binding ContextFraction}" Classes.high="{Binding ContextHigh}" />
+          </StackPanel>
+
+          <Button Grid.Column="5" Name="SendButton" Classes="primary send" Command="{Binding SendCommand}" IsEnabled="{Binding CanSend}"
+                  IsVisible="{Binding IsIdle}" ToolTip.Tip="Send (Enter)" AutomationProperties.Name="Send">
+            <shell:Icon Data="{StaticResource Icon.ArrowUp}" Size="15" StrokeWidth="2.2" Foreground="{DynamicResource Brush.Text.OnAccent}" />
+          </Button>
+          <Button Grid.Column="5" Name="StopButton" Classes="primary send" Command="{Binding StopCommand}" IsVisible="{Binding IsStreaming}"
+                  ToolTip.Tip="Stop (Esc)" AutomationProperties.Name="Stop">
+            <shell:Icon Data="{StaticResource Icon.Square}" Size="12" StrokeWidth="2.2" Foreground="{DynamicResource Brush.Text.OnAccent}" />
+          </Button>
+        </Grid>
+      </StackPanel>
+    </Border>
+
+    <Panel>
+      <!-- No model installed: the way to one. -->
+      <StackPanel Name="NoModelState" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8" Margin="28,0"
+                  IsVisible="{Binding !HasModels}">
+        <shell:Icon Data="{StaticResource Icon.Bot}" Size="30" StrokeWidth="1.4" Foreground="{DynamicResource Brush.Text.Muted}" />
+        <TextBlock Text="No model yet" HorizontalAlignment="Center" FontWeight="SemiBold" />
+        <TextBlock Classes="muted" TextAlignment="Center" TextWrapping="Wrap"
+                   Text="Wicked will suggest two or three models that fit this PC, and keep them up to date." />
+        <Button Name="OpenModelsButton" Classes="accent-soft" Command="{Binding ShowModelsCommand}" HorizontalAlignment="Center" Margin="0,6,0,0">
+          <StackPanel Orientation="Horizontal" Spacing="7">
+            <shell:Icon Data="{StaticResource Icon.Boxes}" Size="14" />
+            <TextBlock Text="Choose a model" />
+          </StackPanel>
+        </Button>
+      </StackPanel>
+
+      <!-- A model, nothing said yet. -->
+      <StackPanel Name="WelcomeState" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8" Margin="28,0">
+        <StackPanel.IsVisible>
+          <MultiBinding Converter="{x:Static BoolConverters.And}">
+            <Binding Path="HasModels" />
+            <Binding Path="IsEmpty" />
+          </MultiBinding>
+        </StackPanel.IsVisible>
+        <shell:Icon Data="{StaticResource Icon.Sparkles}" Size="26" StrokeWidth="1.4" Foreground="{DynamicResource Brush.Accent}" />
+        <TextBlock Text="Ask anything" HorizontalAlignment="Center" FontWeight="SemiBold" />
+        <TextBlock Classes="muted" TextAlignment="Center" TextWrapping="Wrap" Text="Everything runs on this PC. Enter sends, Shift+Enter starts a new line." />
+      </StackPanel>
+
+      <!-- The conversation. Only the messages in view are built, however long it is. -->
+      <ItemsControl Name="MessageList" ItemsSource="{Binding Messages}" IsVisible="{Binding !IsEmpty}">
+        <ItemsControl.Template>
+          <ControlTemplate>
+            <ScrollViewer Name="MessageScroll" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+              <ItemsPresenter Name="PART_ItemsPresenter" ItemsPanel="{TemplateBinding ItemsPanel}" />
+            </ScrollViewer>
+          </ControlTemplate>
+        </ItemsControl.Template>
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <VirtualizingStackPanel />
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="chat:ChatMessageViewModel">
+            <Border Classes="message" Classes.user="{Binding IsUser}">
+              <StackPanel Spacing="6">
+                <!-- A user turn -->
+                <StackPanel Spacing="6" IsVisible="{Binding IsUser}">
+                  <ItemsControl ItemsSource="{Binding Thumbnails}" IsVisible="{Binding HasImages}">
+                    <ItemsControl.ItemsPanel>
+                      <ItemsPanelTemplate>
+                        <WrapPanel />
+                      </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate>
+                        <Border CornerRadius="6" ClipToBounds="True" Margin="0,0,6,6" MaxWidth="150" MaxHeight="110">
+                          <Image Source="{Binding}" Stretch="Uniform" />
+                        </Border>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                  <SelectableTextBlock Text="{Binding Text}" TextWrapping="Wrap" IsVisible="{Binding !IsEditing}" />
+                  <StackPanel Spacing="6" IsVisible="{Binding IsEditing}">
+                    <TextBox Name="EditBox" Classes="composer" Text="{Binding EditText}" AcceptsReturn="True" TextWrapping="Wrap" MaxHeight="200"
+                             Background="{DynamicResource Brush.Surface}" Padding="8,6" />
+                    <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right">
+                      <Button Name="CancelEditButton" Classes="secondary small" Content="Cancel" Command="{Binding CancelEditCommand}" />
+                      <Button Name="ResendButton" Classes="primary small" Content="Resend" Command="{Binding SaveEditCommand}" />
+                    </StackPanel>
+                  </StackPanel>
+                </StackPanel>
+
+                <!-- An assistant turn -->
+                <StackPanel Spacing="6" IsVisible="{Binding IsAssistant}">
+                  <Border Classes="reasoning" IsVisible="{Binding ShowReasoning}">
+                    <StackPanel Spacing="4">
+                      <Button Name="ThoughtToggle" Classes="quiet small" Command="{Binding ToggleReasoningCommand}" HorizontalAlignment="Left" Padding="4,2"
+                              AutomationProperties.Name="{Binding ThoughtLabel}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                          <shell:Icon Data="{StaticResource Icon.Brain}" Size="13" />
+                          <TextBlock Name="ThoughtLabel" Text="{Binding ThoughtLabel}" FontSize="{DynamicResource Font.Size.Small}" />
+                          <shell:Icon Data="{StaticResource Icon.ChevronDown}" Size="11" IsVisible="{Binding ReasoningExpanded}" />
+                          <shell:Icon Data="{StaticResource Icon.ChevronRight}" Size="11" IsVisible="{Binding !ReasoningExpanded}" />
+                        </StackPanel>
+                      </Button>
+                      <chat:MarkdownView Name="ReasoningView" Blocks="{Binding ReasoningBlocks}" IsVisible="{Binding ReasoningExpanded}" Classes="reasoningtext" />
+                    </StackPanel>
+                  </Border>
+                  <TextBlock Name="WaitingText" Text="{Binding Status}" Classes="muted" IsVisible="{Binding IsWaiting}" />
+                  <chat:MarkdownView Name="AnswerView" Blocks="{Binding Blocks}" />
+                  <Border Classes="replyerror" IsVisible="{Binding HasError}">
+                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                      <shell:Icon Data="{StaticResource Icon.CircleAlert}" Size="15" Foreground="{DynamicResource Brush.Danger}" VerticalAlignment="Top" Margin="0,1,0,0" />
+                      <TextBlock Name="ErrorText" Grid.Column="1" Text="{Binding Error}" TextWrapping="Wrap" />
+                      <Button Name="RetryButton" Grid.Column="2" Classes="secondary small" Content="Retry" Command="{Binding RetryCommand}" IsVisible="{Binding CanChange}" VerticalAlignment="Top" />
+                    </Grid>
+                  </Border>
+                </StackPanel>
+
+                <!-- Footer: the numbers, then copy, regenerate, edit. -->
+                <Grid ColumnDefinitions="*,Auto,Auto,Auto" IsVisible="{Binding ShowActions}">
+                  <TextBlock Name="FooterText" Text="{Binding Footer}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" VerticalAlignment="Center" />
+                  <Button Grid.Column="1" Name="CopyMessageButton" Classes="quiet small" Command="{Binding CopyCommand}" ToolTip.Tip="Copy" AutomationProperties.Name="Copy message">
+                    <shell:Icon Data="{StaticResource Icon.Copy}" Size="13" />
+                  </Button>
+                  <Button Grid.Column="2" Name="RegenerateButton" Classes="quiet small" Command="{Binding RegenerateCommand}" IsVisible="{Binding ShowRegenerate}"
+                          ToolTip.Tip="Regenerate" AutomationProperties.Name="Regenerate">
+                    <shell:Icon Data="{StaticResource Icon.RefreshCw}" Size="13" />
+                  </Button>
+                  <Button Grid.Column="3" Name="EditMessageButton" Classes="quiet small" Command="{Binding EditCommand}" IsVisible="{Binding ShowEdit}"
+                          ToolTip.Tip="Edit and resend" AutomationProperties.Name="Edit message">
+                    <shell:Icon Data="{StaticResource Icon.Pencil}" Size="13" />
+                  </Button>
+                </Grid>
+              </StackPanel>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+
+      <!-- Past chats. -->
+      <Border Name="HistoryPanel" Background="{DynamicResource Brush.Surface}" IsVisible="{Binding HistoryOpen}">
+        <DockPanel>
+          <TextBlock DockPanel.Dock="Top" Classes="heading" Text="PAST CHATS" Margin="14,6,14,6" />
+          <TextBlock DockPanel.Dock="Top" Classes="muted" Text="Nothing yet. A chat is kept here once it has a reply." Margin="14,4" TextWrapping="Wrap"
+                     IsVisible="{Binding !History.Count}" />
+          <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+            <ItemsControl Name="HistoryList" ItemsSource="{Binding History}" Margin="6,0">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="chat:ConversationItem">
+                  <Grid ColumnDefinitions="*,Auto,Auto" Classes="historyrow" Classes.current="{Binding IsCurrent}">
+                    <Button Name="OpenChat" Classes="historyopen" Command="{Binding OpenCommand}" AutomationProperties.Name="{Binding Title}">
+                      <StackPanel>
+                        <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                        <TextBlock Text="{Binding When}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" />
+                      </StackPanel>
+                    </Button>
+                    <Button Grid.Column="1" Name="RenameChat" Classes="quiet small" Command="{Binding RenameCommand}" ToolTip.Tip="Rename" AutomationProperties.Name="Rename chat">
+                      <shell:Icon Data="{StaticResource Icon.Pencil}" Size="13" />
+                    </Button>
+                    <Button Grid.Column="2" Name="DeleteChat" Classes="quiet small" Command="{Binding DeleteCommand}" ToolTip.Tip="Delete" AutomationProperties.Name="Delete chat">
+                      <shell:Icon Data="{StaticResource Icon.Trash2}" Size="13" />
+                    </Button>
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+        </DockPanel>
+      </Border>
+    </Panel>
+  </DockPanel>
+</UserControl>

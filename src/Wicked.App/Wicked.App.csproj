@@ -31,6 +31,8 @@
 
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" />
+    <!-- The editor's JetBrains Mono (SIL OFL 1.1), also set in the chat's code blocks. -->
+    <AvaloniaResource Include="..\Wicked.Editor\Fonts\*.ttf" Link="Assets\Fonts\%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup>

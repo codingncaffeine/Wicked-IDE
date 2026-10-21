@@ -7,6 +7,7 @@ using Wicked.App.Models;
 using Wicked.App.Shell;
 using Wicked.Core;
 using Wicked.Core.Catalog;
+using Wicked.Core.Chat;
 using Wicked.Core.Engines;
 using Wicked.Core.Hub;
 using Wicked.Core.Models;
@@ -80,6 +81,62 @@ public sealed partial class InstalledRow(string id, ModelsViewModel owner) : Obs
 
     public bool HasUpdate => UpdateText is not null;
 
+    // ── Running it (the runtime's word on this model) ──
+
+    /// <summary>The runtime's view of this model, or null when it does not list it (nothing to load it with).</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanRun), nameof(CanLoad), nameof(CanUnload), nameof(IsLoading), nameof(IsLoaded), nameof(IsFailed), nameof(StateText), nameof(HasState))]
+    private RunningModel? _run;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(StateText), nameof(IsFailed))]
+    private string? _loadError;
+
+    public bool CanRun => Run is not null;
+
+    public bool HasState => Run is not null;
+
+    public bool IsLoading => Run?.State == RunState.Loading;
+
+    public bool IsLoaded => Run?.State is RunState.Loaded or RunState.Sleeping;
+
+    public bool IsFailed => LoadError is not null || Run?.State == RunState.Failed;
+
+    public bool CanLoad => Run is { State: RunState.Unloaded or RunState.Failed };
+
+    public bool CanUnload => Run is { State: RunState.Loaded or RunState.Sleeping };
+
+    public double LoadProgress => Run?.LoadProgress ?? 0;
+
+    public bool LoadProgressKnown => Run?.LoadProgress is not null;
+
+    public string StateText => Run is null ? "" : IsFailed
+        ? "Failed: " + (LoadError ?? Run.Error ?? "the model did not load")
+        : Run.State switch
+        {
+            RunState.Loaded => "Loaded",
+            RunState.Sleeping => "Loaded, asleep",
+            RunState.Loading => Run.LoadProgress is { } p ? $"Loading {p.ToString("0%", CultureInfo.InvariantCulture)}" : "Loading…",
+            _ => "Not loaded",
+        };
+
+    public void SetRun(RunningModel? run)
+    {
+        Run = run;
+        if (run?.State is RunState.Loading or RunState.Loaded) LoadError = null;
+        OnPropertyChanged(nameof(LoadProgress));
+        OnPropertyChanged(nameof(LoadProgressKnown));
+    }
+
+    [RelayCommand]
+    private Task Load() => owner.LoadAsync(this);
+
+    [RelayCommand]
+    private Task Unload() => owner.UnloadAsync(this);
+
+    [RelayCommand]
+    private Task RunSettings() => owner.OpenRunSettingsAsync(this);
+
     public void Set(StoredModel model, ModelUpdate? update)
     {
         Name = model.Id.Contains('/') ? model.Id[(model.Id.IndexOf('/') + 1)..] : model.Id; // not a path: a model id
@@ -127,6 +184,101 @@ public sealed partial class ModelsViewModel : ObservableObject, IAsyncDisposable
     private void OpenBrowse() => Browse.Open();
 
     public ModelServices Services { get; }
+
+    // ── Running models ───────────────────────────────────────────────────────────────────────────
+
+    private IModelRuntime? _runtime;
+
+    /// <summary>The runtime that loads and unloads models. Its changes arrive on a worker and are applied here, on the UI thread.</summary>
+    public void AttachRuntime(IModelRuntime runtime)
+    {
+        _runtime = runtime;
+        runtime.Changed += (_, _) => Dispatcher.UIThread.Post(ApplyRuntime);
+        ApplyRuntime();
+    }
+
+    /// <summary>The loaded model(s) and their state, for the status bar.</summary>
+    [ObservableProperty]
+    private string _runtimeStatus = "";
+
+    [ObservableProperty]
+    private bool _hasRuntimeStatus;
+
+    [ObservableProperty]
+    private bool _runtimeLoaded;
+
+    [ObservableProperty]
+    private bool _runtimeLoading;
+
+    [ObservableProperty]
+    private bool _runtimeFailed;
+
+    /// <summary>The Run settings sheet for one model, or null.</summary>
+    [ObservableProperty]
+    private RunSettingsViewModel? _runSettings;
+
+    private void ApplyRuntime()
+    {
+        if (_runtime is null) return;
+        var snapshot = _runtime.Models;
+        foreach (var row in Installed) row.SetRun(snapshot.FirstOrDefault(m => m.Id == row.Id));
+        var loaded = snapshot.Where(m => m.State is RunState.Loaded or RunState.Sleeping).ToList();
+        var loading = snapshot.FirstOrDefault(m => m.State == RunState.Loading);
+        var failed = snapshot.FirstOrDefault(m => m.State == RunState.Failed);
+        HasRuntimeStatus = snapshot.Count > 0;
+        RuntimeLoading = loading is not null;
+        RuntimeFailed = loading is null && failed is not null && loaded.Count == 0;
+        RuntimeLoaded = loaded.Count > 0 && loading is null;
+        RuntimeStatus = loading is not null
+            ? $"Loading {loading.DisplayName}{(loading.LoadProgress is { } p ? " " + p.ToString("0%", CultureInfo.InvariantCulture) : "…")}"
+            : loaded.Count > 0 ? loaded.Count == 1 ? loaded[0].DisplayName : $"{loaded[0].DisplayName} +{loaded.Count - 1}"
+            : failed is not null ? $"{failed.DisplayName} failed to load"
+            : "No model loaded";
+    }
+
+    internal async Task LoadAsync(InstalledRow row)
+    {
+        if (_runtime is not { } runtime) return;
+        row.LoadError = null;
+        try
+        {
+            await Task.Run(() => runtime.LoadAsync(row.Id));
+        }
+        catch (Exception ex)
+        {
+            Log.Warn($"Loading {row.Id} failed: {ex.Message}");
+            row.LoadError = ex.Message;
+            _notices.Post(new Notice($"load-failed:{row.Id}", $"{row.Name} could not be loaded: {ex.Message}", NoticeKind.Error, ShellRoutes.Models));
+        }
+    }
+
+    internal async Task UnloadAsync(InstalledRow row)
+    {
+        if (_runtime is not { } runtime) return;
+        try
+        {
+            await Task.Run(() => runtime.UnloadAsync(row.Id));
+        }
+        catch (Exception ex)
+        {
+            Log.Warn($"Unloading {row.Id} failed: {ex.Message}");
+            _notices.Post(new Notice($"unload-failed:{row.Id}", $"{row.Name} could not be unloaded: {ex.Message}", NoticeKind.Error, ShellRoutes.Models));
+        }
+    }
+
+    internal async Task OpenRunSettingsAsync(InstalledRow row)
+    {
+        if (_runtime is not { } runtime) return;
+        var current = await Task.Run(() => runtime.GetSettings(row.Id));
+        RunSettings = new RunSettingsViewModel(this, row, current, [.. Installed.Where(r => r.Id != row.Id).Select(r => new SettingChoice(r.Id, r.Name))]);
+    }
+
+    internal async Task SaveRunSettingsAsync(string id, ModelRunSettings settings)
+    {
+        if (_runtime is not { } runtime) return;
+        await Task.Run(() => runtime.SaveSettingsAsync(id, settings));
+        RunSettings = null;
+    }
 
     public ObservableCollection<PickCard> Picks { get; } = [];
 
@@ -262,6 +414,7 @@ public sealed partial class ModelsViewModel : ObservableObject, IAsyncDisposable
         }
 
         Ready = state.Catalog is not null;
+        ApplyRuntime();
         Applied?.Invoke(state);
     }
 

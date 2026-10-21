@@ -1,6 +1,7 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:shell="using:Wicked.App.Shell">
+        xmlns:shell="using:Wicked.App.Shell"
+        xmlns:chat="using:Wicked.App.Chat">
 
   <Style Selector="Window">
     <Setter Property="Background" Value="{DynamicResource Brush.Ground}" />
@@ -479,6 +480,162 @@
     <Setter Property="BorderThickness" Value="1" />
     <Setter Property="CornerRadius" Value="8" />
     <Setter Property="Padding" Value="12,9" />
+  </Style>
+
+  <!-- ── The chat ── -->
+  <Style Selector="Button.small">
+    <Setter Property="Padding" Value="6,3" />
+    <Setter Property="MinHeight" Value="0" />
+    <Setter Property="FontSize" Value="{DynamicResource Font.Size.Small}" />
+  </Style>
+  <Style Selector="Button.secondary.small, Button.primary.small">
+    <Setter Property="Padding" Value="10,4" />
+  </Style>
+  <Style Selector="Button.chipbutton">
+    <Setter Property="Background" Value="{DynamicResource Brush.Hover}" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}" />
+    <Setter Property="CornerRadius" Value="5" />
+    <Setter Property="Padding" Value="7,3" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+  <Style Selector="Button.chipbutton:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Brush.Pressed}" />
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text}" />
+  </Style>
+  <Style Selector="Button.send">
+    <Setter Property="Width" Value="30" />
+    <Setter Property="Height" Value="30" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="CornerRadius" Value="15" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Button.send:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Brush.Hover}" />
+  </Style>
+  <Style Selector="Button.menurow">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="Padding" Value="8,6" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Radius.Control}" />
+  </Style>
+  <Style Selector="Button.menurow:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Brush.Hover}" />
+  </Style>
+  <Style Selector="Ellipse.state">
+    <Setter Property="Width" Value="8" />
+    <Setter Property="Height" Value="8" />
+    <Setter Property="Fill" Value="{DynamicResource Brush.Text.Muted}" />
+  </Style>
+  <Style Selector="Ellipse.state.loaded">
+    <Setter Property="Fill" Value="{DynamicResource Brush.Success}" />
+  </Style>
+  <Style Selector="Ellipse.state.loading">
+    <Setter Property="Fill" Value="{DynamicResource Brush.Warning}" />
+  </Style>
+  <Style Selector="Ellipse.state.failed">
+    <Setter Property="Fill" Value="{DynamicResource Brush.Danger}" />
+  </Style>
+  <Style Selector="TextBox.composer">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="0,2" />
+    <Setter Property="MinHeight" Value="0" />
+  </Style>
+  <Style Selector="TextBox.composer:pointerover /template/ Border#PART_BorderElement, TextBox.composer:focus /template/ Border#PART_BorderElement">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+  </Style>
+  <Style Selector="ProgressBar.high">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Warning}" />
+  </Style>
+  <Style Selector="Border.message">
+    <Setter Property="Padding" Value="14,8" />
+  </Style>
+  <Style Selector="Border.message.user">
+    <Setter Property="Background" Value="{DynamicResource Brush.Raised}" />
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Margin" Value="8,4" />
+    <Setter Property="Padding" Value="10,8" />
+  </Style>
+  <Style Selector="Border.reasoning">
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Subtle}" />
+    <Setter Property="BorderThickness" Value="2,0,0,0" />
+    <Setter Property="Padding" Value="8,0,0,0" />
+  </Style>
+  <Style Selector="chat|MarkdownView.reasoningtext TextBlock, chat|MarkdownView.reasoningtext SelectableTextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}" />
+  </Style>
+  <Style Selector="Border.replyerror">
+    <Setter Property="Background" Value="{DynamicResource Brush.Raised}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Danger}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="Padding" Value="10,8" />
+  </Style>
+  <Style Selector="Border.codeblock">
+    <Setter Property="Background" Value="{DynamicResource Brush.Editor}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Subtle}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="8" />
+    <Setter Property="ClipToBounds" Value="True" />
+  </Style>
+  <Style Selector="Grid.codehead">
+    <Setter Property="Background" Value="{DynamicResource Brush.Raised}" />
+    <Setter Property="Height" Value="28" />
+  </Style>
+  <Style Selector="Grid.codehead Button">
+    <Setter Property="Margin" Value="0,2,2,2" />
+  </Style>
+  <Style Selector="Border.quotebar">
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}" />
+    <Setter Property="BorderThickness" Value="3,0,0,0" />
+    <Setter Property="Padding" Value="10,0,0,0" />
+  </Style>
+  <Style Selector="Border.rule">
+    <Setter Property="Height" Value="1" />
+    <Setter Property="Background" Value="{DynamicResource Brush.Border}" />
+    <Setter Property="Margin" Value="0,6" />
+  </Style>
+  <Style Selector="Border.taskbox">
+    <Setter Property="Width" Value="13" />
+    <Setter Property="Height" Value="13" />
+    <Setter Property="Margin" Value="0,3,0,0" />
+    <Setter Property="CornerRadius" Value="3" />
+    <Setter Property="BorderThickness" Value="1.5" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Text.Muted}" />
+    <Setter Property="HorizontalAlignment" Value="Left" />
+    <Setter Property="VerticalAlignment" Value="Top" />
+  </Style>
+  <Style Selector="Border.mdhead">
+    <Setter Property="Background" Value="{DynamicResource Brush.Raised}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}" />
+    <Setter Property="BorderThickness" Value="0,0,1,1" />
+    <Setter Property="Padding" Value="9,5" />
+  </Style>
+  <Style Selector="Border.mdcell">
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border.Subtle}" />
+    <Setter Property="BorderThickness" Value="0,0,1,1" />
+    <Setter Property="Padding" Value="9,5" />
+  </Style>
+  <Style Selector="Grid.historyrow">
+    <Setter Property="Margin" Value="0,1" />
+  </Style>
+  <Style Selector="Grid.historyrow.current Button.historyopen">
+    <Setter Property="Background" Value="{DynamicResource Brush.Accent.Subtle}" />
+  </Style>
+  <Style Selector="Button.historyopen">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Left" />
+    <Setter Property="Padding" Value="9,6" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Radius.Control}" />
+  </Style>
+  <Style Selector="Button.historyopen:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Brush.Hover}" />
   </Style>
   <Style Selector="shell|Icon">
     <Setter Property="VerticalAlignment" Value="Center" />

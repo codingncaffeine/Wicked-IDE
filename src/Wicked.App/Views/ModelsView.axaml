@@ -96,13 +96,29 @@
           <ItemsControl.ItemTemplate>
             <DataTemplate DataType="vm:InstalledRow">
               <Grid ColumnDefinitions="*,Auto" Margin="0,3" Classes="installed">
-                <StackPanel>
+                <StackPanel Spacing="1">
                   <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
                   <TextBlock Text="{Binding Details}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" TextTrimming="CharacterEllipsis" />
                   <TextBlock Classes="update" Text="{Binding UpdateText}" IsVisible="{Binding HasUpdate}" FontSize="{DynamicResource Font.Size.Small}"
                              Foreground="{DynamicResource Brush.Accent.Hover}" TextWrapping="Wrap" />
+                  <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding HasState}" Margin="0,2,0,0">
+                    <Ellipse Classes="state" Classes.loaded="{Binding IsLoaded}" Classes.loading="{Binding IsLoading}" Classes.failed="{Binding IsFailed}" />
+                    <TextBlock Name="RunStateText" Text="{Binding StateText}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" TextWrapping="Wrap" MaxWidth="190" />
+                  </StackPanel>
+                  <ProgressBar Height="3" MinHeight="3" Minimum="0" Maximum="1" Value="{Binding LoadProgress}" IsIndeterminate="{Binding !LoadProgressKnown}"
+                               IsVisible="{Binding IsLoading}" Margin="0,3,0,0" />
                 </StackPanel>
-                <Button Grid.Column="1" Classes="quiet" Padding="5" VerticalAlignment="Top" ToolTip.Tip="More" AutomationProperties.Name="More">
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
+                  <Button Classes="quiet" Padding="5" Command="{Binding LoadCommand}" IsVisible="{Binding CanLoad}" ToolTip.Tip="Load into memory" AutomationProperties.Name="Load">
+                    <shell:Icon Data="{StaticResource Icon.Play}" Size="14" />
+                  </Button>
+                  <Button Classes="quiet" Padding="5" Command="{Binding UnloadCommand}" IsVisible="{Binding CanUnload}" ToolTip.Tip="Unload from memory" AutomationProperties.Name="Unload">
+                    <shell:Icon Data="{StaticResource Icon.Power}" Size="14" />
+                  </Button>
+                  <Button Classes="quiet" Padding="5" Command="{Binding RunSettingsCommand}" IsVisible="{Binding CanRun}" ToolTip.Tip="Run settings" AutomationProperties.Name="Run settings">
+                    <shell:Icon Data="{StaticResource Icon.SlidersHorizontal}" Size="14" />
+                  </Button>
+                  <Button Classes="quiet" Padding="5" VerticalAlignment="Top" ToolTip.Tip="More" AutomationProperties.Name="More">
                   <shell:Icon Data="{StaticResource Icon.Ellipsis}" Size="15" />
                   <Button.Flyout>
                     <MenuFlyout Placement="BottomEdgeAlignedRight">
@@ -119,6 +135,7 @@
                     </MenuFlyout>
                   </Button.Flyout>
                 </Button>
+                </StackPanel>
               </Grid>
             </DataTemplate>
           </ItemsControl.ItemTemplate>

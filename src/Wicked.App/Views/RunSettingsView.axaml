@@ -1,0 +1,74 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Wicked.App.ViewModels"
+             xmlns:shell="using:Wicked.App.Shell"
+             x:Class="Wicked.App.Views.RunSettingsView"
+             x:DataType="vm:RunSettingsViewModel">
+  <Border Classes="dialog" Width="520" MaxHeight="680">
+    <DockPanel>
+      <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="0,0,0,12">
+        <TextBlock Name="RunSettingsTitle" Text="{Binding Title}" FontSize="16" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+        <Button Grid.Column="1" Classes="quiet" Command="{Binding CancelCommand}" ToolTip.Tip="Close (Escape)">
+          <shell:Icon Data="{StaticResource Icon.X}" Size="15" />
+        </Button>
+      </Grid>
+      <StackPanel DockPanel.Dock="Bottom" Spacing="8" Margin="0,14,0,0">
+        <TextBlock Name="RunSettingsProblem" Text="{Binding Problem}" Foreground="{DynamicResource Brush.Danger}" TextWrapping="Wrap"
+                   IsVisible="{Binding Problem, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+          <Button Name="RunSettingsReset" Classes="secondary" Content="All Automatic" Command="{Binding ResetCommand}" />
+          <Button Grid.Column="2" Name="RunSettingsCancel" Classes="secondary" Content="Cancel" Command="{Binding CancelCommand}" Margin="0,0,8,0" />
+          <Button Grid.Column="3" Name="RunSettingsSave" Classes="primary" Content="Save" Command="{Binding SaveCommand}" IsEnabled="{Binding !Saving}" />
+        </Grid>
+        <TextBlock Classes="muted" FontSize="{DynamicResource Font.Size.Small}" TextWrapping="Wrap"
+                   Text="Automatic lets Wicked choose from this PC and the model. A loaded model is loaded again for a change to take effect." />
+      </StackPanel>
+      <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+        <Grid ColumnDefinitions="170,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="10" Classes="settings" Margin="0,0,10,0">
+          <TextBlock Text="Context size" />
+          <ComboBox Grid.Column="1" Name="ContextBox" ItemsSource="{Binding Contexts}" SelectedItem="{Binding Context}" HorizontalAlignment="Stretch">
+            <ComboBox.ItemTemplate>
+              <DataTemplate x:DataType="vm:SettingChoice"><TextBlock Text="{Binding Label}" /></DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+          <TextBlock Grid.Row="1" Text="GPU layers" />
+          <ComboBox Grid.Row="1" Grid.Column="1" Name="GpuLayersBox" ItemsSource="{Binding GpuLayerChoices}" SelectedItem="{Binding GpuLayers}" HorizontalAlignment="Stretch">
+            <ComboBox.ItemTemplate>
+              <DataTemplate x:DataType="vm:SettingChoice"><TextBlock Text="{Binding Label}" /></DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+          <TextBlock Grid.Row="2" Text="KV cache type" />
+          <ComboBox Grid.Row="2" Grid.Column="1" Name="KvCacheBox" ItemsSource="{Binding KvCacheChoices}" SelectedItem="{Binding KvCache}" HorizontalAlignment="Stretch">
+            <ComboBox.ItemTemplate>
+              <DataTemplate x:DataType="vm:SettingChoice"><TextBlock Text="{Binding Label}" /></DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+          <TextBlock Grid.Row="3" Text="Flash attention" />
+          <ComboBox Grid.Row="3" Grid.Column="1" Name="FlashBox" ItemsSource="{Binding OnOff}" SelectedItem="{Binding FlashAttention}" HorizontalAlignment="Stretch">
+            <ComboBox.ItemTemplate>
+              <DataTemplate x:DataType="vm:SettingChoice"><TextBlock Text="{Binding Label}" /></DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+          <TextBlock Grid.Row="4" Text="Draft model" />
+          <ComboBox Grid.Row="4" Grid.Column="1" Name="DraftBox" ItemsSource="{Binding DraftModels}" SelectedItem="{Binding DraftModel}" HorizontalAlignment="Stretch">
+            <ComboBox.ItemTemplate>
+              <DataTemplate x:DataType="vm:SettingChoice"><TextBlock Text="{Binding Label}" /></DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+          <TextBlock Grid.Row="5" Text="Reasoning" />
+          <ComboBox Grid.Row="5" Grid.Column="1" Name="ReasoningBox" ItemsSource="{Binding OnOff}" SelectedItem="{Binding Reasoning}" HorizontalAlignment="Stretch">
+            <ComboBox.ItemTemplate>
+              <DataTemplate x:DataType="vm:SettingChoice"><TextBlock Text="{Binding Label}" /></DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+          <TextBlock Grid.Row="6" Text="Temperature" />
+          <NumericUpDown Grid.Row="6" Grid.Column="1" Name="TemperatureBox" Value="{Binding Temperature}" Minimum="0" Maximum="5" Increment="0.1" FormatString="0.0" PlaceholderText="Automatic" Width="160" HorizontalAlignment="Left" />
+          <TextBlock Grid.Row="7" Text="Top-p" />
+          <NumericUpDown Grid.Row="7" Grid.Column="1" Name="TopPBox" Value="{Binding TopP}" Minimum="0" Maximum="1" Increment="0.05" FormatString="0.00" PlaceholderText="Automatic" Width="160" HorizontalAlignment="Left" />
+          <TextBlock Grid.Row="8" Text="Max tokens per reply" />
+          <NumericUpDown Grid.Row="8" Grid.Column="1" Name="MaxTokensBox" Value="{Binding MaxTokens}" Minimum="1" Maximum="1000000" Increment="256" FormatString="0" PlaceholderText="Automatic" Width="160" HorizontalAlignment="Left" />
+        </Grid>
+      </ScrollViewer>
+    </DockPanel>
+  </Border>
+</UserControl>

@@ -1,0 +1,52 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:chat="using:Wicked.App.Chat"
+             xmlns:shell="using:Wicked.App.Shell"
+             x:Class="Wicked.App.Chat.SystemPromptsView"
+             x:DataType="chat:SystemPromptsViewModel">
+  <Border Classes="dialog" Width="620" Height="460">
+    <DockPanel>
+      <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="0,0,0,12">
+        <TextBlock Text="System prompts" FontSize="16" FontWeight="SemiBold" />
+        <Button Grid.Column="1" Classes="quiet" Command="{Binding CancelCommand}" ToolTip.Tip="Close (Escape)">
+          <shell:Icon Data="{StaticResource Icon.X}" Size="15" />
+        </Button>
+      </Grid>
+      <StackPanel DockPanel.Dock="Bottom" Spacing="8" Margin="0,12,0,0">
+        <TextBlock Name="PromptsProblem" Text="{Binding Problem}" Foreground="{DynamicResource Brush.Danger}" TextWrapping="Wrap"
+                   IsVisible="{Binding Problem, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+          <Button Name="PromptsCancel" Classes="secondary" Content="Cancel" Command="{Binding CancelCommand}" />
+          <Button Name="PromptsSave" Classes="primary" Content="Save" Command="{Binding SaveCommand}" />
+        </StackPanel>
+      </StackPanel>
+      <Grid ColumnDefinitions="190,12,*">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Spacing="6" Margin="0,8,0,0">
+            <Button Name="AddPrompt" Classes="secondary small" Command="{Binding AddCommand}" Content="Add" />
+            <Button Name="RemovePrompt" Classes="secondary small" Command="{Binding RemoveCommand}" Content="Remove" IsEnabled="{Binding HasSelection}" />
+          </StackPanel>
+          <ListBox Name="PromptItems" ItemsSource="{Binding Items}" SelectedItem="{Binding SelectedItem}" Classes="results">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="chat:PromptEdit">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" MaxWidth="130" />
+                  <TextBlock Text="default" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" IsVisible="{Binding IsDefault}" />
+                </StackPanel>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </DockPanel>
+        <Panel Grid.Column="2" IsVisible="{Binding HasSelection}">
+          <StackPanel Spacing="8" DataContext="{Binding SelectedItem}" x:DataType="chat:PromptEdit">
+            <TextBlock Classes="heading" Text="NAME" />
+            <TextBox Name="PromptName" Text="{Binding Name}" />
+            <TextBlock Classes="heading" Text="PROMPT" />
+            <TextBox Name="PromptText" Text="{Binding Prompt}" AcceptsReturn="True" TextWrapping="Wrap" Height="190" />
+            <ToggleSwitch Name="PromptDefault" IsChecked="{Binding IsDefault}" OnContent="New chats start with this prompt" OffContent="Use for new chats" />
+          </StackPanel>
+        </Panel>
+      </Grid>
+    </DockPanel>
+  </Border>
+</UserControl>
