@@ -211,6 +211,7 @@ public sealed class ChatEngineTests
         Assert.Equal<ChatChunk>([new ContentDelta("start")], seen);
 
         // The supervisor brings the router back, and the next chat loads the model again and works.
+        await RuntimeRig.WaitUntilAsync(() => rig.Logged("start").Count == 2);
         rig.Script(new { chat = new[] { Chunk(content: "again"), Chunk(finish: "stop"), "[DONE]" } });
         var chunks = await CollectAsync(rig.Services.Chat.StreamAsync(Ask(), Ct));
         Assert.Equal(new ContentDelta("again"), chunks[0]);
@@ -225,7 +226,7 @@ public sealed class ChatEngineTests
 
         var ex = await Assert.ThrowsAsync<ChatException>(() => CollectAsync(rig.Services.Chat.StreamAsync(Ask(), Ct)));
 
-        Assert.Contains("before the reply was complete", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("model engine", ex.Message, StringComparison.Ordinal); // closed early, or the socket broke: both say the engine stopped
     }
 
     [Fact]

@@ -18,11 +18,16 @@ internal static class StandIns
 
     public static bool CanRunEngine => !OperatingSystem.IsWindows();
 
-    /// <summary>True when python3 is on the PATH, which the scripted router stand-in needs.</summary>
-    public static bool CanRunFakeRouter { get; } = CanRunEngine && OnPath("python3");
+    /// <summary>True where the fake engine's shell wrapper runs (not Windows); it is a .NET program, so nothing else is needed.</summary>
+    public static bool CanRunFakeRouter => CanRunEngine;
 
-    private static bool OnPath(string program) =>
-        (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator).Any(d => d.Length > 0 && File.Exists(Path.Combine(d, program)));
+    /// <summary>The program the fake engine's <c>llama-server</c> wrapper starts: the same dotnet the tests run on, running the stand-in built beside them.</summary>
+    private static string FakeEngineCommand()
+    {
+        var root = Path.GetFullPath(Path.Combine(System.Runtime.InteropServices.RuntimeEnvironment.GetRuntimeDirectory(), "..", "..", ".."));
+        var dotnet = Path.Combine(root, "dotnet");
+        return $"\"{(File.Exists(dotnet) ? dotnet : "dotnet")}\" \"{Path.Combine(AppContext.BaseDirectory, "Wicked.FakeEngine.dll")}\"";
+    }
 
     /// <summary>A tar.gz holding a <c>llama-server</c> shell script that answers <c>--version</c> and <c>--list-devices</c>.</summary>
     public static byte[] EngineArchive(string tag, int build)
@@ -32,15 +37,10 @@ internal static class StandIns
         using (var tar = new TarWriter(gzip, TarEntryFormat.Pax, leaveOpen: false))
         {
             tar.WriteEntry(new PaxTarEntry(TarEntryType.Directory, $"llama-{tag}/") { Mode = (UnixFileMode)0b111_101_101 });
-            // Anything but the two probes runs the scripted stand-in for the router (python3, standard library only).
+            // Anything but the two probes runs the scripted router stand-in (tests/Wicked.FakeEngine), told where its files are.
             var script = $"#!/bin/sh\ncase \"$1\" in\n  --version) echo \"version: 0.7.0-dev (build {build}, commit abc1234)\" >&2 ;;\n"
                          + "  --list-devices) echo \"Available devices:\"; echo \"  Vulkan0: Test GPU (8192 MiB, 8000 MiB free)\" ;;\n"
-                         + "  *) exec python3 \"$(dirname \"$0\")/fake_llama_server.py\" \"$@\" ;;\nesac\n";
-            tar.WriteEntry(new PaxTarEntry(TarEntryType.RegularFile, $"llama-{tag}/fake_llama_server.py")
-            {
-                Mode = (UnixFileMode)0b111_101_101,
-                DataStream = new MemoryStream(File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "fake_llama_server.py"))),
-            });
+                         + $"  *) exec {FakeEngineCommand()} --fake-dir \"$(dirname \"$0\")\" \"$@\" ;;\nesac\n";
             tar.WriteEntry(new PaxTarEntry(TarEntryType.RegularFile, $"llama-{tag}/llama-server")
             {
                 Mode = (UnixFileMode)0b111_101_101,

@@ -136,7 +136,7 @@ public sealed class ModelRuntimeTests
         await using var rig = await RuntimeRig.StartAsync();
         rig.Script(new { loadMs = 5000 });
         var load = rig.Runtime.LoadAsync(RuntimeRig.ChatId, Ct);
-        await RuntimeRig.WaitUntilAsync(() => load.IsFaulted || rig.Model(RuntimeRig.ChatId).State == RunState.Loading);
+        await RuntimeRig.WaitUntilAsync(() => load.IsFaulted || rig.Logged("load").Count == 1); // the engine has the request
         Assert.False(load.IsFaulted, load.Exception?.ToString());
 
         Process.GetProcessById(rig.Runtime.Router!.ProcessId!.Value).Kill();

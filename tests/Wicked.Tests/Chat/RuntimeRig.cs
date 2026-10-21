@@ -37,7 +37,7 @@ internal sealed class RuntimeRig : IAsyncDisposable
 
     public static async Task<RuntimeRig> StartAsync(params string[] repos)
     {
-        Assert.SkipUnless(StandIns.CanRunFakeRouter, "needs a shell and python3 for the scripted router stand-in");
+        Assert.SkipUnless(StandIns.CanRunFakeRouter, "needs a shell for the fake engine wrapper");
         var rig = new RuntimeRig();
         try
         {

@@ -156,10 +156,11 @@ public sealed class ModelRuntime : IModelRuntime, IAsyncDisposable
         await RefreshAsync(ct).ConfigureAwait(false);
         if (!Known(id)) throw new ChatException($"{id} is not an installed model.");
         var state = StateOf(id);
-        if (state is RunState.Loaded or RunState.Sleeping) return;
+        // A model the router reports loaded is only loaded while that router is alive.
+        if (state is RunState.Loaded or RunState.Sleeping && Router is { IsRunning: true }) return;
 
         var client = await EnsureRouterAsync(ct).ConfigureAwait(false);
-        if (StateOf(id) is RunState.Loaded or RunState.Sleeping) return;
+        if (StateOf(id) is RunState.Loaded or RunState.Sleeping && Router is { IsRunning: true }) return;
         SetLive(id, new Live(RouterModelStatus.Loading, 0, null, null));
         try
         {
@@ -374,9 +375,22 @@ public sealed class ModelRuntime : IModelRuntime, IAsyncDisposable
         await _lifecycle.WaitAsync(ct).ConfigureAwait(false);
         try
         {
+            RouterProcess? alive = null;
+            RouterClient? aliveClient = null;
             lock (_gate)
             {
-                if (_router is { IsRunning: true } && _client is { } running && !(_watcher?.IsCompleted ?? true)) return running;
+                if (_router is { IsRunning: true } r && _client is { } running && !(_watcher?.IsCompleted ?? true))
+                {
+                    alive = r;
+                    aliveClient = running;
+                }
+            }
+
+            if (alive is not null)
+            {
+                // A router the supervisor just restarted is running before it listens.
+                await alive.WaitHealthyAsync(Tuning.HealthTimeout, ct).ConfigureAwait(false);
+                return aliveClient!;
             }
 
             await StopRouterLockedAsync(ct).ConfigureAwait(false);
