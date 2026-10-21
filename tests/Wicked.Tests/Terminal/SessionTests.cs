@@ -127,8 +127,9 @@ public sealed class SessionTests
     {
         Assert.SkipWhen(OperatingSystem.IsWindows(), "starts /bin/sh");
         using var home = new ScratchDir();
-        using var session = Start(home, "printf '\\033[?2004h'; stty -echo; cat -v", out var watch);
+        using var session = Start(home, "printf '\\033[?2004h'; stty -echo -icanon; echo ready; cat -v", out var watch);
         Assert.True(await watch.WaitForAsync(() => Task.FromResult(session.Modes.BracketedPaste)));
+        Assert.True(await watch.WaitForScreenAsync(s => s.Contains("ready", StringComparison.Ordinal)));
         session.Paste("one\ntwo\u001b[201~three\r\n");
         Assert.True(await watch.WaitForScreenAsync(s => s.Contains("^[[200~one", StringComparison.Ordinal) && s.Contains("three", StringComparison.Ordinal)), watch.Screen);
         Assert.DoesNotContain("^[[201~three", watch.Screen);
@@ -140,8 +141,8 @@ public sealed class SessionTests
     {
         Assert.SkipWhen(OperatingSystem.IsWindows(), "starts /bin/sh");
         using var home = new ScratchDir();
-        using var session = Start(home, "stty -echo; cat -v", out var watch);
-        await Task.Delay(300, TestContext.Current.CancellationToken);
+        using var session = Start(home, "stty -echo -icanon; echo ready; cat -v", out var watch);
+        Assert.True(await watch.WaitForScreenAsync(s => s.Contains("ready", StringComparison.Ordinal)));
         session.Paste("a\nb\n");
         Assert.True(await watch.WaitForScreenAsync(s => s.Contains('a', StringComparison.Ordinal) && s.Contains('b', StringComparison.Ordinal)), watch.Screen);
         Assert.DoesNotContain("200~", watch.Screen);
@@ -210,5 +211,24 @@ public sealed class SessionTests
         await Task.Delay(100, TestContext.Current.CancellationToken);
         Assert.True(frames < 200, $"{frames} frames");
         Assert.True(await watch.WaitForScreenAsync(s => s.Contains("line2999", StringComparison.Ordinal)));
+    }
+}
+
+public sealed class ClearTests
+{
+    [Fact]
+    public async Task ClearingDropsTheHistoryAndAsksThePromptToRedraw()
+    {
+        Assert.SkipWhen(OperatingSystem.IsWindows(), "starts /bin/sh");
+        using var home = new ScratchDir();
+        var env = Pty.BuildEnvironment(new Dictionary<string, string?> { ["HOME"] = home.Root, ["DBUS_SESSION_BUS_ADDRESS"] = null, ["DISPLAY"] = null, ["WAYLAND_DISPLAY"] = null });
+        // Whatever is read is shown as a visible name: the form feed that asks a shell to redraw arrives as ^L.
+        using var session = new TerminalSession(new TerminalSessionOptions { Launch = new PtyOptions("/bin/sh", ["-c", "i=1; while [ $i -le 60 ]; do echo old$i; i=$((i+1)); done; stty -echo -icanon; echo ready; cat -v"], home.Root, env, 80, 10) });
+        var watch = new SessionWatcher(session);
+        session.Start();
+        Assert.True(await watch.WaitForScreenAsync(s => s.Contains("ready", StringComparison.Ordinal)));
+        session.Clear();
+        Assert.True(await watch.WaitForScreenAsync(s => s.Contains("^L", StringComparison.Ordinal) && !s.Contains("old60", StringComparison.Ordinal)), watch.Screen);
+        Assert.Equal(0, watch.Frame!.ScrollbackLines);
     }
 }

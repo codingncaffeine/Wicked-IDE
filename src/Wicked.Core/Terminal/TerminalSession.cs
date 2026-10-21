@@ -108,8 +108,9 @@ public sealed class TerminalSession : IDisposable
     /// <summary>Starts the program and the emulator thread. Spawning a process takes a moment: call it off the UI thread.</summary>
     public void Start()
     {
-        _thread.Start();
+        // The pty exists before the emulator thread runs, so a resize queued early reaches it.
         _pty = _options.StartPty(_options.Launch, OnData);
+        _thread.Start();
         _ = _pty.Exited.ContinueWith(task => Enqueue(() => Finish(task.IsCompletedSuccessfully ? task.Result : -1)), TaskScheduler.Default);
     }
 
@@ -230,10 +231,12 @@ public sealed class TerminalSession : IDisposable
     /// <summary>Clears the scrollback and the screen, as the Clear command does (the shell redraws its prompt when asked to).</summary>
     public void Clear() => Enqueue(() =>
     {
+        // A full-screen program or a running command is not at a prompt: ^L would be typed into it.
+        var atPrompt = !_emulator.Modes.AlternateScreen && !_emulator.Commands().Any(c => c.Record.Running);
         _emulator.ClearScrollback();
         _emulator.Write("\u001b[2J\u001b[H"u8);
         _dirty = true;
-        _pty?.Write("\f"u8);
+        if (atPrompt) _pty?.Write("\f"u8);
     });
 
     public Task<string> GetTextAsync(TerminalSelection selection) => RunAsync(e => e.GetText(selection));
