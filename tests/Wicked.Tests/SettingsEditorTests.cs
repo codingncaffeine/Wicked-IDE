@@ -155,7 +155,10 @@ public sealed class SettingsEditorWindowTests
 public sealed class JsonServerSchemaTests
 {
     private static readonly IReadOnlyList<(string File, string Schema)> Schemas =
-        [("/home/u/.config/wicked/settings.json", "/home/u/.local/state/wicked/schemas/settings.schema.json")];
+        [(Path.GetFullPath(Path.Combine(Path.GetTempPath(), "u", "config", "settings.json")), Path.GetFullPath(Path.Combine(Path.GetTempPath(), "u", "schemas", "settings.schema.json")))];
+
+    // Each system roots a path its own way (/tmp/… on Linux, C:\…\Temp\… on Windows): the expected URI is made the same way.
+    private static string Url => new Uri(Schemas[0].Schema).AbsoluteUri;
 
     [Fact]
     public void TheJsonServerIsToldTheSchemasAndReadsFileSchemasItself()
@@ -163,8 +166,9 @@ public sealed class JsonServerSchemaTests
         var spec = Wicked.Core.Lsp.LanguageServerCatalog.ById("json")!;
         var command = Wicked.App.Language.LanguageFeatures.Configured(spec, new Wicked.Core.Lsp.LanguageServerCommand("server", []), new WickedSettings(), Schemas);
         var schema = Assert.Single(command.Settings!.Value.GetProperty("json").GetProperty("schemas").EnumerateArray());
-        Assert.Equal("file:///home/u/.local/state/wicked/schemas/settings.schema.json", schema.GetProperty("url").GetString());
-        Assert.Contains("/home/u/.config/wicked/settings.json", schema.GetProperty("fileMatch").EnumerateArray().Select(e => e.GetString()));
+        Assert.Equal(Url, schema.GetProperty("url").GetString());
+        Assert.StartsWith("file:///", Url, StringComparison.Ordinal);
+        Assert.Contains(Schemas[0].File.Replace('\\', '/'), schema.GetProperty("fileMatch").EnumerateArray().Select(e => e.GetString()));
         Assert.Equal("file", command.InitializationOptions!.Value.GetProperty("handledSchemaProtocols")[0].GetString());
     }
 
