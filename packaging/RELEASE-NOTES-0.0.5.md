@@ -35,12 +35,14 @@ Everything is self-contained: .NET ships inside.
   Wayland, the first window fits small screens, menus and settings are read correctly by screen readers, input
   methods (Japanese, Chinese, Korean) compose at the caret.
 - **Help.** A Get Started page, a keyboard shortcuts reference, release notes, Report Issue and About.
+- **A new logo**, in the app, the taskbar and the packages.
 
 ## Fixes
 
 - The files open when you last closed Wicked open again at the next start.
 - Status bar items took no click while their tooltip was showing.
 - The Output panel showed "No output yet" over a task's output.
+- Two quick changes to a setting (a toggle pressed twice) could leave the first change in force.
 
 ## Known limits
 
