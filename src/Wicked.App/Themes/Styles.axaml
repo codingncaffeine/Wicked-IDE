@@ -726,6 +726,12 @@
   <Style Selector="Button.status:pointerover /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource Brush.Hover}" />
   </Style>
+  <!-- The status bar's tips open above the bar, as VS Code's do. Popups are drawn inside the window: a tip placed at the
+       pointer by the bottom edge was pushed up over the pointer and took the click meant for the item under it. -->
+  <Style Selector="Grid#StatusBar Button">
+    <Setter Property="ToolTip.Placement" Value="Top" />
+    <Setter Property="ToolTip.VerticalOffset" Value="-4" />
+  </Style>
   <!-- An agent's steps in a reply: one quiet row each, a failed or refused one in red. -->
   <Style Selector="Border.agentstep">
     <Setter Property="Background" Value="{DynamicResource Brush.Raised}" />

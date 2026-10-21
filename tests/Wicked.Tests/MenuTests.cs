@@ -172,6 +172,32 @@ public sealed class MenuTests
             return 0;
         });
     }
+
+    [Trait("Tier", "Window")]
+    [Fact]
+    public async Task AStatusBarItemStillTakesAClickWhileItsTipIsOpen()
+    {
+        using var profile = new TempProfile();
+        var root = Path.Combine(profile.Root, "project");
+        Directory.CreateDirectory(root);
+        File.WriteAllText(Path.Combine(root, "a.txt"), "x\n");
+        await Ui.Run(() =>
+        {
+            var (window, shell) = OpenWorkbench(profile, root);
+            OpenByClicks(window, shell, "a.txt");
+            // A user rests the pointer on the item, its tip opens, then they click: the tip must not be under the pointer.
+            var item = window.FindControl<Button>("LanguageModeStatus")!;
+            var centre = item.TranslatePoint(new Point(item.Bounds.Width / 2, item.Bounds.Height / 2), window)!.Value;
+            window.MouseMove(centre);
+            ToolTip.SetIsOpen(item, true);
+            Assert.True(Ui.PumpUntil(() => ToolTip.GetIsOpen(item), 5), "the tip never opened");
+            Ui.Pump(0.2);
+            Input.Click(window, item);
+            Assert.True(Ui.PumpUntil(() => shell.QuickInput.IsOpen, 5), "the click went to the tip, not the item");
+            window.Close();
+            return 0;
+        });
+    }
 }
 
 /// <summary>Reading a file's indentation, and converting it.</summary>
