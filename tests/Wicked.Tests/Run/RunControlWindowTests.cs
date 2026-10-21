@@ -157,6 +157,11 @@ public sealed class RunControlWindowTests
             var right = left + controls.Bounds.Width;
             Assert.True(left >= centre.TranslatePoint(default, window)!.Value.X + centre.Bounds.Width, "over the command centre");
             Assert.True(right <= buttons.TranslatePoint(default, window)!.Value.X + 0.5, "over the window buttons");
+            // "Current File" is read in full at the usual width, not cut short.
+            var name = Named<TextBlock>(window, "RunTargetText");
+            var whole = new TextBlock { Text = name.Text, FontSize = name.FontSize, FontFamily = name.FontFamily };
+            whole.Measure(Size.Infinity);
+            Assert.True(name.Bounds.Width >= whole.DesiredSize.Width - 0.5, $"cut short: {name.Bounds.Width} of {whole.DesiredSize.Width}");
 
             window.Width = 1000;
             Assert.True(Ui.PumpUntil(() => !controls.IsVisible, 5), "still shown with no room");
