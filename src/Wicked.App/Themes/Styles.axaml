@@ -12,6 +12,16 @@
   <Style Selector="TextBlock.secondary">
     <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}" />
   </Style>
+  <!-- A menu item's keys, right of its title, as VS Code's menus show them. -->
+  <Style Selector="TextBlock.menukeys">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}" />
+  </Style>
+  <!-- The menu bar in the title bar: plain words that light up under the pointer, as VS Code's. -->
+  <Style Selector="Menu.menubar > MenuItem">
+    <Setter Property="Padding" Value="8,4" />
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="CornerRadius" Value="{DynamicResource Radius.Control}" />
+  </Style>
   <Style Selector="TextBlock.muted">
     <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Muted}" />
   </Style>

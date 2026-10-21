@@ -26,9 +26,12 @@
 
       <!-- ── Title bar: the mark, the command centre in the middle, the layout toggles and the caption buttons. ── -->
       <Grid Name="TitleBar" Background="{DynamicResource Brush.Ground}" ColumnDefinitions="*,Auto,*">
-        <StackPanel Orientation="Horizontal" Spacing="9" Margin="14,0,0,0" VerticalAlignment="Center">
+        <StackPanel Name="TitleStart" Orientation="Horizontal" Spacing="9" Margin="14,0,0,0" VerticalAlignment="Center">
           <Image Source="/Assets/logo.png" Width="22" Height="22" RenderOptions.BitmapInterpolationMode="HighQuality" />
-          <TextBlock Text="Wicked" FontWeight="SemiBold" VerticalAlignment="Center" />
+          <!-- The name shows when the menu bar does not (window.menuBarVisibility other than classic, or no room). -->
+          <TextBlock Name="Wordmark" Text="Wicked" FontWeight="SemiBold" VerticalAlignment="Center" />
+          <!-- The menu bar: File, Edit, Selection... or one ☰ menu holding them when the bar is narrow or compact. -->
+          <Menu Name="MenuBar" Classes="menubar" VerticalAlignment="Center" />
         </StackPanel>
 
         <Button Grid.Column="1" Name="CommandCentre" Classes="command-centre" Width="520" Click="OnCommandCentre"
@@ -264,8 +267,25 @@
                        Foreground="{DynamicResource Brush.Text.Secondary}" VerticalAlignment="Center" />
           </StackPanel>
         </Button>
-        <TextBlock Grid.Column="2" Name="CaretStatus" Text="{Binding CaretText}" Classes="status" />
-        <TextBlock Grid.Column="3" Name="DocumentStatus" Text="{Binding DocumentText}" Classes="status" />
+        <!-- The active file, each part a button as in VS Code: go to a line, indentation, encoding, line breaks, language. -->
+        <Button Grid.Column="2" Name="CaretStatus" Classes="status" Margin="0,0,6,0" Click="OnStatusCommand" Tag="workbench.action.gotoLine"
+                IsVisible="{Binding CaretText.Length}" ToolTip.Tip="Go to Line/Column" AutomationProperties.Name="Go to line">
+          <TextBlock Text="{Binding CaretText}" VerticalAlignment="Center" />
+        </Button>
+        <StackPanel Grid.Column="3" Name="DocumentStatus" Orientation="Horizontal" Spacing="2" Margin="0,0,12,0" IsVisible="{Binding DocumentText.Length}">
+          <Button Name="IndentStatus" Classes="status" Click="OnStatusCommand" Tag="wicked.selectIndentation" ToolTip.Tip="Select Indentation" AutomationProperties.Name="Indentation">
+            <TextBlock Text="{Binding IndentText}" VerticalAlignment="Center" />
+          </Button>
+          <Button Name="EncodingStatus" Classes="status" Click="OnStatusCommand" Tag="workbench.action.editor.changeEncoding" ToolTip.Tip="Select Encoding" AutomationProperties.Name="Encoding">
+            <TextBlock Text="{Binding EncodingText}" VerticalAlignment="Center" />
+          </Button>
+          <Button Name="LineBreakStatus" Classes="status" Click="OnStatusCommand" Tag="workbench.action.editor.changeEOL" ToolTip.Tip="Select End of Line Sequence" AutomationProperties.Name="End of line">
+            <TextBlock Text="{Binding LineBreakText}" VerticalAlignment="Center" />
+          </Button>
+          <Button Name="LanguageModeStatus" Classes="status" Click="OnStatusCommand" Tag="workbench.action.editor.changeLanguageMode" ToolTip.Tip="Select Language Mode" AutomationProperties.Name="Language mode">
+            <TextBlock Text="{Binding LanguageText}" VerticalAlignment="Center" />
+          </Button>
+        </StackPanel>
         <StackPanel Grid.Column="4" Name="DaemonStatus" Orientation="Horizontal" Spacing="6" Margin="0,0,14,0" VerticalAlignment="Center" IsVisible="{Binding ShowDaemon}">
           <Ellipse Width="7" Height="7" VerticalAlignment="Center"
                    Fill="{Binding DaemonRunning, Converter={x:Static shell:DaemonBrush.Instance}}" />

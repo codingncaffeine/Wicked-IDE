@@ -64,7 +64,7 @@ internal static class WindowFrame
     {
         for (var v = source; v is not null && !ReferenceEquals(v, bar); v = v.GetVisualParent())
         {
-            if (v is Button or TextBox or Thumb or ToggleButton) return true;
+            if (v is Button or TextBox or Thumb or ToggleButton or MenuItem) return true;
         }
 
         return false;

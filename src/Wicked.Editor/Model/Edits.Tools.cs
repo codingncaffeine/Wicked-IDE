@@ -260,4 +260,33 @@ public static partial class Edits
 
         return changes.Count > 0 && doc.Apply(changes, after, EditKind.Other, doc.PrimaryIndex);
     }
+
+    /// <summary>
+    /// Convert Indentation to Spaces / to Tabs: every line's leading whitespace rewritten at <paramref name="tabSize"/>
+    /// columns a tab (a part of a tab's width left over stays as spaces when converting to tabs, as VS Code leaves it).
+    /// </summary>
+    public static bool ConvertIndentation(Document doc, bool toSpaces, int tabSize)
+    {
+        var rope = doc.Text;
+        var changes = new List<TextChange>();
+        for (var line = 0; line < rope.LineCount; line++)
+        {
+            var text = rope.Line(line);
+            var lead = 0;
+            var width = 0;
+            while (lead < text.Length && text[lead] is ' ' or '\t')
+            {
+                width = text[lead] == '\t' ? (width / tabSize + 1) * tabSize : width + 1;
+                lead++;
+            }
+
+            if (lead == 0) continue;
+            var wanted = toSpaces ? new string(' ', width) : new string('\t', width / tabSize) + new string(' ', width % tabSize);
+            if (wanted != text[..lead]) changes.Add(new TextChange(rope.LineStart(line), lead, wanted));
+        }
+
+        if (changes.Count == 0) return false;
+        var set = ChangeSet.Normalise(changes);
+        return doc.Apply(set, doc.Selections.Select(s => s with { Anchor = ChangeSet.Map(s.Anchor, set), Active = ChangeSet.Map(s.Active, set) }).ToList(), EditKind.Other, doc.PrimaryIndex);
+    }
 }

@@ -34,6 +34,27 @@ public sealed partial class CodeEditor
     /// <summary>A right click in the glyph margin, by line and where (the breakpoint menu).</summary>
     public Action<int, Point>? GlyphMarginContext { get; set; }
 
+    /// <summary>The right-click menu's items (the shell's editor menu), made each time it opens.</summary>
+    public Func<IReadOnlyList<Avalonia.Controls.Control>>? ContextMenuItems { get; set; }
+
+    /// <summary>A right click in the text, the Menu key or Shift+F10: the editor's menu at the pointer, or under the caret.</summary>
+    private void OnContextRequested(object? sender, ContextRequestedEventArgs e)
+    {
+        if (ContextMenuItems is not { } items) return;
+        var pointed = e.TryGetPosition(this, out var at);
+        if (pointed && at.X < _view.GutterWidth) return; // the margins have menus of their own
+        var menu = new Avalonia.Controls.ContextMenu { ItemsSource = items(), PlacementTarget = this };
+        if (pointed) menu.Placement = Avalonia.Controls.PlacementMode.Pointer;
+        else
+        {
+            menu.Placement = Avalonia.Controls.PlacementMode.Bottom;
+            menu.PlacementRect = CaretRect;
+        }
+
+        menu.Open(this);
+        e.Handled = true;
+    }
+
     /// <summary>Asked before the language hover opens for a text offset: true when another feature shows its own card there (the debugger's value), so the language one stays away.</summary>
     public Func<int, bool>? HoverTaken { get; set; }
 

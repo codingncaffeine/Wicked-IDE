@@ -115,6 +115,7 @@ public sealed partial class CodeEditor : Control
             InvalidateVisual();
         };
         AddHandler(TextInputMethodClientRequestedEvent, (_, e) => e.Client = _ime);
+        AddHandler(ContextRequestedEvent, OnContextRequested);
 
         // Highlighting serves the editors in sight first; a tab in the background waits its turn.
         AttachedToVisualTree += (_, _) => _syntax.Visible = true;
@@ -499,17 +500,54 @@ public sealed partial class CodeEditor : Control
         }, DispatcherPriority.Render);
     }
 
+    private Wicked.Core.Settings.WickedSettings? _settings;
+    private (bool InsertSpaces, int TabSize)? _indentGuess;
+    private bool _indentGuessed;
+    private (bool InsertSpaces, int TabSize)? _indentChosen;
+
+    /// <summary>Indent Using Spaces / Tabs, Change Tab Display Size: this file's indentation, over the settings and the guess.</summary>
+    public void SetIndentation(bool insertSpaces, int tabSize)
+    {
+        _indentChosen = (insertSpaces, Math.Clamp(tabSize, 1, 16));
+        if (_settings is { } settings) ApplySettings(settings);
+        InvalidateVisual();
+    }
+
+    /// <summary>How the file was indented, read where it was loaded (off this thread): used instead of reading it here.</summary>
+    public void UseIndentationFromContent((bool InsertSpaces, int TabSize)? guess) => (_indentGuess, _indentGuessed) = (guess, true);
+
+    /// <summary>Detect Indentation from Content: the file read again (on a worker) and what was picked by hand dropped.</summary>
+    public async Task DetectIndentationAsync()
+    {
+        var text = Document.Text;
+        var guess = await Task.Run(() => IndentationGuess.Guess(text));
+        (_indentChosen, _indentGuess, _indentGuessed) = (null, guess, true);
+        if (_settings is { } settings) ApplySettings(settings with { DetectIndentation = true });
+        InvalidateVisual();
+    }
+
     /// <summary>The settings that shape this editor: indentation and bracket closing over the language's rules, the palette surface.</summary>
     public void ApplySettings(Wicked.Core.Settings.WickedSettings settings)
     {
-        // The user's settings, then the project's .editorconfig over them for indentation (it governs its files).
-        _view.Options = EditorConfig.Apply((Language?.Options ?? EditOptions.Default) with
+        // The user's settings, then the file's own indentation (editor.detectIndentation), then the project's .editorconfig
+        // (it governs its files), then what was picked for this file in the status bar.
+        _settings = settings;
+        var options = (Language?.Options ?? EditOptions.Default) with
         {
             TabSize = Math.Clamp(settings.TabSize, 1, 16),
             InsertSpaces = settings.InsertSpaces,
             AutoClosePairs = settings.AutoClosingBrackets,
             AutoSurround = settings.AutoClosingBrackets,
-        });
+        };
+        if (settings.DetectIndentation)
+        {
+            if (!_indentGuessed) (_indentGuess, _indentGuessed) = (IndentationGuess.Guess(Document.Text), true);
+            if (_indentGuess is { } guess) options = options with { InsertSpaces = guess.InsertSpaces, TabSize = guess.TabSize > 0 ? guess.TabSize : options.TabSize };
+        }
+
+        options = EditorConfig.Apply(options);
+        if (_indentChosen is { } chosen) options = options with { InsertSpaces = chosen.InsertSpaces, TabSize = chosen.TabSize };
+        _view.Options = options;
         _view.FollowPalette = settings.CodeColorTheme.Length > 0;
         _view.Theme = _services.EditorTheme;
         _solidCaret = settings.CursorBlinking == "solid";
@@ -720,6 +758,15 @@ public sealed partial class CodeEditor : Control
         {
             context(_view.LineAt((float)point.Position.Y), point.Position);
             e.Handled = true;
+            return;
+        }
+
+        if (point.Properties.IsRightButtonPressed && point.Position.X >= _view.GutterWidth)
+        {
+            // A right click outside the selection puts the caret there first, so the menu acts on what was clicked (VS Code).
+            Focus();
+            var (at, _) = _view.PositionAt((float)point.Position.X, (float)point.Position.Y);
+            if (!Document.Selections.Any(s => !s.IsEmpty && s.Start <= at && at <= s.End)) Document.SetSelections([Selection.Caret(at)]);
             return;
         }
 

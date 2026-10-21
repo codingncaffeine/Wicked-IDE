@@ -24,6 +24,10 @@ public sealed record WickedSettings
     [JsonPropertyName("editor.insertSpaces")]
     public bool InsertSpaces { get; init; } = true;
 
+    /// <summary>A file's own indentation (tabs or spaces, and how many) wins over the two above, as in VS Code.</summary>
+    [JsonPropertyName("editor.detectIndentation")]
+    public bool DetectIndentation { get; init; } = true;
+
     [JsonPropertyName("editor.autoClosingBrackets")]
     public bool AutoClosingBrackets { get; init; } = true;
 

@@ -378,14 +378,16 @@ public sealed partial class Workbench : ObservableObject, IDisposable
     // ── Opening ──────────────────────────────────────────────────────────────────────────────────
 
     /// <summary>Opens a file in the active group (or brings its tab forward); <paramref name="preview"/> for a single click in the explorer.</summary>
-    public async Task<EditorTab?> OpenAsync(string path, bool preview = false, EditorGroup? group = null)
+    public async Task<EditorTab?> OpenAsync(string path, bool preview = false, EditorGroup? group = null, bool focus = true)
     {
         group ??= ActiveGroup;
         path = Path.GetFullPath(path);
         if (group.Tabs.FirstOrDefault(t => t.Path == path) is { } open)
         {
             if (!preview) open.IsPreview = false;
+            open.FocusOnShow = focus;
             group.Activate(open);
+            if (focus) group.Reshow(); // already in front (a double click after a click's preview): the keyboard still goes to it
             return open;
         }
 
@@ -421,12 +423,12 @@ public sealed partial class Workbench : ObservableObject, IDisposable
             loaded = await TextFile.ReadAsync(path, true, CancellationToken.None);
         }
 
-        var (document, language, config) = await Task.Run(() =>
+        var (document, language, config, indentation) = await Task.Run(() =>
         {
             var (rope, lineBreak) = TextLoading.Normalise(loaded.Text);
             var config = EditorConfigResolver.Disk.Resolve(path);
             // .editorconfig's end_of_line is how the file is written from now on (on its next save), as its plugins do.
-            return (new Document(rope, config.LineBreak ?? lineBreak), Languages.ForFile(path), config);
+            return (new Document(rope, config.LineBreak ?? lineBreak), Languages.ForFile(path), config, IndentationGuess.Guess(rope));
         });
 
         var encoding = config.Charset switch
@@ -438,7 +440,10 @@ public sealed partial class Workbench : ObservableObject, IDisposable
             "utf-16be" => new FileEncoding("utf-16be", true),
             _ => loaded.Encoding,
         };
-        var tab = new EditorTab(path, document, language, encoding, loaded.LastWriteUtc) { IsPreview = preview && Settings.EnablePreview, EditorConfig = config };
+        var tab = new EditorTab(path, document, language, encoding, loaded.LastWriteUtc)
+        {
+            IsPreview = preview && Settings.EnablePreview, EditorConfig = config, Indentation = indentation, IndentationRead = true, FocusOnShow = focus,
+        };
         Track(tab);
         group.Add(tab);
         return tab;
@@ -735,7 +740,6 @@ public sealed partial class Workbench : ObservableObject, IDisposable
 
     // ── Groups ───────────────────────────────────────────────────────────────────────────────────
 
-    /// <summary>Ctrl+\: a new group to the right, showing the same document.</summary>
 
     public void FocusGroup(int index)
     {

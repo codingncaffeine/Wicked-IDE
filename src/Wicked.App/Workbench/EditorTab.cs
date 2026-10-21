@@ -81,10 +81,19 @@ public sealed partial class EditorTab : ObservableObject
     /// <summary>The tab's editor was made (the first time the tab was shown).</summary>
     public event Action<CodeEditor>? EditorCreated;
 
+    /// <summary>How the file was indented when it was read (on the worker that read it), for editor.detectIndentation.</summary>
+    internal (bool InsertSpaces, int TabSize)? Indentation { get; init; }
+
+    internal bool IndentationRead { get; init; }
+
+    /// <summary>Whether showing this tab gives its editor the keyboard: an Explorer click previews and leaves it in the tree.</summary>
+    public bool FocusOnShow { get; set; } = true;
+
     public CodeEditor EditorFor(EditorServices services, Wicked.Core.Settings.WickedSettings settings, SnippetLibrary? snippets = null)
     {
         if (Editor is not null) return Editor;
         Editor = new CodeEditor(services, Document, Language) { EditorConfig = EditorConfig, Snippets = snippets, FilePath = Path };
+        if (IndentationRead) Editor.UseIndentationFromContent(Indentation);
         Editor.ApplySettings(settings);
         EditorCreated?.Invoke(Editor);
         return Editor;

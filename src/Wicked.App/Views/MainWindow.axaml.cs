@@ -33,6 +33,7 @@ public partial class MainWindow : Window, IWorkbenchDialogs
         StartupTimeline.Mark("window XAML");
         WindowFrame.Apply(this);
         WindowFrame.Drags(this, TitleBar);
+        InitMenuBar();
         Opened += OnFirstOpened;
         Deactivated += (_, _) => _shell?.Workbench.WindowDeactivated();
         AddHandler(KeyDownEvent, OnKeyDown, RoutingStrategies.Bubble);
@@ -74,6 +75,16 @@ public partial class MainWindow : Window, IWorkbenchDialogs
             if (_shell is not null && _shell.Keys.ChordPending && !DialogLayer.IsVisible && e.Key is not (Key.LeftCtrl or Key.RightCtrl or Key.LeftShift or Key.RightShift or Key.LeftAlt or Key.RightAlt or Key.LWin or Key.RWin))
             {
                 if (_shell.Keys.Match(e) is { } chord) _ = RunAsync(chord);
+                e.Handled = true;
+                return;
+            }
+
+            // The window's Shift+Alt keys (Format Document is Shift+Alt+F) before the menus' underlined letters: Avalonia would
+            // take Shift+Alt+F for Alt+F and open the File menu. Keys the editor or the terminal keep are not the window's.
+            if (_shell is not null && e.KeyModifiers == (KeyModifiers.Shift | KeyModifiers.Alt) && !DialogLayer.IsVisible
+                && FocusManager?.GetFocusedElement() is not Terminal.TerminalView && _shell.Keys.Match(e) is { } shiftAlt)
+            {
+                _ = RunAsync(shiftAlt);
                 e.Handled = true;
                 return;
             }
@@ -148,6 +159,7 @@ public partial class MainWindow : Window, IWorkbenchDialogs
             _shell.Workbench.Dialogs = this;
             _shell.Clipboard = text => Clipboard?.SetTextAsync(text) ?? Task.CompletedTask;
             ApplyColumns();
+            ApplyMenuBar();
             ApplyChrome(_shell.Settings.TitleBarStyle == "native");
             Root.RowDefinitions[2].Height = new GridLength(_shell.ShowStatusBar ? 28 : 0);
             ApplyZoom(_shell.WindowZoom);
@@ -169,6 +181,7 @@ public partial class MainWindow : Window, IWorkbenchDialogs
 
         if (e.PropertyName is nameof(ShellViewModel.SidebarVisible) or nameof(ShellViewModel.AssistantVisible) or nameof(ShellViewModel.ShowRail)) ApplyColumns();
         if (e.PropertyName == nameof(ShellViewModel.Settings) && _shell is not null) ApplyChrome(_shell.Settings.TitleBarStyle == "native");
+        if (e.PropertyName == nameof(ShellViewModel.Settings)) ApplyMenuBar();
         if (e.PropertyName == nameof(ShellViewModel.ShowStatusBar) && _shell is not null) Root.RowDefinitions[2].Height = new GridLength(_shell.ShowStatusBar ? 28 : 0);
         if (e.PropertyName == nameof(ShellViewModel.WindowZoom) && _shell is not null) ApplyZoom(_shell.WindowZoom);
         if (e.PropertyName == nameof(ShellViewModel.PanelLocation)) ApplyPanelRows();
@@ -317,6 +330,12 @@ public partial class MainWindow : Window, IWorkbenchDialogs
     private void OnPaletteRequested(string prefix) => Avalonia.Threading.Dispatcher.UIThread.Post(Palette.FocusQuery);
 
     private void OnCommandCentre(object? sender, RoutedEventArgs e) => _shell?.OpenPalette("");
+
+    /// <summary>A status bar item that runs a command (its Tag): Ln/Col goes to a line, the encoding item picks one...</summary>
+    private void OnStatusCommand(object? sender, RoutedEventArgs e)
+    {
+        if (_shell is not null && sender is Control { Tag: string id }) _ = _shell.RunCommandAsync(id);
+    }
 
     // ── Dialogs ──────────────────────────────────────────────────────────────────────────────────
 

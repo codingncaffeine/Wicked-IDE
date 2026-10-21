@@ -610,8 +610,21 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private string _caretText = "";
 
+    /// <summary>The active file in the status bar, one clickable item each (as VS Code's): indentation, encoding, line breaks, language.</summary>
     [ObservableProperty]
     private string _documentText = "";
+
+    [ObservableProperty]
+    private string _indentText = "";
+
+    [ObservableProperty]
+    private string _encodingText = "";
+
+    [ObservableProperty]
+    private string _lineBreakText = "";
+
+    [ObservableProperty]
+    private string _languageText = "";
 
     private void OnActiveEditorChanged()
     {
@@ -620,13 +633,11 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         if (_watched is not null) _watched.SelectionsChanged += UpdateCaret;
         UpdateCaret();
         var tab = Workbench.ActiveTab;
-        DocumentText = tab is null ? "" : string.Join("    ", new[]
-        {
-            tab.Editor?.Options is { } o ? (o.InsertSpaces ? $"Spaces: {o.TabSize}" : $"Tab Size: {o.TabSize}") : "Spaces: 4",
-            tab.Encoding.Label,
-            tab.Document.LineBreak switch { "\r\n" => "CRLF", "\r" => "CR", _ => "LF" },
-            tab.Language?.Id ?? "Plain Text",
-        });
+        IndentText = tab is null ? "" : tab.Editor?.Options is { } o ? (o.InsertSpaces ? $"Spaces: {o.TabSize}" : $"Tab Size: {o.TabSize}") : "Spaces: 4";
+        EncodingText = tab?.Encoding.Label ?? "";
+        LineBreakText = tab is null ? "" : tab.Document.LineBreak switch { "\r\n" => "CRLF", "\r" => "CR", _ => "LF" };
+        LanguageText = tab is null ? "" : tab.Language?.Id ?? "Plain Text";
+        DocumentText = tab is null ? "" : string.Join("    ", IndentText, EncodingText, LineBreakText, LanguageText);
     }
 
     /// <summary>"Ln 12, Col 5", and how many characters are selected or how many carets there are.</summary>

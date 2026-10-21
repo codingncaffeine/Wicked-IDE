@@ -48,7 +48,16 @@ public sealed class WorkbenchWindowTests
 
         // As a user would, click into the text to type there (focus that follows the open is not every platform's promise).
         var editor = shell.Workbench.ActiveTab!.Editor!;
-        if (!editor.IsFocused) Input.Click(window, editor);
+        if (!editor.IsFocused)
+        {
+            // At the start of the text, where the caret of a file just opened is.
+            var start = editor.RectOf(0);
+            var at = Avalonia.VisualExtensions.TranslatePoint(editor, new Avalonia.Point(start.X + 1, start.Y + start.Height / 2), window)!.Value;
+            window.MouseDown(at, Avalonia.Input.MouseButton.Left);
+            window.MouseUp(at, Avalonia.Input.MouseButton.Left);
+            Ui.Pump(0.05);
+        }
+
         Assert.True(Ui.PumpUntil(() => editor.IsFocused, 5), "the editor did not take the keyboard");
         return shell.Workbench.ActiveTab!;
     }

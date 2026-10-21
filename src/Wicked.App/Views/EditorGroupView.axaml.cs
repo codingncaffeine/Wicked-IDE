@@ -18,6 +18,7 @@ public partial class EditorGroupView : UserControl
         InitializeComponent();
         TabStrip.AddHandler(PointerReleasedEvent, OnTabPointer, RoutingStrategies.Bubble, handledEventsToo: true);
         InitDrag();
+        TabStrip.ContextRequested += OnTabContext;
         AddHandler(GotFocusEvent, (_, _) => _group?.Workbench.Focus(_group), handledEventsToo: true);
         // Out of the window, the view lets go of its editor so another view may show it.
         DetachedFromVisualTree += (_, _) => Host.Content = null;
@@ -81,6 +82,7 @@ public partial class EditorGroupView : UserControl
         {
             var bench = _group.Workbench;
             editor.LostFocus += (_, _) => bench.EditorLostFocus(tab);
+            editor.ContextMenuItems = () => Shell is { } shell ? Wicked.App.Shell.MenuBuilder.Build(shell, shell.EditorContextMenu()) : [];
         }
 
         Adopt(editor);
@@ -89,7 +91,9 @@ public partial class EditorGroupView : UserControl
         // group's: when the grid is drawn again every group shows its editor, and the keyboard stays where it was.
         Avalonia.Threading.Dispatcher.UIThread.Post(() =>
         {
-            if (_group?.Active == tab && _group.Workbench.ActiveGroup == _group) editor.Focus();
+            if (_group?.Active == tab && _group.Workbench.ActiveGroup == _group && tab.FocusOnShow) editor.Focus();
+            tab.FocusOnShow = true; // only the open that asked keeps the keyboard where it was
+
         }, Avalonia.Threading.DispatcherPriority.Loaded);
     }
 
@@ -154,6 +158,14 @@ public partial class EditorGroupView : UserControl
             };
             return button;
         }).ToList();
+    }
+
+    /// <summary>A tab's right-click menu (closing, paths, pinning, splitting), for the tab under the pointer.</summary>
+    private void OnTabContext(object? sender, ContextRequestedEventArgs e)
+    {
+        if (_group is null || Shell is not { } shell || TabAt(e.Source) is not { } tab) return;
+        new ContextMenu { ItemsSource = Wicked.App.Shell.MenuBuilder.Build(shell, shell.TabContextMenu(tab, _group)), Placement = PlacementMode.Pointer }.Open(TabStrip);
+        e.Handled = true;
     }
 
     private void OnTabPointer(object? sender, PointerReleasedEventArgs e)
