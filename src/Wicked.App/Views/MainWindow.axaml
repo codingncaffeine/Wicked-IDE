@@ -3,6 +3,7 @@
         xmlns:vm="using:Wicked.App.ViewModels"
         xmlns:views="using:Wicked.App.Views"
         xmlns:shell="using:Wicked.App.Shell"
+        xmlns:chat="using:Wicked.App.Chat"
         x:Class="Wicked.App.Views.MainWindow"
         x:DataType="vm:ShellViewModel"
         Title="{Binding Title}"
@@ -114,43 +115,12 @@
 
         <!-- The assistant -->
         <Border Grid.Column="5" Name="Assistant" Classes="panel" Margin="0,0,0,6" IsVisible="{Binding AssistantVisible}">
-          <DockPanel>
-            <Grid DockPanel.Dock="Top" ColumnDefinitions="Auto,*,Auto" Margin="14,8,8,4">
-              <shell:Icon Data="{StaticResource Icon.Sparkles}" Size="15" Foreground="{DynamicResource Brush.Accent}" />
-              <TextBlock Grid.Column="1" Text="Assistant" FontWeight="SemiBold" Margin="8,0" VerticalAlignment="Center" />
-              <Button Grid.Column="2" Classes="quiet" Command="{Binding ToggleAssistantCommand}" ToolTip.Tip="Hide (Ctrl+L)">
-                <shell:Icon Data="{StaticResource Icon.X}" Size="14" />
-              </Button>
-            </Grid>
-
-            <!-- The composer, as the AI editors set it: a rounded box at the foot of the panel. -->
-            <Border DockPanel.Dock="Bottom" Margin="10" Padding="10,8" CornerRadius="10"
-                    Background="{DynamicResource Brush.Raised}" BorderBrush="{DynamicResource Brush.Border}" BorderThickness="1">
-              <StackPanel Spacing="8">
-                <TextBlock Classes="muted" Text="Ask anything, @ to add context" />
-                <Grid ColumnDefinitions="Auto,*,Auto">
-                  <Border CornerRadius="5" Padding="7,2" Background="{DynamicResource Brush.Hover}">
-                    <StackPanel Orientation="Horizontal" Spacing="5">
-                      <shell:Icon Data="{StaticResource Icon.Cpu}" Size="12" Foreground="{DynamicResource Brush.Text.Muted}" />
-                      <TextBlock Classes="muted" FontSize="{DynamicResource Font.Size.Small}" Text="No model" />
-                    </StackPanel>
-                  </Border>
-                </Grid>
-              </StackPanel>
-            </Border>
-
-            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8" Margin="28,0">
-              <shell:Icon Data="{StaticResource Icon.Bot}" Size="30" StrokeWidth="1.4" Foreground="{DynamicResource Brush.Text.Muted}" />
-              <TextBlock Text="No model yet" HorizontalAlignment="Center" FontWeight="SemiBold" />
-              <TextBlock Classes="muted" TextAlignment="Center" TextWrapping="Wrap"
-                         Text="Wicked will suggest two or three models that fit this PC, and keep them up to date." />
-            </StackPanel>
-          </DockPanel>
+          <chat:ChatView Name="AssistantChat" DataContext="{Binding Chat}" />
         </Border>
       </Grid>
 
       <!-- ── Footer: the waiting notice on the left (a click goes where it is dealt with), the editor and daemon on the right. ── -->
-      <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto,Auto,Auto" Margin="10,0,8,0">
+      <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto" Margin="10,0,8,0">
         <Button Name="NoticeButton" Classes="quiet" Padding="6,2" HorizontalAlignment="Left"
                 IsVisible="{Binding Notice, Converter={x:Static ObjectConverters.IsNotNull}}"
                 Command="{Binding OpenNoticeCommand}" ToolTip.Tip="{Binding NoticeTip}">
@@ -167,15 +137,23 @@
           </StackPanel>
         </Button>
 
-        <TextBlock Grid.Column="1" Name="CaretStatus" Text="{Binding CaretText}" Classes="status" />
-        <TextBlock Grid.Column="2" Name="DocumentStatus" Text="{Binding DocumentText}" Classes="status" />
-        <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="6" Margin="0,0,14,0" VerticalAlignment="Center">
+        <Button Grid.Column="1" Name="ModelStatus" Classes="quiet" Padding="6,2" Margin="0,0,10,0" IsVisible="{Binding Models.HasRuntimeStatus}"
+                Command="{Binding ShowModelsStatusCommand}" ToolTip.Tip="Models: load, unload and run settings" AutomationProperties.Name="Model status">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <Ellipse Classes="state" Classes.loaded="{Binding Models.RuntimeLoaded}" Classes.loading="{Binding Models.RuntimeLoading}" Classes.failed="{Binding Models.RuntimeFailed}" />
+            <TextBlock Name="ModelStatusText" Text="{Binding Models.RuntimeStatus}" FontSize="{DynamicResource Font.Size.Small}"
+                       Foreground="{DynamicResource Brush.Text.Secondary}" VerticalAlignment="Center" />
+          </StackPanel>
+        </Button>
+        <TextBlock Grid.Column="2" Name="CaretStatus" Text="{Binding CaretText}" Classes="status" />
+        <TextBlock Grid.Column="3" Name="DocumentStatus" Text="{Binding DocumentText}" Classes="status" />
+        <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="6" Margin="0,0,14,0" VerticalAlignment="Center">
           <Ellipse Width="7" Height="7" VerticalAlignment="Center"
                    Fill="{Binding DaemonRunning, Converter={x:Static shell:DaemonBrush.Instance}}" />
           <TextBlock Name="DaemonText" Text="{Binding DaemonText}" FontSize="{DynamicResource Font.Size.Small}"
                      Foreground="{DynamicResource Brush.Text.Muted}" VerticalAlignment="Center" />
         </StackPanel>
-        <TextBlock Grid.Column="4" Text="{Binding VersionText}" FontSize="{DynamicResource Font.Size.Small}"
+        <TextBlock Grid.Column="5" Text="{Binding VersionText}" FontSize="{DynamicResource Font.Size.Small}"
                    Foreground="{DynamicResource Brush.Text.Muted}" VerticalAlignment="Center" />
       </Grid>
 
@@ -194,6 +172,14 @@
       <!-- A question from the model half: the licence to accept, a delete to confirm. Above the sheets, below the save prompt. -->
       <Border Name="PromptLayer" Grid.RowSpan="3" Background="#99000000" IsVisible="{Binding Models.Prompt, Converter={x:Static ObjectConverters.IsNotNull}}">
         <views:PromptView DataContext="{Binding Models.Prompt}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+      </Border>
+
+      <Border Name="RunSettingsLayer" Grid.RowSpan="3" Background="#99000000" IsVisible="{Binding Models.RunSettings, Converter={x:Static ObjectConverters.IsNotNull}}">
+        <views:RunSettingsView DataContext="{Binding Models.RunSettings}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+      </Border>
+
+      <Border Name="PromptsLayer" Grid.RowSpan="3" Background="#99000000" IsVisible="{Binding Chat.PromptEditor, Converter={x:Static ObjectConverters.IsNotNull}}">
+        <chat:SystemPromptsView DataContext="{Binding Chat.PromptEditor}" HorizontalAlignment="Center" VerticalAlignment="Center" />
       </Border>
 
       <Border Name="DialogLayer" Grid.RowSpan="3" Background="#99000000" IsVisible="False">

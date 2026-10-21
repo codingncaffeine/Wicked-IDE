@@ -20,7 +20,11 @@ public partial class App : Application
     // Kept alive for the life of the process; a collected registration stops handling the signal.
     private static PosixSignalRegistration? _terminate;
 
-    public override void Initialize() => AvaloniaXamlLoader.Load(this);
+    public override void Initialize()
+    {
+        AvaloniaXamlLoader.Load(this);
+        Chat.ChatFonts.Register();
+    }
 
     public override void OnFrameworkInitializationCompleted()
     {

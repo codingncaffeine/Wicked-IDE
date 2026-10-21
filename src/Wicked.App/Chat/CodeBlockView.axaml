@@ -1,0 +1,28 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:shell="using:Wicked.App.Shell"
+             xmlns:chat="using:Wicked.App.Chat"
+             x:Class="Wicked.App.Chat.CodeBlockView">
+  <Border Classes="codeblock">
+    <DockPanel>
+      <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto,Auto" Classes="codehead">
+        <TextBlock Name="LanguageLabel" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" VerticalAlignment="Center" Margin="12,0,0,0" />
+        <Button Grid.Column="1" Name="CopyCode" Classes="quiet small" ToolTip.Tip="Copy the code" AutomationProperties.Name="Copy code" Click="OnCopy">
+          <StackPanel Orientation="Horizontal" Spacing="5">
+            <shell:Icon Name="CopyIcon" Data="{StaticResource Icon.Copy}" Size="13" />
+            <TextBlock Name="CopyLabel" Text="Copy" FontSize="{DynamicResource Font.Size.Small}" />
+          </StackPanel>
+        </Button>
+        <Button Grid.Column="2" Name="InsertCode" Classes="quiet small" AutomationProperties.Name="Insert code" Click="OnInsert">
+          <StackPanel Orientation="Horizontal" Spacing="5">
+            <shell:Icon Data="{StaticResource Icon.TextCursorInput}" Size="13" />
+            <TextBlock Text="Insert" FontSize="{DynamicResource Font.Size.Small}" />
+          </StackPanel>
+        </Button>
+      </Grid>
+      <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Name="CodeScroll">
+        <chat:CodeText Name="Body" Foreground="{DynamicResource Brush.Text}" SelectionBrush="{DynamicResource Brush.Accent.Subtle}" HorizontalAlignment="Left" />
+      </ScrollViewer>
+    </DockPanel>
+  </Border>
+</UserControl>

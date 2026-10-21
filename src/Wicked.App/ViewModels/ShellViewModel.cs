@@ -1,6 +1,7 @@
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Wicked.App.Chat;
 using Wicked.App.Editor;
 using Wicked.App.Shell;
 using Wicked.Core;
@@ -50,6 +51,8 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         Commands = BuildCommands();
         QuickInput = new QuickInputViewModel(this);
         Models = new ModelsViewModel(paths, Notices);
+        Chat = new ChatViewModel(AssistantServices.Resolve(paths, Models.Services), new ShellChatHost(this));
+        Models.AttachRuntime(Chat.Runtime);
         Snippets = new SnippetLibrary(Path.Combine(paths.Config, "snippets"));
         Workbench.Snippets = Snippets;
         Models.RouteRequested += route => Navigate(route);
@@ -65,6 +68,12 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     public QuickInputViewModel QuickInput { get; }
 
     public ModelsViewModel Models { get; }
+
+    /// <summary>The Assistant panel.</summary>
+    public ChatViewModel Chat { get; }
+
+    /// <summary>Puts text on the clipboard; the window sets it (the clipboard belongs to a window).</summary>
+    public Func<string, Task>? Clipboard { get; set; }
 
     /// <summary>Whether the model half may reach the network at start (off under <c>WICKED_OFFLINE</c>; a test world on loopback turns it on).</summary>
     public bool AllowNetwork { get; set; } = !Wicked.Core.Http.WickedHttp.IsOffline;
@@ -161,6 +170,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         Settings = settings;
         Workbench.Settings = settings;
         Models.Configure(settings);
+        Chat.ApplySettings(settings);
         OnPropertyChanged(nameof(Settings));
         var services = await EditorServices.Ready;
         services.Apply(settings);
@@ -376,6 +386,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         _session = await SessionState.ReadAsync(Paths.SessionFile, CancellationToken.None);
         ShowRecent();
         _ = Models.StartAsync(AllowNetwork);
+        _ = Chat.StartAsync();
         if (!Settings.RestoreSession || _session.LastFolder is not { } folder || !Directory.Exists(folder)) return;
         await Workbench.OpenFolderAsync(folder);
         if (_session.OpenFiles.TryGetValue(folder, out var files))
@@ -528,6 +539,10 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
 
     [RelayCommand]
     private void ToggleAssistant() => AssistantVisible = !AssistantVisible;
+
+    /// <summary>The footer's model status: the Models panel, where models are loaded and set up.</summary>
+    [RelayCommand]
+    private void ShowModelsStatus() => Navigate(ShellRoutes.Models);
 
     /// <summary>Takes the user to <paramref name="route"/> (see <see cref="ShellRoutes"/>); false for a place this build does not know.</summary>
     public bool Navigate(string route)

@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Input.Platform;
 using Avalonia.Platform.Storage;
 using Avalonia.VisualTree;
 using Wicked.App.Shell;
@@ -37,11 +38,13 @@ public partial class MainWindow : Window, IWorkbenchDialogs
         // Escape closes the Settings sheet before whatever has the keyboard sees it.
         AddHandler(KeyDownEvent, (_, e) =>
         {
-            if (_shell is { SettingsOpen: true } && e.Key == Key.Escape)
-            {
-                _shell.SettingsOpen = false;
-                e.Handled = true;
-            }
+            if (_shell is null || e.Key != Key.Escape || DialogLayer.IsVisible) return;
+            if (_shell.Models.Prompt is not null) return; // the question has its own Escape
+            if (_shell.Models.RunSettings is not null) _shell.Models.RunSettings = null;
+            else if (_shell.Chat.PromptEditor is not null) _shell.Chat.PromptEditor = null;
+            else if (_shell.SettingsOpen) _shell.SettingsOpen = false;
+            else return;
+            e.Handled = true;
         }, RoutingStrategies.Tunnel);
         DataContextChanged += (_, _) =>
         {
@@ -56,6 +59,7 @@ public partial class MainWindow : Window, IWorkbenchDialogs
             _shell.PropertyChanged += OnShellChanged;
             _shell.PaletteRequested += OnPaletteRequested;
             _shell.Workbench.Dialogs = this;
+            _shell.Clipboard = text => Clipboard?.SetTextAsync(text) ?? Task.CompletedTask;
             ApplyColumns();
         };
     }
@@ -74,6 +78,9 @@ public partial class MainWindow : Window, IWorkbenchDialogs
         }
 
         if (e.PropertyName is nameof(ShellViewModel.SidebarVisible) or nameof(ShellViewModel.AssistantVisible)) ApplyColumns();
+
+        // The assistant opens with the cursor in its composer (Ctrl+L, as in Cursor).
+        if (e.PropertyName == nameof(ShellViewModel.AssistantVisible) && _shell is { AssistantVisible: true }) AssistantChat.FocusComposer();
     }
 
     /// <summary>A hidden panel gives its column back to the editor; shown again, it returns at the width it had.</summary>
