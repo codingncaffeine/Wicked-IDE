@@ -19,7 +19,7 @@ public sealed partial class RunSettingsViewModel : ObservableObject
     public RunSettingsViewModel(ModelsViewModel owner, InstalledRow row, ModelRunSettings current, IReadOnlyList<SettingChoice> otherModels)
     {
         _owner = owner;
-        _id = row.Id;
+        _id = row.RunId;
         Title = $"Run settings: {row.Name}";
         var auto = new SettingChoice("", "Automatic");
 

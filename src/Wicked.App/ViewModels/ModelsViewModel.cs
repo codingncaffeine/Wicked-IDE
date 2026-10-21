@@ -120,6 +120,9 @@ public sealed partial class InstalledRow(string id, ModelsViewModel owner) : Obs
             _ => "Not loaded",
         };
 
+    /// <summary>The id the runtime knows this model by: its variant (<c>repo:Q4_K_M</c>) once matched, else the stored id.</summary>
+    public string RunId => Run?.Id ?? Id;
+
     public void SetRun(RunningModel? run)
     {
         Run = run;
@@ -221,7 +224,7 @@ public sealed partial class ModelsViewModel : ObservableObject, IAsyncDisposable
     {
         if (_runtime is null) return;
         var snapshot = _runtime.Models;
-        foreach (var row in Installed) row.SetRun(snapshot.FirstOrDefault(m => m.Id == row.Id));
+        foreach (var row in Installed) row.SetRun(RunFor(snapshot, row.Id));
         var loaded = snapshot.Where(m => m.State is RunState.Loaded or RunState.Sleeping).ToList();
         var loading = snapshot.FirstOrDefault(m => m.State == RunState.Loading);
         var failed = snapshot.FirstOrDefault(m => m.State == RunState.Failed);
@@ -236,13 +239,22 @@ public sealed partial class ModelsViewModel : ObservableObject, IAsyncDisposable
             : "No model loaded";
     }
 
+    /// <summary>
+    /// The runtime's entry for a stored model: the runtime names a model by its variant (<c>repo:Q4_K_M</c>) when the file has a
+    /// quant, a row by the stored model; a loaded variant wins when a model has several.
+    /// </summary>
+    internal static RunningModel? RunFor(IReadOnlyList<RunningModel> snapshot, string modelId) =>
+        snapshot.Where(m => m.Id == modelId || m.Id.StartsWith(modelId + ":", StringComparison.Ordinal))
+            .OrderByDescending(m => m.State is RunState.Loaded or RunState.Sleeping or RunState.Loading)
+            .FirstOrDefault();
+
     internal async Task LoadAsync(InstalledRow row)
     {
         if (_runtime is not { } runtime) return;
         row.LoadError = null;
         try
         {
-            await Task.Run(() => runtime.LoadAsync(row.Id));
+            await Task.Run(() => runtime.LoadAsync(row.RunId));
         }
         catch (Exception ex)
         {
@@ -257,7 +269,7 @@ public sealed partial class ModelsViewModel : ObservableObject, IAsyncDisposable
         if (_runtime is not { } runtime) return;
         try
         {
-            await Task.Run(() => runtime.UnloadAsync(row.Id));
+            await Task.Run(() => runtime.UnloadAsync(row.RunId));
         }
         catch (Exception ex)
         {
@@ -269,8 +281,8 @@ public sealed partial class ModelsViewModel : ObservableObject, IAsyncDisposable
     internal async Task OpenRunSettingsAsync(InstalledRow row)
     {
         if (_runtime is not { } runtime) return;
-        var current = await Task.Run(() => runtime.GetSettings(row.Id));
-        RunSettings = new RunSettingsViewModel(this, row, current, [.. Installed.Where(r => r.Id != row.Id).Select(r => new SettingChoice(r.Id, r.Name))]);
+        var current = await Task.Run(() => runtime.GetSettings(row.RunId));
+        RunSettings = new RunSettingsViewModel(this, row, current, [.. Installed.Where(r => r.Id != row.Id).Select(r => new SettingChoice(r.RunId, r.Name))]);
     }
 
     internal async Task SaveRunSettingsAsync(string id, ModelRunSettings settings)

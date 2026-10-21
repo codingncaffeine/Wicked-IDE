@@ -14,6 +14,47 @@ public sealed class RunModelsWindowTests
     private static string TextIn(Window window, string name) => ChatUi.Control<TextBlock>(window, name).Text ?? "";
 
     [Fact]
+    public async Task AModelInstalledFromThePanelLoadsThroughTheRealRuntime()
+    {
+        // No fakes between the panel and the runtime: the runtime names a model by its variant ("repo:Q4_K_M"), the panel's
+        // row by the stored model, and Load must reach the right one.
+        Assert.SkipUnless(StandIns.CanRunFakeRouter, "the stand-in engine is a shell script");
+        using var profile = new TempProfile();
+        await using var models = await ModelWorld.StartAsync();
+        ShellViewModel? started = null;
+        try
+        {
+            await Ui.Run(() =>
+            {
+                var (window, shell) = models.Start(profile.Paths);
+                started = shell;
+                _ = shell.Models.StartAsync(allowNetwork: true);
+                Input.Click(window, window.FindControl<Button>("RailModels")!);
+                Assert.True(Ui.PumpUntil(() => shell.Models.Picks.Count == 3 && ModelsUi.Cards(window).Count() == 3, 20), "no recommendations appeared");
+                Input.Click(window, ModelsUi.Labelled(ModelsUi.Card(window, "Tiny Coder"), "Install")!);
+                Assert.True(Ui.PumpUntil(() => shell.Models.Installed.Count == 1 && !shell.Models.Item(Coder).Busy, 30), "the install did not finish");
+
+                Assert.True(Ui.PumpUntil(() => ModelsUi.Named(window, "Load") is not null, 15), "the runtime's listing never reached the row");
+                Assert.Equal("Not loaded", TextIn(window, "RunStateText"));
+                Input.Click(window, ModelsUi.Named(window, "Load")!);
+                Assert.True(Ui.PumpUntil(() => ModelsUi.Named(window, "Unload") is not null, 30), $"the model did not load: {TextIn(window, "RunStateText")}");
+                Assert.Equal("Loaded", TextIn(window, "RunStateText"));
+                Assert.StartsWith(Coder, shell.Models.Installed[0].RunId, StringComparison.Ordinal);
+
+                Input.Click(window, ModelsUi.Named(window, "Unload")!);
+                Assert.True(Ui.PumpUntil(() => ModelsUi.Named(window, "Load") is not null, 30), "the model did not unload");
+                window.Close();
+                return 0;
+            });
+        }
+        finally
+        {
+            // The window leaves its services to the app's exit; here the router they started must go with the test.
+            if (started is not null) await started.Models.Services.DisposeAsync();
+        }
+    }
+
+    [Fact]
     public async Task AnInstalledModelLoadsAndUnloadsWithItsStateAndTheFooterFollows()
     {
         Assert.SkipUnless(StandIns.CanRunEngine, "the stand-in engine is a shell script");
