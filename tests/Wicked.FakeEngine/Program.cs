@@ -139,7 +139,7 @@ async Task DoLoadAsync(string name)
         ["progress"] = new JsonObject { ["stages"] = new JsonArray("text_model"), ["current"] = "text_model", ["value"] = 0.5 },
     });
     await Task.Delay(half);
-    if (script["failLoad"] is JsonArray fails && fails.Any(f => f?.GetValue<string>() == name))
+    if (Marker(name) == "FAILLOAD" || script["failLoad"] is JsonArray planted && planted.Any(f => f?.GetValue<string>() == name))
     {
         Console.Error.WriteLine($"[{Environment.ProcessId + 1}] 0.00.000.100 E llama_model_load: error loading model: fake failure for {name}");
         Console.Error.WriteLine($"0.00.000.200 I srv           run: instance name={name} exited with status 1");
@@ -281,6 +281,20 @@ app.MapPost("/v1/chat/completions", async (HttpContext http) =>
         return;
     }
 
+    if (Marker(name) == "FAILCHAT")
+    {
+        http.Response.StatusCode = 500;
+        http.Response.ContentType = "application/json";
+        await http.Response.WriteAsync(new JsonObject { ["error"] = new JsonObject { ["code"] = 500, ["message"] = "fake failure while answering", ["type"] = "server_error" } }.ToJsonString());
+        return;
+    }
+
+    if (script["chat"] is null && script["reply"] is not null)
+    {
+        await Reply(http, "chat", body);
+        return;
+    }
+
     if (script["chatStatus"] is { } status)
     {
         http.Response.StatusCode = status.GetValue<int>();
@@ -321,6 +335,165 @@ app.MapPost("/v1/chat/completions", async (HttpContext http) =>
         Log("chat-aborted");
     }
 });
+
+
+// A model file that starts with one of these words misbehaves, so a test can plant a bad upload: it fails to load, or loads and
+// then errors on its first prompt. Restoring the old bytes restores the behaviour.
+string? Marker(string name)
+{
+    string? path;
+    lock (models) path = models.TryGetValue(name, out var m) ? m.Preset.GetValueOrDefault("model") : null;
+    if (path is null || !File.Exists(path)) return null;
+    try
+    {
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        var head = new byte[8];
+        var read = stream.Read(head, 0, head.Length);
+        var text = Encoding.ASCII.GetString(head, 0, read);
+        return text is "FAILLOAD" or "FAILCHAT" ? text : null;
+    }
+    catch (IOException)
+    {
+        return null;
+    }
+}
+
+bool IsLoaded(string name)
+{
+    lock (models) return models.TryGetValue(name, out var m) && m.Status == "loaded";
+}
+
+async Task NotLoaded(HttpContext http, string name)
+{
+    http.Response.StatusCode = 400;
+    http.Response.ContentType = "application/json";
+    await http.Response.WriteAsync(new JsonObject { ["error"] = new JsonObject { ["code"] = 400, ["message"] = $"model '{name}' is not loaded", ["type"] = "invalid_request_error" } }.ToJsonString());
+}
+
+// The other routes the gateway forwards: each answers with the script's "reply" (default "Hello from the fake engine."), streamed
+// word by word when the request asks for a stream, with "streamGapMs" between the words. The request body is logged.
+async Task Reply(HttpContext http, string kind, JsonNode? parsed = null)
+{
+    var body = parsed ?? await JsonNode.ParseAsync(http.Request.Body) ?? new JsonObject();
+    if (parsed is null) Log(kind, e =>
+    {
+        e["body"] = body.DeepClone();
+        e["auth"] = http.Request.Headers.Authorization.ToString();
+        e["xkey"] = http.Request.Headers["x-api-key"].ToString();
+    });
+    var script = Script();
+    var name = body["model"]?.GetValue<string>() ?? "";
+    if (!IsLoaded(name))
+    {
+        await NotLoaded(http, name);
+        return;
+    }
+
+    if (Marker(name) == "FAILCHAT")
+    {
+        http.Response.StatusCode = 500;
+        http.Response.ContentType = "application/json";
+        await http.Response.WriteAsync(new JsonObject { ["error"] = new JsonObject { ["code"] = 500, ["message"] = "fake failure while answering", ["type"] = "server_error" } }.ToJsonString());
+        return;
+    }
+
+    var reply = script["reply"]?.GetValue<string>() ?? "Hello from the fake engine.";
+    var words = reply.Split(' ').Select((w, i) => i == 0 ? w : " " + w).ToList();
+    var gap = TimeSpan.FromMilliseconds(script["streamGapMs"]?.GetValue<double>() ?? 0);
+    var stream = body["stream"]?.GetValue<bool>() == true;
+    var promptTokens = 7;
+    var id = "fake-" + kind;
+
+    if (!stream)
+    {
+        JsonNode result = kind switch
+        {
+            "chat" => new JsonObject
+            {
+                ["id"] = id, ["object"] = "chat.completion", ["model"] = name,
+                ["choices"] = new JsonArray(new JsonObject { ["index"] = 0, ["message"] = new JsonObject { ["role"] = "assistant", ["content"] = reply }, ["finish_reason"] = "stop" }),
+                ["usage"] = new JsonObject { ["prompt_tokens"] = promptTokens, ["completion_tokens"] = words.Count, ["total_tokens"] = promptTokens + words.Count },
+            },
+            "completions" => new JsonObject
+            {
+                ["id"] = id, ["object"] = "text_completion", ["model"] = name,
+                ["choices"] = new JsonArray(new JsonObject { ["index"] = 0, ["text"] = reply, ["finish_reason"] = "stop" }),
+                ["usage"] = new JsonObject { ["prompt_tokens"] = promptTokens, ["completion_tokens"] = words.Count, ["total_tokens"] = promptTokens + words.Count },
+            },
+            "embeddings" => new JsonObject
+            {
+                ["object"] = "list", ["model"] = name,
+                ["data"] = new JsonArray(new JsonObject { ["object"] = "embedding", ["index"] = 0, ["embedding"] = new JsonArray(0.1, 0.2, 0.3) }),
+                ["usage"] = new JsonObject { ["prompt_tokens"] = promptTokens, ["total_tokens"] = promptTokens },
+            },
+            "responses" => new JsonObject
+            {
+                ["id"] = id, ["object"] = "response", ["model"] = name, ["status"] = "completed",
+                ["output"] = new JsonArray(new JsonObject { ["type"] = "message", ["role"] = "assistant", ["content"] = new JsonArray(new JsonObject { ["type"] = "output_text", ["text"] = reply }) }),
+                ["usage"] = new JsonObject { ["input_tokens"] = promptTokens, ["output_tokens"] = words.Count, ["total_tokens"] = promptTokens + words.Count },
+            },
+            _ => new JsonObject
+            {
+                ["id"] = id, ["type"] = "message", ["role"] = "assistant", ["model"] = name,
+                ["content"] = new JsonArray(new JsonObject { ["type"] = "text", ["text"] = reply }),
+                ["stop_reason"] = "end_turn",
+                ["usage"] = new JsonObject { ["input_tokens"] = promptTokens, ["output_tokens"] = words.Count },
+            },
+        };
+        http.Response.ContentType = "application/json";
+        await http.Response.WriteAsync(result.ToJsonString());
+        return;
+    }
+
+    http.Response.ContentType = "text/event-stream";
+    async Task Send(string text, string? ev = null)
+    {
+        await http.Response.WriteAsync((ev is null ? "" : $"event: {ev}\n") + $"data: {text}\n\n", http.RequestAborted);
+        await http.Response.Body.FlushAsync(http.RequestAborted);
+        if (gap > TimeSpan.Zero) await Task.Delay(gap, http.RequestAborted);
+    }
+
+    try
+    {
+        if (kind == "messages")
+        {
+            await Send(new JsonObject { ["type"] = "message_start", ["message"] = new JsonObject { ["id"] = id, ["role"] = "assistant", ["model"] = name, ["usage"] = new JsonObject { ["input_tokens"] = promptTokens, ["output_tokens"] = 0 } } }.ToJsonString(), "message_start");
+            await Send(new JsonObject { ["type"] = "content_block_start", ["index"] = 0, ["content_block"] = new JsonObject { ["type"] = "text", ["text"] = "" } }.ToJsonString(), "content_block_start");
+            foreach (var w in words) await Send(new JsonObject { ["type"] = "content_block_delta", ["index"] = 0, ["delta"] = new JsonObject { ["type"] = "text_delta", ["text"] = w } }.ToJsonString(), "content_block_delta");
+            await Send(new JsonObject { ["type"] = "content_block_stop", ["index"] = 0 }.ToJsonString(), "content_block_stop");
+            await Send(new JsonObject { ["type"] = "message_delta", ["delta"] = new JsonObject { ["stop_reason"] = "end_turn" }, ["usage"] = new JsonObject { ["output_tokens"] = words.Count } }.ToJsonString(), "message_delta");
+            await Send(new JsonObject { ["type"] = "message_stop" }.ToJsonString(), "message_stop");
+        }
+        else if (kind == "responses")
+        {
+            foreach (var w in words) await Send(new JsonObject { ["type"] = "response.output_text.delta", ["delta"] = w }.ToJsonString(), "response.output_text.delta");
+            await Send(new JsonObject { ["type"] = "response.completed", ["response"] = new JsonObject { ["id"] = id, ["status"] = "completed", ["usage"] = new JsonObject { ["input_tokens"] = promptTokens, ["output_tokens"] = words.Count } } }.ToJsonString(), "response.completed");
+        }
+        else
+        {
+            foreach (var w in words)
+            {
+                var piece = kind == "chat"
+                    ? new JsonObject { ["choices"] = new JsonArray(new JsonObject { ["index"] = 0, ["delta"] = new JsonObject { ["content"] = w }, ["finish_reason"] = null }) }
+                    : new JsonObject { ["choices"] = new JsonArray(new JsonObject { ["index"] = 0, ["text"] = w, ["finish_reason"] = null }) };
+                await Send(piece.ToJsonString());
+            }
+
+            await Send(new JsonObject { ["choices"] = new JsonArray(new JsonObject { ["index"] = 0, ["delta"] = new JsonObject(), ["finish_reason"] = "stop" }) }.ToJsonString());
+            await Send(new JsonObject { ["choices"] = new JsonArray(), ["usage"] = new JsonObject { ["prompt_tokens"] = promptTokens, ["completion_tokens"] = words.Count, ["total_tokens"] = promptTokens + words.Count } }.ToJsonString());
+            await Send("[DONE]");
+        }
+    }
+    catch (Exception ex) when (ex is OperationCanceledException or IOException or InvalidOperationException)
+    {
+        Log(kind + "-aborted");
+    }
+}
+
+app.MapPost("/v1/completions", (HttpContext http) => Reply(http, "completions"));
+app.MapPost("/v1/embeddings", (HttpContext http) => Reply(http, "embeddings"));
+app.MapPost("/v1/responses", (HttpContext http) => Reply(http, "responses"));
+app.MapPost("/v1/messages", (HttpContext http) => Reply(http, "messages"));
 
 Console.Error.WriteLine($"fake llama-server listening on {port.ToString(CultureInfo.InvariantCulture)}");
 await app.RunAsync();

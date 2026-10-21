@@ -20,7 +20,7 @@ namespace Wicked.Tests.Models;
 /// </summary>
 internal sealed class ModelWorld : IAsyncDisposable
 {
-    private readonly ECDsa _key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+    private ECDsa _signer = null!;
 
     private ModelWorld(HubStandIn hub, ModelCatalog catalog, BuildList builds)
     {
@@ -41,11 +41,33 @@ internal sealed class ModelWorld : IAsyncDisposable
     private sealed class BuildList
     {
         public volatile int[] Current = [999];
+        public volatile CatalogFiles Catalog = new([], "");
+        public volatile string? AppTag;
+    }
+
+    private sealed record CatalogFiles(byte[] Json, string Signature);
+
+    /// <summary>The app release the stand-in GitHub lists as the latest (a tag like v9.0.0), or null for none.</summary>
+    public string? AppTag
+    {
+        get => _builds.AppTag;
+        set => _builds.AppTag = value;
+    }
+
+    /// <summary>How many times the catalog file was asked for, and how many of those were answered 304.</summary>
+    public int CatalogRequests;
+
+    /// <summary>Signs and serves a new catalog (the next refresh sees it).</summary>
+    public void PublishCatalog(ModelCatalog catalog)
+    {
+        var json = Encoding.UTF8.GetBytes(catalog.ToJson());
+        _builds.Catalog = new CatalogFiles(json, Convert.ToBase64String(_signer.SignData(json, HashAlgorithmName.SHA256, DSASignatureFormat.IeeeP1363FixedFieldConcatenation)));
+        Catalog = catalog;
     }
 
     public HubStandIn Hub { get; }
 
-    public ModelCatalog Catalog { get; }
+    public ModelCatalog Catalog { get; private set; }
 
     public const string Chat = "test/Tiny-Chat-GGUF";
     public const string Coder = "test/Tiny-Coder-GGUF";
@@ -113,26 +135,31 @@ internal sealed class ModelWorld : IAsyncDisposable
         }
 
         var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        var json = Encoding.UTF8.GetBytes(catalog.ToJson());
-        var signature = Convert.ToBase64String(key.SignData(json, HashAlgorithmName.SHA256, DSASignatureFormat.IeeeP1363FixedFieldConcatenation));
         var builds = new BuildList();
+        ModelWorld? self = null;
         var hub = await HubStandIn.StartAsync(app =>
         {
-            app.MapGet("/catalog.json", () => Results.Bytes(json, "application/json"));
-            app.MapGet("/catalog.json.sig", () => Results.Text(signature + "\n"));
-            StandIns.MapGitHub(app, [999, 1000], () => builds.Current);
+            app.MapGet("/catalog.json", (HttpContext http) =>
+            {
+                Interlocked.Increment(ref self!.CatalogRequests);
+                var tag = $"\"{Convert.ToHexStringLower(SHA256.HashData(builds.Catalog.Json))[..16]}\"";
+                http.Response.Headers.ETag = tag;
+                return http.Request.Headers.IfNoneMatch.ToString() == tag ? Results.StatusCode(304) : Results.Bytes(builds.Catalog.Json, "application/json");
+            });
+            app.MapGet("/catalog.json.sig", () => Results.Text(builds.Catalog.Signature + "\n"));
+            StandIns.MapGitHub(app, [999, 1000], () => builds.Current, () => builds.AppTag is { } t ? (t, $"https://example.test/releases/{t}") : null);
         }, [.. repos]);
-        var world = new ModelWorld(hub, catalog, builds);
+        var world = self = new ModelWorld(hub, catalog, builds) { _signer = key };
+        world.PublishCatalog(catalog);
         world.PublicKey = Convert.ToBase64String(key.ExportSubjectPublicKeyInfo());
-        key.Dispose();
         return world;
     }
 
     public string PublicKey { get; private set; } = "";
 
     /// <summary>Services wired to this world, for a window that builds its own (see <see cref="Start"/>).</summary>
-    public ModelServices Services(WickedPaths paths) =>
-        new(paths, WickedHttp.CreateClient(offline: () => false), hubBase: Hub.Server.Url("/"), catalogBase: Hub.Server.Url("/"), githubBase: Hub.Server.Url("/"), catalogKey: PublicKey);
+    public ModelServices Services(WickedPaths paths, Func<bool>? offline = null) =>
+        new(paths, WickedHttp.CreateClient(offline: () => false), hubBase: Hub.Server.Url("/"), catalogBase: Hub.Server.Url("/"), githubBase: Hub.Server.Url("/"), catalogKey: PublicKey, offline: offline ?? (() => false));
 
     /// <summary>
     /// The main window on a profile of its own, its model half wired to this world. Call it inside <c>Ui.Run</c>: those bodies run one
@@ -140,7 +167,7 @@ internal sealed class ModelWorld : IAsyncDisposable
     /// </summary>
     public (App.Views.MainWindow Window, ShellViewModel Shell) Start(WickedPaths paths)
     {
-        ModelsViewModel.ServicesFactory = Services;
+        ModelsViewModel.ServicesFactory = p => Services(p);
         try
         {
             var started = Ui.Start(paths);
@@ -157,7 +184,7 @@ internal sealed class ModelWorld : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
-        _key.Dispose();
+        _signer.Dispose();
         await Hub.DisposeAsync();
     }
 }

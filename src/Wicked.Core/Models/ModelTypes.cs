@@ -9,7 +9,44 @@ namespace Wicked.Core.Models;
 /// <param name="BandwidthBytesPerSecond">Total download speed cap, or null for unlimited.</param>
 /// <param name="StoreLocation">Where new installs go; null or empty for the default under the data folder. Models already installed stay where they are.</param>
 /// <param name="Backend">The engine build the user insists on, or null to let the machine decide.</param>
-public sealed record ModelOptions(string? HuggingFaceToken = null, long? BandwidthBytesPerSecond = null, string? StoreLocation = null, EngineBackendKind? Backend = null);
+/// <param name="DefaultUpdatePolicy">What a model without a policy of its own does when it has a newer upload.</param>
+/// <param name="CheckForUpdates">Whether the scheduler looks for updates at all (it still does when asked with "Check now").</param>
+public sealed record ModelOptions(
+    string? HuggingFaceToken = null,
+    long? BandwidthBytesPerSecond = null,
+    string? StoreLocation = null,
+    EngineBackendKind? Backend = null,
+    UpdatePolicy DefaultUpdatePolicy = UpdatePolicy.Notify,
+    bool CheckForUpdates = true);
+
+/// <summary>What happens when a model has a newer upload (D7). Kept per model in its <c>wicked.json</c>; <see cref="ModelOptions.DefaultUpdatePolicy"/> covers models that have none.</summary>
+public enum UpdatePolicy
+{
+    /// <summary>Say so and wait to be told (the default).</summary>
+    Notify,
+
+    /// <summary>Never look, never offer.</summary>
+    Pin,
+
+    /// <summary>Download the new file beside the old one, swap when verified, keep the old one until the new one has answered a prompt.</summary>
+    Auto,
+}
+
+public static class UpdatePolicies
+{
+    /// <summary>The key in a model's <c>wicked.json</c> settings.</summary>
+    public const string SettingKey = "update.policy";
+
+    public static string Name(UpdatePolicy policy) => policy switch { UpdatePolicy.Pin => "pin", UpdatePolicy.Auto => "auto", _ => "notify" };
+
+    public static UpdatePolicy? Parse(string? value) => value?.Trim().ToLowerInvariant() switch
+    {
+        "pin" => UpdatePolicy.Pin,
+        "auto" => UpdatePolicy.Auto,
+        "notify" => UpdatePolicy.Notify,
+        _ => null,
+    };
+}
 
 /// <summary>Why a model is flagged on the installed list.</summary>
 public enum UpdateKind
@@ -22,10 +59,40 @@ public enum UpdateKind
 }
 
 /// <summary>An installed model that has something newer. <c>Detail</c> is the line shown: what changed or what replaces it.</summary>
-public sealed record ModelUpdate(string ModelId, UpdateKind Kind, string Detail, string? LatestRevision = null);
+public sealed record ModelUpdate(string ModelId, UpdateKind Kind, string Detail, string? LatestRevision = null)
+{
+    /// <summary>The commit installed now.</summary>
+    public string? InstalledRevision { get; init; }
+
+    /// <summary>What the files that changed weigh now and weighed when installed, in bytes (0 when unknown).</summary>
+    public long InstalledSize { get; init; }
+
+    public long NewSize { get; init; }
+
+    /// <summary>The first lines of the commits since the installed one, newest first.</summary>
+    public IReadOnlyList<string> Titles { get; init; } = [];
+
+    /// <summary>The files whose contents changed, with the hashes the Hub gives them. Empty when the update cannot be applied by Wicked (the repo renamed its files).</summary>
+    public IReadOnlyList<UpdateFile> Files { get; init; } = [];
+
+    /// <summary>The catalog model that replaces this one, for a superseded model.</summary>
+    public string? ReplacementName { get; init; }
+
+    public bool CanApply => Kind == UpdateKind.NewUpload && Files.Count > 0 && LatestRevision is not null;
+}
+
+/// <summary>A file of a newer upload: its path in the repo, its size and the sha256 it must have once downloaded.</summary>
+public sealed record UpdateFile(string Path, long Size, string Sha256);
 
 /// <summary>The outcome of one "Check for updates".</summary>
-public sealed record UpdateCheck(int Checked, int Failed, IReadOnlyList<ModelUpdate> Found, string? Problem = null);
+public sealed record UpdateCheck(int Checked, int Failed, IReadOnlyList<ModelUpdate> Found, string? Problem = null)
+{
+    /// <summary>Models skipped because their policy is "pin".</summary>
+    public int Pinned { get; init; }
+
+    /// <summary>How long the Hub asked to wait before the next request, when it refused for rate limiting.</summary>
+    public TimeSpan? RetryAfter { get; init; }
+}
 
 /// <summary>A licence the user has to accept before the first download of a model (D8).</summary>
 public sealed record LicenceRequest(string ModelName, string LicenseId, string Url);

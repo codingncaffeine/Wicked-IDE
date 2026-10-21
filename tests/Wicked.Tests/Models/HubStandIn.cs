@@ -24,6 +24,23 @@ internal sealed class HubRepo(string id, string sha)
 
     /// <summary>Make the info call itself answer this status (404 for a repo that vanished).</summary>
     public int InfoStatus { get; set; }
+
+    /// <summary>Sent as Retry-After with a 429.</summary>
+    public int RetryAfterSeconds { get; set; }
+
+    /// <summary>Answer the info call with an ETag and a 304 to a request that carries it.</summary>
+    public bool ETags { get; set; }
+
+    /// <summary>The repo's commits, newest first: id and the first line of the message.</summary>
+    public List<(string Id, string Title)> Commits { get; } = [];
+
+    /// <summary>A new upload: the commit moves and one file has other contents.</summary>
+    public void Upload(string sha, string file, byte[] bytes, string title)
+    {
+        Files[file] = bytes;
+        Commits.Insert(0, (sha, title));
+        Sha = sha;
+    }
 }
 
 /// <summary>
@@ -58,6 +75,15 @@ internal sealed class HubStandIn : IAsyncDisposable
 
     public List<string?> Authorizations { get; } = [];
 
+    /// <summary>How many info calls were answered 304 because the caller sent the current ETag.</summary>
+    public int NotModified;
+
+    /// <summary>How many of the recorded requests were for 'path' (an exact path, query ignored).</summary>
+    public int CountOf(string path)
+    {
+        lock (Requests) return Requests.Count(r => r.Split('?')[0] == path);
+    }
+
     public static async Task<HubStandIn> StartAsync(Action<WebApplication>? more = null, params HubRepo[] repos)
     {
         HubStandIn? self = null;
@@ -67,6 +93,7 @@ internal sealed class HubStandIn : IAsyncDisposable
             app.MapGet("/api/models", (HttpContext c) => self!.Search(c));
             app.MapGet("/api/models/{owner}/{name}", (HttpContext c, string owner, string name) => self!.Info(c, $"{owner}/{name}"));
             app.MapGet("/api/models/{owner}/{name}/tree/{rev}", (HttpContext c, string owner, string name) => self!.Tree(c, $"{owner}/{name}"));
+            app.MapGet("/api/models/{owner}/{name}/commits/{rev}", (HttpContext c, string owner, string name) => self!.CommitList(c, $"{owner}/{name}"));
             app.MapGet("/{owner}/{name}/resolve/{rev}/{**file}", (HttpContext c, string owner, string name, string file) => self!.ServeAsync(c, $"{owner}/{name}", file));
             more?.Invoke(app);
         });
@@ -116,7 +143,19 @@ internal sealed class HubStandIn : IAsyncDisposable
     {
         Note(c);
         if (Find(id) is not { } repo) return Results.NotFound();
+        if (repo.InfoStatus == 429 && repo.RetryAfterSeconds > 0) c.Response.Headers.RetryAfter = repo.RetryAfterSeconds.ToString(CultureInfo.InvariantCulture);
         if (repo.InfoStatus != 0) return Results.StatusCode(repo.InfoStatus);
+        if (repo.ETags)
+        {
+            var tag = $"\"info-{repo.Sha}\"";
+            c.Response.Headers.ETag = tag;
+            if (c.Request.Headers.IfNoneMatch.ToString() == tag)
+            {
+                Interlocked.Increment(ref NotModified);
+                return Results.StatusCode(304);
+            }
+        }
+
         return Results.Text(JsonSerializer.Serialize(new
         {
             id = repo.Id,
@@ -129,6 +168,13 @@ internal sealed class HubStandIn : IAsyncDisposable
             cardData = new { license = repo.License },
             siblings = repo.Files.Keys.Select(k => new { rfilename = k }),
         }), "application/json");
+    }
+
+    private IResult CommitList(HttpContext c, string id)
+    {
+        Note(c);
+        if (Find(id) is not { } repo) return Results.NotFound();
+        return Results.Text(JsonSerializer.Serialize(repo.Commits.Select(m => new { id = m.Id, title = m.Title, message = m.Title, date = "2026-10-01T00:00:00.000Z" })), "application/json");
     }
 
     private IResult Tree(HttpContext c, string id)

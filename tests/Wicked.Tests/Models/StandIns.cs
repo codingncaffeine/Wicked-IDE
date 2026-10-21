@@ -55,8 +55,20 @@ internal static class StandIns
     public static void MapGitHub(WebApplication app, params int[] builds) => MapGitHub(app, builds, () => builds);
 
     /// <summary>As above, but which of the builds the listing shows can change while the test runs.</summary>
-    public static void MapGitHub(WebApplication app, int[] builds, Func<int[]> visible)
+    public static void MapGitHub(WebApplication app, int[] builds, Func<int[]> visible, Func<(string Tag, string Url)?>? appRelease = null)
     {
+        if (appRelease is not null)
+        {
+            app.MapGet("/repos/codingncaffeine/Wicked-IDE/releases/latest", (HttpContext http) =>
+            {
+                if (appRelease() is not { } release) return Results.NotFound();
+                var tag = $"\"app-{release.Tag}\"";
+                http.Response.Headers.ETag = tag;
+                if (http.Request.Headers.IfNoneMatch.ToString() == tag) return Results.StatusCode(304);
+                return Results.Text(JsonSerializer.Serialize(new { tag_name = release.Tag, html_url = release.Url, name = $"Wicked {release.Tag}", published_at = DateTimeOffset.UtcNow }), "application/json");
+            });
+        }
+
         var archives = builds.ToDictionary(b => b, b => EngineArchive($"b{b}", b));
         foreach (var (build, bytes) in archives) app.MapGet($"/engine-{build}.tar.gz", () => Results.Bytes(bytes));
         app.MapGet("/repos/ggml-org/llama.cpp/releases", (HttpContext http) =>
@@ -88,7 +100,7 @@ internal static class StandIns
     }
 
     public static ModelServices Services(TempProfile profile, LocalServer server) =>
-        new(profile.Paths, WickedHttp.CreateClient(offline: () => false), hubBase: server.Url("/"), githubBase: server.Url("/"));
+        new(profile.Paths, WickedHttp.CreateClient(offline: () => false), hubBase: server.Url("/"), githubBase: server.Url("/"), offline: () => false);
 
     /// <summary>Bytes that look like weights: patterned, so a wrong byte shows.</summary>
     public static byte[] Weights(int size, byte seed = 7)

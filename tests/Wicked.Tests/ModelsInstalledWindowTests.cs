@@ -109,7 +109,7 @@ public sealed class ModelsInstalledWindowTests
             flyout.Hide();
 
             // Update flag: the repo has a newer commit.
-            world.Hub.Repo(ModelWorld.Coder).Sha = "rev2";
+            world.Hub.Repo(ModelWorld.Coder).Upload("rev2", "Tiny-Coder-Q8_0.gguf", StandIns.Weights(1_600_000, 3), "Retrained");
             Input.Click(window, Control<Button>(window, "CheckUpdates"));
             Assert.True(Ui.PumpUntil(() => row.HasUpdate, 10), shell.Models.UpdateStatus);
             Assert.Equal("1 update available", shell.Models.UpdateStatus);
