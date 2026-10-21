@@ -56,6 +56,13 @@ public sealed class FoldingMarkers
         {
             if (Cache.TryGetValue(language.Id, out var cached)) return cached ?? Default;
             FoldingMarkers? made = null;
+            if (AddedGrammars.ForLanguage(language.Id) is { FoldingStart: { Length: > 0 } fs, FoldingEnd: { Length: > 0 } fe })
+            {
+                var addedMarkers = Create(fs, fe);
+                Cache[language.Id] = addedMarkers;
+                return addedMarkers ?? Default;
+            }
+
             var configured = Languages.Registry.GetAvailableLanguages().FirstOrDefault(l => l.Id == language.Id)?.Configuration?.Folding?.Markers;
             if (configured is { Start: { Length: > 0 } s, End: { Length: > 0 } e }) made = Create(s, e);
             Cache[language.Id] = made;

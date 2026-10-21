@@ -18,6 +18,8 @@ public sealed partial class ShellViewModel
         var service = new ThemeService(Paths);
         service.Applied += _ => Terminal?.ApplyTheme(TerminalTheme.FromResources());
         service.Watch(() => _ = ReloadThemesAsync());
+        // Themes an extension contributes join the list, and leave it with the extension.
+        service.ExtraFiles = () => Extensions?.Bridge.ThemeFiles.Files ?? [];
         return service;
     }
 

@@ -1,0 +1,80 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ext="using:Wicked.App.Extensions"
+             xmlns:shell="using:Wicked.App.Shell"
+             x:Class="Wicked.App.Extensions.ExtensionsView"
+             x:DataType="ext:ExtensionsViewModel">
+  <DockPanel>
+    <!-- The three ways to install -->
+    <StackPanel DockPanel.Dock="Top" Margin="12,0,12,8" Spacing="6">
+      <Grid ColumnDefinitions="*,*,*" ColumnSpacing="6">
+        <Button Name="InstallFolder" Classes="accent-soft" Command="{Binding InstallFromFolderCommand}" IsEnabled="{Binding !Busy}" HorizontalAlignment="Stretch"
+                ToolTip.Tip="Install an extension from a folder holding wicked-extension.json">
+          <StackPanel Orientation="Horizontal" Spacing="5" HorizontalAlignment="Center">
+            <shell:Icon Data="{StaticResource Icon.FolderOpen}" Size="13" />
+            <TextBlock Text="Folder" FontSize="{DynamicResource Font.Size.Small}" />
+          </StackPanel>
+        </Button>
+        <Button Name="InstallZip" Grid.Column="1" Classes="accent-soft" Command="{Binding InstallFromZipCommand}" IsEnabled="{Binding !Busy}" HorizontalAlignment="Stretch"
+                ToolTip.Tip="Install an extension from a .zip package">
+          <StackPanel Orientation="Horizontal" Spacing="5" HorizontalAlignment="Center">
+            <shell:Icon Data="{StaticResource Icon.Download}" Size="13" />
+            <TextBlock Text=".zip" FontSize="{DynamicResource Font.Size.Small}" />
+          </StackPanel>
+        </Button>
+        <Button Name="InstallGitHub" Grid.Column="2" Classes="accent-soft" Command="{Binding ToggleGitHubCommand}" IsEnabled="{Binding !Busy}" HorizontalAlignment="Stretch"
+                ToolTip.Tip="Install the latest release of a GitHub repository">
+          <StackPanel Orientation="Horizontal" Spacing="5" HorizontalAlignment="Center">
+            <shell:Icon Data="{StaticResource Icon.GitBranch}" Size="13" />
+            <TextBlock Text="GitHub" FontSize="{DynamicResource Font.Size.Small}" />
+          </StackPanel>
+        </Button>
+      </Grid>
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6" IsVisible="{Binding GitHubOpen}">
+        <TextBox Name="GitHubRepository" Classes="find" Text="{Binding Repository}" PlaceholderText="owner/name  (a release with a *.wicked.zip)" />
+        <Button Name="GitHubInstall" Grid.Column="1" Classes="primary" Content="Install" Command="{Binding InstallFromGitHubCommand}" IsEnabled="{Binding !Busy}" />
+      </Grid>
+      <TextBlock Name="InstallStatus" Classes="muted" Text="{Binding Status}" FontSize="{DynamicResource Font.Size.Small}" TextWrapping="Wrap"
+                 IsVisible="{Binding Status, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+    </StackPanel>
+
+    <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+      <StackPanel Margin="12,0,12,12" Spacing="8">
+        <TextBlock Classes="heading" Text="INSTALLED" />
+        <TextBlock Name="NoExtensions" Classes="muted" TextWrapping="Wrap" IsVisible="{Binding !HasRows}"
+                   Text="Nothing installed. Extensions add commands, themes, grammars, snippets and language servers; they are folders with a wicked-extension.json. See docs/extensions.md." />
+        <ItemsControl Name="ExtensionList" ItemsSource="{Binding Rows}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel Spacing="8" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="ext:ExtensionRow">
+              <Border Classes="pick">
+                <StackPanel Spacing="4">
+                  <Grid ColumnDefinitions="*,Auto">
+                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="14" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Grid.Column="1" Text="{Binding Byline}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" VerticalAlignment="Center" />
+                  </Grid>
+                  <TextBlock Text="{Binding Description}" Classes="secondary" TextWrapping="Wrap" FontSize="{DynamicResource Font.Size.Small}"
+                             IsVisible="{Binding Description, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                  <TextBlock Text="{Binding Provides}" Classes="muted" TextWrapping="Wrap" FontSize="{DynamicResource Font.Size.Small}" IsVisible="{Binding HasProvides}" />
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Ellipse Classes="state" Classes.loaded="{Binding IsEnabled}" Classes.failed="{Binding IsFailed}" />
+                    <TextBlock Text="{Binding StateText}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" TextWrapping="Wrap" />
+                  </StackPanel>
+                  <TextBlock Text="{Binding Problem}" TextWrapping="Wrap" FontSize="{DynamicResource Font.Size.Small}" Foreground="{DynamicResource Brush.Danger}" IsVisible="{Binding HasProblem}" />
+                  <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,4,0,0">
+                    <Button Classes="secondary small" Content="{Binding ToggleText}" Command="{Binding ToggleCommand}" IsEnabled="{Binding CanToggle}" />
+                    <Button Classes="secondary small" Content="Uninstall" Command="{Binding UninstallCommand}" />
+                  </StackPanel>
+                </StackPanel>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </ScrollViewer>
+  </DockPanel>
+</UserControl>

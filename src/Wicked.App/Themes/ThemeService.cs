@@ -69,21 +69,26 @@ public sealed class ThemeService : IDisposable
         return tokens;
     }
 
+    /// <summary>Theme files from elsewhere, with the name to show (extensions' contributions), read with the user's own.</summary>
+    public Func<IReadOnlyList<(string Path, string? Label)>>? ExtraFiles { get; set; }
+
     /// <summary>The user's themes, read again (on a worker); a file that does not parse is skipped with a warning.</summary>
     public async Task LoadUserThemesAsync()
     {
         var folder = _folder;
+        var extra = ExtraFiles?.Invoke() ?? [];
         _user = await Task.Run(() =>
         {
             var list = new List<WickedTheme>();
-            if (!Directory.Exists(folder)) return list;
-            foreach (var file in Directory.EnumerateFiles(folder, "*.json").Order(StringComparer.Ordinal))
+            var files = (Directory.Exists(folder) ? Directory.EnumerateFiles(folder, "*.json").Order(StringComparer.Ordinal).Select(f => (Path: f, Label: (string?)null)) : [])
+                .Concat(extra);
+            foreach (var (file, label) in files)
             {
                 try
                 {
-                    list.Add(WickedTheme.Parse(File.ReadAllText(file), file));
+                    list.Add(WickedTheme.Parse(File.ReadAllText(file), file, label));
                 }
-                catch (Exception ex) when (ex is System.Text.Json.JsonException or IOException)
+                catch (Exception ex) when (ex is System.Text.Json.JsonException or IOException or UnauthorizedAccessException)
                 {
                     Log.Warn($"Theme {Path.GetFileName(file)} could not be read: {ex.Message}");
                 }

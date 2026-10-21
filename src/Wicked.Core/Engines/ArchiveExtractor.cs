@@ -105,7 +105,7 @@ internal static class ArchiveExtractor
         }
     }
 
-    private static void ExtractZip(string archive, string destination, CancellationToken ct)
+    internal static void ExtractZip(string archive, string destination, CancellationToken ct)
     {
         var root = Path.GetFullPath(destination);
         Directory.CreateDirectory(root);

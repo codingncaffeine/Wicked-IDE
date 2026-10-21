@@ -11,6 +11,7 @@ public static class ShellRoutes
     public const string Testing = "panel/testing";
     public const string Debug = "panel/debug";
     public const string DebugConsole = "panel/debug-console";
+    public const string Extensions = "panel/extensions";
     public const string Assistant = "assistant";
     public const string SettingsModels = "settings/models";
     public const string SettingsRuntime = "settings/runtime";

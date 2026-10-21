@@ -33,10 +33,11 @@ public sealed partial class ShellViewModel
 
     private IEnumerable<WorkbenchCommand> TaskCommands() => [.. Tasks.Commands(), .. Testing.Commands()];
 
-    /// <summary>The Testing panel looks for tests the first time it is shown.</summary>
+    /// <summary>The Testing panel looks for tests the first time it is shown; the extensions' panels follow the choice.</summary>
     partial void OnPanelChanged(SidePanel value)
     {
         if (value == SidePanel.Testing) Testing?.EnsureStarted();
+        RaiseExtensionPanels();
     }
 
     /// <summary>A list of choices in the palette; <paramref name="onCancel"/> runs when Escape dismisses it.</summary>

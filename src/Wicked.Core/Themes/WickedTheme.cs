@@ -47,11 +47,12 @@ public sealed class WickedTheme
 
     public bool IsDark => Kind != ThemeKind.Light;
 
-    public static WickedTheme Parse(string json, string? path = null)
+    /// <summary>Reads a theme; <paramref name="label"/> (an extension's name for it, as VS Code shows) wins over its own.</summary>
+    public static WickedTheme Parse(string json, string? path = null, string? label = null)
     {
         using var doc = JsonDocument.Parse(json, new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true });
         var root = doc.RootElement;
-        var name = root.TryGetProperty("name", out var n) && n.ValueKind == JsonValueKind.String ? n.GetString()! : System.IO.Path.GetFileNameWithoutExtension(path ?? "Theme");
+        var name = label is { Length: > 0 } ? label : root.TryGetProperty("name", out var n) && n.ValueKind == JsonValueKind.String ? n.GetString()! : System.IO.Path.GetFileNameWithoutExtension(path ?? "Theme");
         var type = root.TryGetProperty("type", out var t) && t.ValueKind == JsonValueKind.String ? t.GetString() : null;
         var kind = type switch
         {
