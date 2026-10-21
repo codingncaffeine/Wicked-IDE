@@ -1,4 +1,4 @@
-# Wicked IDE
+<p align="center"><img src="docs/images/banner.png" alt="Wicked IDE: your models, your machine, your flow" width="100%"></p>
 
 A code editor built around local AI models. Wicked finds the models that fit your PC, downloads them, keeps them up to
 date, and puts them to work in a full editor: completions as you type, a chat that knows your project, and edits you
