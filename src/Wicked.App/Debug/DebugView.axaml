@@ -1,0 +1,270 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:dbg="using:Wicked.App.Debug"
+             xmlns:shell="using:Wicked.App.Shell"
+             x:Class="Wicked.App.Debug.DebugView"
+             x:DataType="dbg:DebugController">
+  <UserControl.Resources>
+    <dbg:IndentConverter x:Key="Indent" Step="14" Base="6" />
+    <dbg:IndentConverter x:Key="StackIndent" Step="12" Base="10" />
+    <StreamGeometry x:Key="Icon.StepOver">M11 17a1 1 0 1 0 2 0a1 1 0 1 0 -2 0z M21 7v6h-6 M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7</StreamGeometry>
+  </UserControl.Resources>
+
+  <UserControl.Styles>
+    <Style Selector="ListBox.debug">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="ListBox.debug ListBoxItem">
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="MinHeight" Value="22" />
+      <Setter Property="CornerRadius" Value="0" />
+    </Style>
+    <Style Selector="ListBox.debug ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource Brush.Hover}" />
+    </Style>
+    <Style Selector="ListBox.debug ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource Brush.Accent.Subtle}" />
+    </Style>
+    <Style Selector="Button.sectionhead">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Left" />
+      <Setter Property="Padding" Value="8,5" />
+      <Setter Property="CornerRadius" Value="0" />
+    </Style>
+    <Style Selector="Button.sectionhead:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource Brush.Hover}" />
+    </Style>
+    <Style Selector="Button.mini">
+      <Setter Property="Padding" Value="3" />
+      <Setter Property="Margin" Value="0" />
+      <Setter Property="MinHeight" Value="0" />
+      <Setter Property="MinWidth" Value="0" />
+    </Style>
+    <Style Selector="Button.chev">
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="MinHeight" Value="0" />
+      <Setter Property="MinWidth" Value="0" />
+      <Setter Property="Width" Value="16" />
+      <Setter Property="Height" Value="18" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="TextBlock.name">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
+    </Style>
+    <Style Selector="TextBlock.val.changed">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Warning}" />
+    </Style>
+    <Style Selector="TextBlock.val.problem">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Danger}" />
+    </Style>
+    <Style Selector="TextBlock.scope">
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="Ellipse.bp">
+      <Setter Property="Width" Value="10" />
+      <Setter Property="Height" Value="10" />
+      <Setter Property="Fill" Value="{DynamicResource Brush.Danger}" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Ellipse.bp.conditional">
+      <Setter Property="Stroke" Value="{DynamicResource Brush.Warning}" />
+      <Setter Property="StrokeThickness" Value="2" />
+    </Style>
+    <Style Selector="Ellipse.bp.logpoint">
+      <Setter Property="Fill" Value="{DynamicResource Brush.Accent}" />
+    </Style>
+    <Style Selector="Ellipse.bp.off, Ellipse.bp.unverified">
+      <Setter Property="Fill" Value="Transparent" />
+      <Setter Property="Stroke" Value="{DynamicResource Brush.Text.Muted}" />
+      <Setter Property="StrokeThickness" Value="1.5" />
+    </Style>
+  </UserControl.Styles>
+
+  <Grid Name="Sections" RowDefinitions="Auto,Auto,*,Auto,*,Auto,*,Auto,*">
+    <!-- The configuration and Start -->
+    <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" Margin="10,0,8,8">
+      <Button Name="DebugStart" AutomationProperties.Name="Start debugging" Classes="primary small" Click="OnStart" ToolTip.Tip="Start Debugging (F5)" Padding="9,5">
+        <shell:Icon Data="{StaticResource Icon.Play}" Size="14" />
+      </Button>
+      <ComboBox Name="DebugConfigurations" AutomationProperties.Name="Launch configuration" Grid.Column="1" Margin="6,0,0,0" HorizontalAlignment="Stretch" MinHeight="0"
+                ItemsSource="{Binding Configurations}" SelectedItem="{Binding SelectedConfiguration, Mode=TwoWay}" PlaceholderText="No configurations">
+        <ComboBox.ItemTemplate>
+          <DataTemplate DataType="dbg:ConfigurationChoice">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis" />
+              <TextBlock Text="{Binding Type}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" VerticalAlignment="Center" />
+            </StackPanel>
+          </DataTemplate>
+        </ComboBox.ItemTemplate>
+      </ComboBox>
+      <Button Name="DebugOpenLaunch" AutomationProperties.Name="Open launch.json" Grid.Column="2" Classes="quiet" Click="OnOpenLaunch" ToolTip.Tip="Open launch.json" Margin="2,0,0,0">
+        <shell:Icon Data="{StaticResource Icon.Settings}" Size="15" />
+      </Button>
+    </Grid>
+
+    <!-- VARIABLES -->
+    <Button Name="VariablesHead" Grid.Row="1" Classes="sectionhead" Click="OnSectionClick" Tag="VariablesBody">
+      <StackPanel Orientation="Horizontal" Spacing="5">
+        <shell:Icon Name="VariablesChevron" Data="{StaticResource Icon.ChevronDown}" Size="13" />
+        <TextBlock Text="VARIABLES" FontWeight="SemiBold" FontSize="{DynamicResource Font.Size.Small}" />
+      </StackPanel>
+    </Button>
+    <ListBox Name="VariablesList" Grid.Row="2" Classes="debug" ItemsSource="{Binding Variables.Rows}" SelectionMode="Single">
+      <ListBox.ItemsPanel>
+        <ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate>
+      </ListBox.ItemsPanel>
+      <ListBox.ItemTemplate>
+        <DataTemplate DataType="dbg:DebugNode">
+          <Grid ColumnDefinitions="Auto,Auto,Auto,*" Margin="{Binding Depth, Converter={StaticResource Indent}}" Background="Transparent" DoubleTapped="OnVariableDoubleTapped">
+            <Grid.ContextMenu>
+              <ContextMenu>
+                <MenuItem Header="Set Value" Click="OnSetValue" />
+                <MenuItem Header="Copy Value" Click="OnCopyValue" />
+                <MenuItem Header="Copy as Expression" Click="OnCopyExpression" />
+                <MenuItem Header="Add to Watch" Click="OnAddToWatch" />
+              </ContextMenu>
+            </Grid.ContextMenu>
+            <Button Classes="chev" Click="OnToggle" IsVisible="{Binding CanExpand}" Focusable="False">
+              <Panel>
+                <shell:Icon Data="{StaticResource Icon.ChevronRight}" Size="12" IsVisible="{Binding !IsExpanded}" />
+                <shell:Icon Data="{StaticResource Icon.ChevronDown}" Size="12" IsVisible="{Binding IsExpanded}" />
+              </Panel>
+            </Button>
+            <Border Width="16" IsVisible="{Binding !CanExpand}" />
+            <TextBlock Grid.Column="1" Text="{Binding Name}" Classes="name" Classes.scope="{Binding IsScope}" VerticalAlignment="Center" Margin="2,0,0,0" />
+            <TextBlock Grid.Column="2" Text=": " Classes="muted" IsVisible="{Binding HasValue}" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="3" Text="{Binding Value}" Classes="val" Classes.changed="{Binding Changed}" Classes.problem="{Binding IsError}"
+                       TextTrimming="CharacterEllipsis" VerticalAlignment="Center" IsVisible="{Binding !IsEditing}" ToolTip.Tip="{Binding Type}" />
+            <TextBox Grid.Column="3" Text="{Binding EditText, Mode=TwoWay}" IsVisible="{Binding IsEditing}" Classes="find" MinHeight="20" Padding="3,0" KeyDown="OnEditKey" />
+          </Grid>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+
+    <!-- WATCH -->
+    <Grid Name="WatchHeadRow" Grid.Row="3" ColumnDefinitions="*,Auto">
+      <Button Name="WatchHead" Classes="sectionhead" Click="OnSectionClick" Tag="WatchBody">
+        <StackPanel Orientation="Horizontal" Spacing="5">
+          <shell:Icon Name="WatchChevron" Data="{StaticResource Icon.ChevronDown}" Size="13" />
+          <TextBlock Text="WATCH" FontWeight="SemiBold" FontSize="{DynamicResource Font.Size.Small}" />
+        </StackPanel>
+      </Button>
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,0,6,0">
+        <Button Name="WatchAdd" AutomationProperties.Name="Add watch expression" Classes="quiet mini" Click="OnAddWatch" ToolTip.Tip="Add Expression"><shell:Icon Data="{StaticResource Icon.Plus}" Size="14" /></Button>
+        <Button Name="WatchRemoveAll" AutomationProperties.Name="Remove all watch expressions" Classes="quiet mini" Click="OnRemoveAllWatches" ToolTip.Tip="Remove All Expressions"><shell:Icon Data="{StaticResource Icon.Trash2}" Size="14" /></Button>
+      </StackPanel>
+    </Grid>
+    <ListBox Name="WatchList" Grid.Row="4" Classes="debug" ItemsSource="{Binding WatchTree.Rows}" SelectionMode="Single">
+      <ListBox.ItemsPanel>
+        <ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate>
+      </ListBox.ItemsPanel>
+      <ListBox.ItemTemplate>
+        <DataTemplate DataType="dbg:DebugNode">
+          <Grid ColumnDefinitions="Auto,Auto,Auto,*" Margin="{Binding Depth, Converter={StaticResource Indent}}" Background="Transparent" DoubleTapped="OnWatchDoubleTapped">
+            <Grid.ContextMenu>
+              <ContextMenu>
+                <MenuItem Header="Edit Expression" Click="OnEditWatch" IsVisible="{Binding IsWatch}" />
+                <MenuItem Header="Remove Expression" Click="OnRemoveWatch" IsVisible="{Binding IsWatch}" />
+                <MenuItem Header="Copy Value" Click="OnCopyValue" />
+                <MenuItem Header="Set Value" Click="OnSetValue" />
+              </ContextMenu>
+            </Grid.ContextMenu>
+            <Button Classes="chev" Click="OnToggle" IsVisible="{Binding CanExpand}" Focusable="False">
+              <Panel>
+                <shell:Icon Data="{StaticResource Icon.ChevronRight}" Size="12" IsVisible="{Binding !IsExpanded}" />
+                <shell:Icon Data="{StaticResource Icon.ChevronDown}" Size="12" IsVisible="{Binding IsExpanded}" />
+              </Panel>
+            </Button>
+            <Border Width="16" IsVisible="{Binding !CanExpand}" />
+            <TextBlock Grid.Column="1" Text="{Binding Name}" Classes="name" VerticalAlignment="Center" Margin="2,0,0,0" />
+            <TextBlock Grid.Column="2" Text=": " Classes="muted" IsVisible="{Binding HasValue}" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="3" Text="{Binding Value}" Classes="val" Classes.changed="{Binding Changed}" Classes.problem="{Binding IsError}"
+                       TextTrimming="CharacterEllipsis" VerticalAlignment="Center" IsVisible="{Binding !IsEditing}" ToolTip.Tip="{Binding Type}" />
+            <TextBox Grid.Column="3" Text="{Binding EditText, Mode=TwoWay}" IsVisible="{Binding IsEditing}" Classes="find" MinHeight="20" Padding="3,0" KeyDown="OnEditKey" />
+          </Grid>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+
+    <!-- CALL STACK -->
+    <Button Name="StackHead" Grid.Row="5" Classes="sectionhead" Click="OnSectionClick" Tag="StackBody">
+      <StackPanel Orientation="Horizontal" Spacing="5">
+        <shell:Icon Name="StackChevron" Data="{StaticResource Icon.ChevronDown}" Size="13" />
+        <TextBlock Text="CALL STACK" FontWeight="SemiBold" FontSize="{DynamicResource Font.Size.Small}" />
+        <TextBlock Text="{Binding StatusText}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" VerticalAlignment="Center" />
+      </StackPanel>
+    </Button>
+    <ListBox Name="StackList" Grid.Row="6" Classes="debug" ItemsSource="{Binding CallStack}" SelectionMode="Single">
+      <ListBox.ItemsPanel>
+        <ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate>
+      </ListBox.ItemsPanel>
+      <ListBox.ItemTemplate>
+        <DataTemplate DataType="dbg:StackRow">
+          <Grid ColumnDefinitions="*,Auto" Margin="{Binding Depth, Converter={StaticResource StackIndent}}" Background="Transparent">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <Border Width="3" CornerRadius="1" Margin="0,2" Background="{DynamicResource Brush.Accent}" IsVisible="{Binding IsSelected}" />
+              <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="4,0,0,0"
+                         FontWeight="{Binding IsHeader, Converter={x:Static dbg:DebugConverters.BoldWhen}}" Opacity="{Binding Subtle, Converter={x:Static dbg:DebugConverters.DimWhen}}" />
+            </StackPanel>
+            <TextBlock Grid.Column="1" Text="{Binding Detail}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" VerticalAlignment="Center" Margin="8,0,8,0" TextTrimming="CharacterEllipsis" />
+          </Grid>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+
+    <!-- BREAKPOINTS -->
+    <Grid Name="BreakpointsHeadRow" Grid.Row="7" ColumnDefinitions="*,Auto">
+      <Button Name="BreakpointsHead" Classes="sectionhead" Click="OnSectionClick" Tag="BreakpointsBody">
+        <StackPanel Orientation="Horizontal" Spacing="5">
+          <shell:Icon Name="BreakpointsChevron" Data="{StaticResource Icon.ChevronDown}" Size="13" />
+          <TextBlock Text="BREAKPOINTS" FontWeight="SemiBold" FontSize="{DynamicResource Font.Size.Small}" />
+        </StackPanel>
+      </Button>
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,0,6,0">
+        <Button Name="BreakpointAddFunction" AutomationProperties.Name="Add function breakpoint" Classes="quiet mini" Click="OnAddFunctionBreakpoint" ToolTip.Tip="Add Function Breakpoint"><shell:Icon Data="{StaticResource Icon.Plus}" Size="14" /></Button>
+        <Button Name="BreakpointsToggleAll" AutomationProperties.Name="Enable or disable all breakpoints" Classes="quiet mini" Click="OnToggleAllBreakpoints" ToolTip.Tip="Enable or Disable All Breakpoints"><shell:Icon Data="{StaticResource Icon.ListChecks}" Size="14" /></Button>
+        <Button Name="BreakpointsRemoveAll" AutomationProperties.Name="Remove all breakpoints" Classes="quiet mini" Click="OnRemoveAllBreakpoints" ToolTip.Tip="Remove All Breakpoints"><shell:Icon Data="{StaticResource Icon.Trash2}" Size="14" /></Button>
+      </StackPanel>
+    </Grid>
+    <ListBox Name="BreakpointsList" Grid.Row="8" Classes="debug" ItemsSource="{Binding BreakpointRows}" SelectionMode="Single">
+      <ListBox.ItemsPanel>
+        <ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate>
+      </ListBox.ItemsPanel>
+      <ListBox.ItemTemplate>
+        <DataTemplate DataType="dbg:BreakpointRow">
+          <Grid ColumnDefinitions="Auto,Auto,*" Margin="8,0,6,0" Background="Transparent" DoubleTapped="OnBreakpointDoubleTapped" ToolTip.Tip="{Binding Problem}">
+            <Grid.ContextMenu>
+              <ContextMenu>
+                <MenuItem Header="Edit…" Click="OnEditBreakpoint" />
+                <MenuItem Header="Remove" Click="OnRemoveBreakpoint" />
+              </ContextMenu>
+            </Grid.ContextMenu>
+            <CheckBox IsChecked="{Binding IsEnabled, Mode=TwoWay}" MinWidth="0" Padding="0" Margin="0,0,4,0" VerticalAlignment="Center" />
+            <Ellipse Grid.Column="1" Classes="bp" Classes.conditional="{Binding IsConditional}" Classes.logpoint="{Binding IsLogpoint}"
+                     Classes.off="{Binding !IsEnabled}" Classes.unverified="{Binding Unverified}" IsVisible="{Binding IsSource}" Margin="0,0,6,0" />
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+              <TextBlock Text="{Binding Title}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+              <TextBlock Text="{Binding Detail}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+          </Grid>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+
+    <!-- Without a launch.json -->
+    <StackPanel Grid.Row="1" Grid.RowSpan="8" Margin="14,40,14,0" Spacing="8" VerticalAlignment="Top" IsVisible="{Binding ShowsCreateLaunch}">
+      <TextBlock Name="NoConfigurationsText" Classes="muted" TextWrapping="Wrap" Text="To customize Run and Debug, create a launch.json file." />
+      <Button Name="CreateLaunchJson" Classes="accent-soft" HorizontalAlignment="Stretch" Click="OnCreateLaunch">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <shell:Icon Data="{StaticResource Icon.FilePlus}" Size="15" />
+          <TextBlock Text="Create a launch.json file" />
+        </StackPanel>
+      </Button>
+    </StackPanel>
+  </Grid>
+</UserControl>

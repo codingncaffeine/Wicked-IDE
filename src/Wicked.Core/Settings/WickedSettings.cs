@@ -233,6 +233,15 @@ public sealed record WickedSettings
     /// <summary>Marks round prompts and commands, for the decorations and command navigation.</summary>
     [JsonPropertyName("terminal.integrated.shellIntegration.enabled")]
     public bool TerminalShellIntegration { get; init; } = true;
+    // ── Debugging (Phase 13) ──
+
+    /// <summary>The value of each variable drawn after the line that uses it, while stopped.</summary>
+    [JsonPropertyName("debug.inlineValues")]
+    public bool DebugInlineValues { get; init; } = true;
+
+    /// <summary>When the Run and Debug panel opens by itself: neverOpen, openOnSessionStart, openOnFirstSessionStart or openOnDebugBreak.</summary>
+    [JsonPropertyName("debug.openDebug")]
+    public string DebugOpenDebug { get; init; } = "openOnFirstSessionStart";
 
     /// <summary>Keys this build does not know, kept so a save never drops them.</summary>
     [JsonExtensionData]

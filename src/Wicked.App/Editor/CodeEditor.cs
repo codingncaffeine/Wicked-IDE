@@ -565,6 +565,13 @@ public sealed partial class CodeEditor : Control
     {
         base.OnPointerPressed(e);
         var point = e.GetCurrentPoint(this);
+        if (point.Properties.IsRightButtonPressed && GlyphMarginContext is { } context && _view.ShowGlyphMargin && point.Position.X < TextView.GlyphMarginWidth)
+        {
+            context(_view.LineAt((float)point.Position.Y), point.Position);
+            e.Handled = true;
+            return;
+        }
+
         if (!point.Properties.IsLeftButtonPressed) return;
         Focus();
         var (x, y) = ((float)point.Position.X, (float)point.Position.Y);
@@ -600,18 +607,18 @@ public sealed partial class CodeEditor : Control
             e.Handled = true;
             return;
         }
+        else if (x < _view.GutterWidth && _view.ShowGlyphMargin && x < TextView.GlyphMarginWidth && GlyphMarginClicked is { } glyph)
+        {
+            glyph(_view.LineAt(y));
+            e.Handled = true;
+            return;
+        }
         else if (x < _view.GutterWidth)
         {
             var line = _view.LineAt(y);
             _dragAnchor = line;
             _drag = Drag.Lines;
             SelectLines(line, line, e.KeyModifiers.HasFlag(KeyModifiers.Shift));
-        }
-        else if (x < _view.GutterWidth && _view.ShowGlyphMargin && x < TextView.GlyphMarginWidth && GlyphMarginClicked is { } glyph)
-        {
-            glyph(_view.LineAt(y));
-            e.Handled = true;
-            return;
         }
         else
         {

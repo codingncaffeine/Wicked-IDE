@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- A scripted debug adapter the debugger tests talk to, in this process or as a child process (see Program.cs). Not shipped. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>Wicked.FakeAdapter</RootNamespace>
+  </PropertyGroup>
+
+</Project>

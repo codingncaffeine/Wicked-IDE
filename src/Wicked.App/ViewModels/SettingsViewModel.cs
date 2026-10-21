@@ -139,6 +139,26 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private bool _occurrencesHighlight;
 
+    // ── Debugging ──
+
+    [ObservableProperty]
+    private bool _debugInlineValues;
+
+    [ObservableProperty]
+    private SettingChoice? _openDebug;
+
+    public IReadOnlyList<SettingChoice> OpenDebugModes { get; } =
+    [
+        new("neverOpen", "Never"),
+        new("openOnSessionStart", "When a session starts"),
+        new("openOnFirstSessionStart", "When the first session starts"),
+        new("openOnDebugBreak", "When the program stops"),
+    ];
+
+    partial void OnDebugInlineValuesChanged(bool value) => Change(s => s with { DebugInlineValues = value });
+
+    partial void OnOpenDebugChanged(SettingChoice? value) => Change(s => s with { DebugOpenDebug = value?.Value ?? "openOnFirstSessionStart" });
+
     partial void OnLanguageServersOnChanged(bool value) => Change(s => s with { LanguageServers = value });
 
     partial void OnFormatOnSaveChanged(bool value) => Change(s => s with { FormatOnSave = value });
@@ -280,6 +300,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         SemanticHighlighting = s.SemanticHighlighting;
         OccurrencesHighlight = s.OccurrencesHighlight;
         Server.Load(s);
+        DebugInlineValues = s.DebugInlineValues;
+        OpenDebug = OpenDebugModes.FirstOrDefault(c => c.Value == s.DebugOpenDebug) ?? OpenDebugModes[2];
         _loading = false;
     }
 

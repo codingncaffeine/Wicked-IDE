@@ -22,6 +22,7 @@ public enum SidePanel
     Models,
     Outline,
     Testing,
+    Debug,
 }
 
 /// <summary>
@@ -77,6 +78,11 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         WireAssistant();
         WireTerminal();
         WireTasks();
+        Debugger = new Wicked.App.Debug.DebugController(this, paths, Notices, _post);
+        // preLaunchTask: the task runs (or is found running) and the launch waits until it is ready, as in VS Code.
+        Debugger.RunTask = async (label, ct) => await Tasks.RunTaskByLabelAsync(label, ct)
+            ? null
+            : $"The preLaunchTask \"{label}\" is not in tasks.json or did not finish successfully (its output is in the Output panel).";
         Commands = BuildCommands();
         QuickInput = new QuickInputViewModel(this);
         Models = new ModelsViewModel(paths, Notices);
@@ -265,6 +271,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             new("workbench.action.openGlobalKeybindingsFile", "Preferences", "Open Keyboard Shortcuts (JSON)", null, OpenKeybindingsJsonAsync),
             .. SourceControl.Commands,
             .. TaskCommands(),
+            .. DebugCommands(),
         ];
     }
 
@@ -602,11 +609,11 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     // ── Side panel and assistant ─────────────────────────────────────────────────────────────
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsExplorer), nameof(IsSearch), nameof(IsSourceControl), nameof(IsModels), nameof(IsOutline), nameof(IsTesting), nameof(PanelTitle), nameof(PanelEmptyTitle), nameof(PanelEmptyText), nameof(ShowsPanelPlaceholder))]
+    [NotifyPropertyChangedFor(nameof(IsExplorer), nameof(IsSearch), nameof(IsSourceControl), nameof(IsModels), nameof(IsOutline), nameof(IsTesting), nameof(IsDebug), nameof(PanelTitle), nameof(PanelEmptyTitle), nameof(PanelEmptyText), nameof(ShowsPanelPlaceholder))]
     private SidePanel _panel = SidePanel.Explorer;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsExplorer), nameof(IsSearch), nameof(IsSourceControl), nameof(IsModels), nameof(IsOutline), nameof(IsTesting))]
+    [NotifyPropertyChangedFor(nameof(IsExplorer), nameof(IsSearch), nameof(IsSourceControl), nameof(IsModels), nameof(IsOutline), nameof(IsTesting), nameof(IsDebug))]
     private bool _sidebarVisible = true;
 
     [ObservableProperty]
@@ -622,6 +629,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
 
     public bool IsOutline => SidebarVisible && Panel == SidePanel.Outline;
     public bool IsTesting => SidebarVisible && Panel == SidePanel.Testing;
+    public bool IsDebug => SidebarVisible && Panel == SidePanel.Debug;
 
     /// <summary>Every side panel has its view now; kept for a panel added before its view is.</summary>
     public bool ShowsPanelPlaceholder => false;
@@ -646,6 +654,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         SidePanel.Models => "MODELS",
         SidePanel.Outline => "OUTLINE",
         SidePanel.Testing => "TESTING",
+        SidePanel.Debug => "RUN AND DEBUG",
         _ => "EXPLORER",
     };
 
@@ -703,6 +712,8 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             return true;
         }
 
+        if (Debugger.TryNavigate(route)) return true;
+
         if (route.StartsWith("lsp/install/", StringComparison.Ordinal))
         {
             OfferServerInstall(route["lsp/install/".Length..]);
@@ -724,6 +735,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             case ShellRoutes.Models: Panel = SidePanel.Models; SidebarVisible = true; return true;
             case ShellRoutes.Outline: Panel = SidePanel.Outline; SidebarVisible = true; return true;
             case ShellRoutes.Testing: Panel = SidePanel.Testing; SidebarVisible = true; return true;
+            case ShellRoutes.Debug: Panel = SidePanel.Debug; SidebarVisible = true; return true;
             case ShellRoutes.Assistant: AssistantVisible = true; return true;
             case ShellRoutes.SettingsModels: Models.Prompt = null; Models.Browse.Close(); SettingsOpen = true; SettingsSheet.RequestSection("models"); return true;
             case ShellRoutes.SettingsRuntime: Models.Prompt = null; Models.Browse.Close(); SettingsOpen = true; SettingsSheet.RequestSection("runtime"); return true;
@@ -812,6 +824,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     public void Dispose()
     {
         _settingsWatcher?.Dispose();
+        Debugger.Dispose();
         Snippets.Dispose();
         SourceControl.Dispose();
         DisposeTasks();

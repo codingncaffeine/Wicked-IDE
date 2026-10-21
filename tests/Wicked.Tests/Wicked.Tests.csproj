@@ -29,6 +29,8 @@
     <ProjectReference Include="..\..\src\Wicked.Core\Wicked.Core.csproj" />
     <!-- The scripted llama-server stand-in the model-runtime tests pack into their fake engine archive. -->
     <ProjectReference Include="..\Wicked.FakeEngine\Wicked.FakeEngine.csproj" />
+    <!-- The scripted debug adapter the debugger tests talk to, in process and as a child process. -->
+    <ProjectReference Include="..\Wicked.FakeAdapter\Wicked.FakeAdapter.csproj" />
     <ProjectReference Include="..\..\src\Wicked.Editor\Wicked.Editor.csproj" />
     <ProjectReference Include="..\..\src\Wicked.Daemon\Wicked.Daemon.csproj" />
     <ProjectReference Include="..\..\src\Wicked.Cli\Wicked.Cli.csproj" />

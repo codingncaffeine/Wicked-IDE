@@ -7,6 +7,7 @@
         xmlns:search="using:Wicked.App.Search"
         xmlns:git="using:Wicked.App.Git"
         xmlns:tasks="using:Wicked.App.Tasks"
+        xmlns:dbg="using:Wicked.App.Debug"
         x:Class="Wicked.App.Views.MainWindow"
         x:DataType="vm:ShellViewModel"
         Title="{Binding Title}"
@@ -93,6 +94,10 @@
                     Command="{Binding ShowPanelCommand}" CommandParameter="{x:Static vm:SidePanel.Testing}">
               <shell:Icon Data="{StaticResource Icon.FlaskConical}" Size="19" />
             </Button>
+            <Button Name="RailDebug" Classes="rail" Classes.active="{Binding IsDebug}" ToolTip.Tip="Run and Debug (Ctrl+Shift+D)"
+                    Command="{Binding ShowPanelCommand}" CommandParameter="{x:Static vm:SidePanel.Debug}">
+              <shell:Icon Data="{StaticResource Icon.Bug}" Size="19" />
+            </Button>
             <Button Name="RailModels" Classes="rail" Classes.active="{Binding IsModels}" ToolTip.Tip="Models (Ctrl+Shift+M)"
                     Command="{Binding ShowPanelCommand}" CommandParameter="{x:Static vm:SidePanel.Models}">
               <shell:Icon Data="{StaticResource Icon.Boxes}" Size="19" />
@@ -113,6 +118,7 @@
               <search:SearchView Name="SearchPanel" DataContext="{Binding Search}" IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).IsSearch}" />
               <git:SourceControlView DataContext="{Binding SourceControl}" IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).IsSourceControl}" />
               <tasks:TestingView DataContext="{Binding Testing}" IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).IsTesting}" />
+              <dbg:DebugView DataContext="{Binding Debugger}" IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).IsDebug}" />
               <StackPanel Margin="14,8" Spacing="4" IsVisible="{Binding ShowsPanelPlaceholder}">
                 <TextBlock Text="{Binding PanelEmptyTitle}" />
                 <TextBlock Classes="muted" Text="{Binding PanelEmptyText}" TextWrapping="Wrap" />
@@ -127,6 +133,7 @@
           <Border Name="Editor" Classes="panel editor" Margin="0,0,0,6">
             <views:EditorAreaView DataContext="{Binding Workbench}" />
           </Border>
+          <dbg:DebugToolbarView Name="DebugToolbar" DataContext="{Binding Debugger}" HorizontalAlignment="Center" VerticalAlignment="Top" />
           <GridSplitter Grid.Row="1" Name="PanelSplitter" Classes="gap" ResizeDirection="Rows" IsVisible="{Binding BottomPanel.IsVisible}" />
           <Border Grid.Row="2" Name="PanelArea" Classes="panel" Margin="0,0,0,6" IsVisible="{Binding BottomPanel.IsVisible}">
             <DockPanel>
