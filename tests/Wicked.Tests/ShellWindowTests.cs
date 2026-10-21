@@ -94,7 +94,7 @@ public sealed class ShellWindowTests
 
             Assert.True(button.IsEffectivelyVisible);
             Assert.Equal("A newer upload of Gemma is out", Text(window, "NoticeText").Text);
-            Assert.Contains(button.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == "+1");
+            Assert.Equal("+1", Text(window, "MoreNoticesText").Text); // its own button now: it opens the list
             Assert.Equal("EXPLORER", PanelHeading(window));
 
             Input.Click(window, button);

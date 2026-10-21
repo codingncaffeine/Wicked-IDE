@@ -61,6 +61,7 @@ public sealed class DaemonHost : IAsyncDisposable
     private readonly CancellationTokenSource _stop = new();
     private readonly SemaphoreSlim _apply = new(1, 1);
     private readonly GatewayManager _gateway;
+    private int _disposed;
 
     private DaemonHost(WebApplication app, FileStream heldLock, string socketPath, WickedPaths paths, DaemonOptions options, ModelServices services, ApiLog log, GatewayManager gateway)
     {
@@ -221,6 +222,7 @@ public sealed class DaemonHost : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        if (Interlocked.Exchange(ref _disposed, 1) == 1) return;
         await _stop.CancelAsync().ConfigureAwait(false);
         try
         {

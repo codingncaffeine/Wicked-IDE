@@ -28,6 +28,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         CodeThemes = [new("", "Wicked Dark (the theme's own)"), .. SyntaxService.Themes.Select(t => new SettingChoice(t.ToString(), ShellViewModel.Friendly(t.ToString())))];
         DownloadLimits = [new("0", "Unlimited"), .. new[] { 1, 2, 5, 10, 25, 50, 100 }.Select(n => new SettingChoice(n.ToString(CultureInfo.InvariantCulture), n + " MB/s"))];
         Runtime = new RuntimeViewModel(shell.Models, shell.UpdateSettingsAsync);
+        Server = new ServerViewModel(shell);
         shell.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(ShellViewModel.Settings)) Load(shell.Settings);
@@ -45,6 +46,9 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     /// <summary>Settings → Runtime: the engine, its devices, the backend choice, updates and rollback.</summary>
     public RuntimeViewModel Runtime { get; }
+
+    /// <summary>Settings → Server: the API gateway, its keys, the recipes that connect other programs, start at login.</summary>
+    public ServerViewModel Server { get; }
 
     public IReadOnlyList<SettingChoice> DownloadLimits { get; }
 
@@ -108,6 +112,26 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty]
     private SettingChoice? _downloadLimit;
 
+    [ObservableProperty]
+    private bool _checkForUpdates;
+
+    [ObservableProperty]
+    private SettingChoice? _updatePolicy;
+
+    [ObservableProperty]
+    private string _updateStatus = "";
+
+    [ObservableProperty]
+    private bool _checkingUpdates;
+
+    /// <summary>What a model without a setting of its own does about a newer upload.</summary>
+    public IReadOnlyList<SettingChoice> UpdatePolicies { get; } =
+    [
+        new("notify", "Tell me, and wait"),
+        new("auto", "Update automatically (the old files stay until the new ones work)"),
+        new("pin", "Never look"),
+    ];
+
     public bool UsesDefaultStore => StoreLocation.Length == 0;
 
     /// <summary>Where new models go, in words: the folder, or the default one named.</summary>
@@ -132,7 +156,10 @@ public sealed partial class SettingsViewModel : ObservableObject
         HuggingFaceToken = s.HuggingFaceToken;
         var limit = s.DownloadLimit.ToString("0.##", CultureInfo.InvariantCulture);
         DownloadLimit = DownloadLimits.FirstOrDefault(c => c.Value == limit) ?? new SettingChoice(limit, limit + " MB/s");
+        CheckForUpdates = s.CheckForUpdates;
+        UpdatePolicy = UpdatePolicies.FirstOrDefault(c => c.Value == s.UpdatePolicy) ?? UpdatePolicies[0];
         Runtime.Load(s);
+        Server.Load(s);
         _loading = false;
     }
 
@@ -165,6 +192,25 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     partial void OnDownloadLimitChanged(SettingChoice? value) =>
         Change(s => s with { DownloadLimit = double.TryParse(value?.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var mb) ? mb : 0 });
+
+    partial void OnCheckForUpdatesChanged(bool value) => Change(s => s with { CheckForUpdates = value });
+
+    partial void OnUpdatePolicyChanged(SettingChoice? value) => Change(s => s with { UpdatePolicy = value?.Value ?? "notify" });
+
+    [RelayCommand]
+    private async Task CheckUpdatesNow()
+    {
+        CheckingUpdates = true;
+        UpdateStatus = "Checking…";
+        try
+        {
+            UpdateStatus = await _shell.Models.CheckNowAsync();
+        }
+        finally
+        {
+            CheckingUpdates = false;
+        }
+    }
 
     private CancellationTokenSource? _tokenDelay;
 

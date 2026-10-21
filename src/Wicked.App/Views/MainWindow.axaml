@@ -121,6 +121,7 @@
 
       <!-- ── Footer: the waiting notice on the left (a click goes where it is dealt with), the editor and daemon on the right. ── -->
       <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto" Margin="10,0,8,0">
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center">
         <Button Name="NoticeButton" Classes="quiet" Padding="6,2" HorizontalAlignment="Left"
                 IsVisible="{Binding Notice, Converter={x:Static ObjectConverters.IsNotNull}}"
                 Command="{Binding OpenNoticeCommand}" ToolTip.Tip="{Binding NoticeTip}">
@@ -132,10 +133,13 @@
                          Minimum="0" Maximum="1" Value="{Binding Notice.Progress, FallbackValue=0}"
                          IsIndeterminate="{Binding Notice.Progress, Converter={x:Static ObjectConverters.IsNull}}"
                          IsVisible="{Binding IsProgressNotice}" />
-            <TextBlock Text="{Binding MoreNotices}" FontSize="{DynamicResource Font.Size.Small}"
-                       Foreground="{DynamicResource Brush.Text.Muted}" VerticalAlignment="Center" />
           </StackPanel>
         </Button>
+        <Button Name="MoreNoticesButton" Classes="quiet" Padding="6,2" Command="{Binding OpenNotificationsCommand}" ToolTip.Tip="Everything waiting: updates, problems, finished work"
+                IsVisible="{Binding MoreNotices, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" AutomationProperties.Name="More notifications">
+          <TextBlock Name="MoreNoticesText" Text="{Binding MoreNotices}" FontSize="{DynamicResource Font.Size.Small}" Foreground="{DynamicResource Brush.Text.Muted}" VerticalAlignment="Center" />
+        </Button>
+        </StackPanel>
 
         <Button Grid.Column="1" Name="ModelStatus" Classes="quiet" Padding="6,2" Margin="0,0,10,0" IsVisible="{Binding Models.HasRuntimeStatus}"
                 Command="{Binding ShowModelsStatusCommand}" ToolTip.Tip="Models: load, unload and run settings" AutomationProperties.Name="Model status">
@@ -180,6 +184,14 @@
 
       <Border Name="PromptsLayer" Grid.RowSpan="3" Background="#99000000" IsVisible="{Binding Chat.PromptEditor, Converter={x:Static ObjectConverters.IsNotNull}}">
         <chat:SystemPromptsView DataContext="{Binding Chat.PromptEditor}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+      </Border>
+
+      <Border Name="NotificationsLayer" Grid.RowSpan="3" Background="#99000000" IsVisible="{Binding Notifications.IsOpen}">
+        <views:NotificationsView DataContext="{Binding Notifications}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+      </Border>
+
+      <Border Name="WhatsNewLayer" Grid.RowSpan="3" Background="#99000000" IsVisible="{Binding WhatsNew.IsOpen}">
+        <views:WhatsNewView DataContext="{Binding WhatsNew}" HorizontalAlignment="Center" VerticalAlignment="Center" />
       </Border>
 
       <Border Name="DialogLayer" Grid.RowSpan="3" Background="#99000000" IsVisible="False">

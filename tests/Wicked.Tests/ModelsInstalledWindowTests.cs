@@ -101,7 +101,7 @@ public sealed class ModelsInstalledWindowTests
             Input.Click(window, more);
             var flyout = (MenuFlyout)more.Flyout!;
             Assert.True(Ui.PumpUntil(() => flyout.IsOpen, 5), "the menu did not open");
-            Assert.Equal(["Show in folder", "Delete…"], flyout.Items.OfType<MenuItem>().Select(i => i.Header?.ToString()));
+            Assert.Equal(["Show in folder", "Updates", "Delete…"], flyout.Items.OfType<MenuItem>().Select(i => i.Header?.ToString()));
             ModelsUi.Shot(window, "models-installed-menu");
             flyout.Items.OfType<MenuItem>().First().RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
             Assert.True(Ui.PumpUntil(() => opened.Count == 1, 5));

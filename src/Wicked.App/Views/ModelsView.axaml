@@ -101,6 +101,11 @@
                   <TextBlock Text="{Binding Details}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" TextTrimming="CharacterEllipsis" />
                   <TextBlock Classes="update" Text="{Binding UpdateText}" IsVisible="{Binding HasUpdate}" FontSize="{DynamicResource Font.Size.Small}"
                              Foreground="{DynamicResource Brush.Accent.Hover}" TextWrapping="Wrap" />
+                  <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding HasUpdate}">
+                    <Button Name="UpdateModel" Classes="accent-soft" Content="Update" Command="{Binding UpdateCommand}" IsVisible="{Binding CanUpdate}" Padding="8,2" FontSize="{DynamicResource Font.Size.Small}" />
+                    <Button Name="WhatsNewLink" Classes="link" Content="What's new" Command="{Binding WhatsNewCommand}" FontSize="{DynamicResource Font.Size.Small}" />
+                  </StackPanel>
+                  <TextBlock Text="Updating…" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" IsVisible="{Binding Updating}" />
                   <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding HasState}" Margin="0,2,0,0">
                     <Ellipse Classes="state" Classes.loaded="{Binding IsLoaded}" Classes.loading="{Binding IsLoading}" Classes.failed="{Binding IsFailed}" />
                     <TextBlock Name="RunStateText" Text="{Binding StateText}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" TextWrapping="Wrap" MaxWidth="190" />
@@ -126,6 +131,11 @@
                         <MenuItem.Icon>
                           <shell:Icon Data="{StaticResource Icon.FolderOpen}" Size="14" />
                         </MenuItem.Icon>
+                      </MenuItem>
+                      <MenuItem Header="Updates" Name="UpdatesMenu">
+                        <MenuItem Header="Ask me first" Command="{Binding SetPolicyCommand}" CommandParameter="notify" ToggleType="Radio" GroupName="policy" IsChecked="{Binding IsNotify, Mode=OneWay}" />
+                        <MenuItem Header="Update automatically" Command="{Binding SetPolicyCommand}" CommandParameter="auto" ToggleType="Radio" GroupName="policy" IsChecked="{Binding IsAuto, Mode=OneWay}" />
+                        <MenuItem Header="Never (pin this version)" Command="{Binding SetPolicyCommand}" CommandParameter="pin" ToggleType="Radio" GroupName="policy" IsChecked="{Binding IsPinned, Mode=OneWay}" />
                       </MenuItem>
                       <MenuItem Header="Delete…" Command="{Binding DeleteCommand}">
                         <MenuItem.Icon>

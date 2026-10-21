@@ -20,6 +20,7 @@
         <Button Classes="quiet" Content="Session" Click="OnJump" Tag="session" />
         <Button Name="JumpModels" Classes="quiet" Content="Models" Click="OnJump" Tag="models" />
         <Button Name="JumpRuntime" Classes="quiet" Content="Runtime" Click="OnJump" Tag="runtime" />
+        <Button Name="JumpServer" Classes="quiet" Content="Server" Click="OnJump" Tag="server" />
       </StackPanel>
       <Grid DockPanel.Dock="Bottom" ColumnDefinitions="*,Auto" Margin="0,14,0,0">
         <TextBlock Classes="muted" FontSize="{DynamicResource Font.Size.Small}" VerticalAlignment="Center" TextWrapping="Wrap"
@@ -105,6 +106,20 @@
 
               <TextBlock Grid.Row="2" Text="Download speed limit" />
               <ComboBox Grid.Row="2" Grid.Column="1" Name="DownloadLimitBox" ItemsSource="{Binding DownloadLimits}" SelectedItem="{Binding DownloadLimit}" Width="180" />
+
+              <TextBlock Grid.Row="3" Text="Look for updates" />
+              <ToggleSwitch Grid.Row="3" Grid.Column="1" Name="CheckForUpdatesToggle" IsChecked="{Binding CheckForUpdates}" OnContent="" OffContent="" />
+
+              <TextBlock Grid.Row="4" Text="A model has a newer upload" VerticalAlignment="Top" Margin="0,6,0,0" />
+              <StackPanel Grid.Row="4" Grid.Column="1" Spacing="6">
+                <ComboBox Name="UpdatePolicyBox" ItemsSource="{Binding UpdatePolicies}" SelectedItem="{Binding UpdatePolicy}" Width="460" />
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                  <Button Name="CheckUpdatesNowButton" Classes="secondary" Content="Check now" Command="{Binding CheckUpdatesNowCommand}" IsEnabled="{Binding !CheckingUpdates}" />
+                  <TextBlock Name="SettingsUpdateStatus" Text="{Binding UpdateStatus}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" VerticalAlignment="Center" />
+                </StackPanel>
+                <TextBlock Classes="muted" FontSize="{DynamicResource Font.Size.Small}" TextWrapping="Wrap"
+                           Text="Looked for on start and once a day, never in offline mode. Each model can have its own setting in its menu on the Models panel." />
+              </StackPanel>
             </Grid>
           </StackPanel>
 
@@ -141,6 +156,126 @@
                 <ProgressBar Height="3" MinHeight="3" Minimum="0" Maximum="1" Value="{Binding Progress}" IsVisible="{Binding ShowProgress}" />
                 <TextBlock Name="RuntimeStatus" Text="{Binding Status}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" TextWrapping="Wrap" />
               </StackPanel>
+            </StackPanel>
+          </StackPanel>
+
+          <StackPanel Spacing="10">
+            <TextBlock Name="SectionServer" Classes="heading" Text="SERVER" />
+            <StackPanel DataContext="{Binding Server}" Spacing="12" x:DataType="vm:ServerViewModel">
+              <TextBlock Classes="muted" FontSize="{DynamicResource Font.Size.Small}" TextWrapping="Wrap"
+                         Text="The daemon can serve your models to other programs over the OpenAI and Anthropic APIs: VS Code, Zed, Aider, Open WebUI, curl." />
+              <Grid ColumnDefinitions="220,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="10" Classes="settings">
+                <TextBlock Text="Daemon" VerticalAlignment="Top" />
+                <StackPanel Grid.Column="1" Spacing="6">
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Ellipse Width="8" Height="8" Classes="state" Classes.loaded="{Binding DaemonRunning}" VerticalAlignment="Center" />
+                    <TextBlock Name="DaemonStateText" Text="{Binding DaemonText}" Foreground="{DynamicResource Brush.Text}" TextWrapping="Wrap" />
+                  </StackPanel>
+                  <TextBlock Name="GatewayStateText" Text="{Binding GatewayText}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" TextWrapping="Wrap"
+                             Foreground="{Binding GatewayProblem, Converter={x:Static shell:ProblemBrush.Instance}}" />
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Button Name="StartServerButton" Classes="secondary" Content="Start the daemon" Command="{Binding StartDaemonCommand}" IsEnabled="{Binding CanStart}" />
+                    <Button Name="StopServerButton" Classes="secondary" Content="Stop the daemon" Command="{Binding StopDaemonCommand}" IsEnabled="{Binding CanStop}" />
+                  </StackPanel>
+                </StackPanel>
+
+                <TextBlock Grid.Row="1" Text="Serve the API" />
+                <ToggleSwitch Grid.Row="1" Grid.Column="1" Name="ServerEnabledToggle" IsChecked="{Binding Enabled}" OnContent="" OffContent="" />
+
+                <TextBlock Grid.Row="2" Text="Port" />
+                <NumericUpDown Grid.Row="2" Grid.Column="1" Name="ServerPortBox" Value="{Binding Port}" Minimum="1" Maximum="65535" Increment="1" FormatString="0" Width="140" HorizontalAlignment="Left" />
+
+                <TextBlock Grid.Row="3" Text="Reachable from the network" VerticalAlignment="Top" Margin="0,6,0,0" />
+                <StackPanel Grid.Row="3" Grid.Column="1" Spacing="6">
+                  <ToggleSwitch Name="ServerLanToggle" IsChecked="{Binding ListenOnLan}" OnContent="" OffContent="" />
+                  <Border Name="LanWarning" Classes="alert" IsVisible="{Binding HasLanWarning}">
+                    <TextBlock Text="{Binding LanWarning}" TextWrapping="Wrap" />
+                  </Border>
+                </StackPanel>
+
+                <TextBlock Grid.Row="4" Text="Load a model when asked for" />
+                <ToggleSwitch Grid.Row="4" Grid.Column="1" Name="ServerAutoLoadToggle" IsChecked="{Binding AutoLoad}" OnContent="" OffContent="" />
+
+                <TextBlock Grid.Row="5" Text="Web pages allowed to call it" VerticalAlignment="Top" Margin="0,6,0,0" />
+                <StackPanel Grid.Row="5" Grid.Column="1" Spacing="4">
+                  <TextBox Name="ServerCorsBox" Text="{Binding Cors}" AcceptsReturn="True" Height="70" Width="360" HorizontalAlignment="Left" PlaceholderText="http://localhost:3000" />
+                  <TextBlock Classes="muted" FontSize="{DynamicResource Font.Size.Small}" TextWrapping="Wrap" Text="One address per line. Programs that are not web pages need nothing here." />
+                </StackPanel>
+
+                <TextBlock Grid.Row="6" Text="Largest request (MB)" />
+                <NumericUpDown Grid.Row="6" Grid.Column="1" Name="ServerMaxBox" Value="{Binding MaxRequestMB}" Minimum="1" Maximum="1024" Increment="8" FormatString="0" Width="140" HorizontalAlignment="Left" />
+              </Grid>
+
+              <StackPanel Spacing="8" Margin="0,4,0,0">
+                <TextBlock Classes="heading" Text="API KEYS" />
+                <TextBlock Classes="muted" FontSize="{DynamicResource Font.Size.Small}" TextWrapping="Wrap"
+                           Text="With no key, only this machine is answered. Once one exists, every request needs one: Authorization: Bearer … or x-api-key." />
+                <ItemsControl Name="KeyList" ItemsSource="{Binding Keys}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="vm:ApiKeyRow">
+                      <Grid ColumnDefinitions="*,Auto" Margin="0,3">
+                        <StackPanel>
+                          <TextBlock Text="{Binding Name}" />
+                          <TextBlock Text="{Binding Detail}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" FontFamily="monospace" />
+                        </StackPanel>
+                        <Button Grid.Column="1" Classes="secondary" Content="Revoke" Command="{Binding RevokeCommand}" VerticalAlignment="Center" />
+                      </Grid>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <TextBox Name="NewKeyNameBox" Text="{Binding NewKeyName}" PlaceholderText="Name, e.g. Continue" Width="240" />
+                  <Button Name="CreateKeyButton" Classes="secondary" Content="Create a key" Command="{Binding CreateKeyCommand}" />
+                </StackPanel>
+                <Border Name="NewKeyBox" Classes="alert" IsVisible="{Binding HasNewKey}">
+                  <StackPanel Spacing="6">
+                    <TextBlock Text="Copy this key now. It is not kept and cannot be shown again." TextWrapping="Wrap" />
+                    <TextBox Name="NewKeyText" Text="{Binding NewKey}" IsReadOnly="True" FontFamily="monospace" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <Button Name="CopyNewKeyButton" Classes="secondary" Content="Copy" Command="{Binding CopyNewKeyCommand}" />
+                      <Button Name="HideNewKeyButton" Classes="quiet" Content="I have it" Command="{Binding DismissNewKeyCommand}" />
+                    </StackPanel>
+                  </StackPanel>
+                </Border>
+              </StackPanel>
+
+              <StackPanel Spacing="8" Margin="0,4,0,0">
+                <TextBlock Classes="heading" Text="CONNECT" />
+                <ItemsControl Name="SnippetList" ItemsSource="{Binding Snippets}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="vm:SnippetRow">
+                      <Border Classes="pick" Margin="0,0,0,8">
+                        <StackPanel Spacing="4">
+                          <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel>
+                              <TextBlock Text="{Binding Program}" FontWeight="SemiBold" />
+                              <TextBlock Text="{Binding Where}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" TextWrapping="Wrap" />
+                            </StackPanel>
+                            <Button Grid.Column="1" Classes="secondary" Command="{Binding CopyCommand}" VerticalAlignment="Top" AutomationProperties.Name="Copy">
+                              <StackPanel Orientation="Horizontal" Spacing="6">
+                                <shell:Icon Data="{StaticResource Icon.Copy}" Size="13" />
+                                <TextBlock Text="Copy" />
+                              </StackPanel>
+                            </Button>
+                          </Grid>
+                          <SelectableTextBlock Text="{Binding Text}" FontFamily="monospace" FontSize="{DynamicResource Font.Size.Small}" TextWrapping="Wrap" />
+                          <TextBlock Text="{Binding Note}" IsVisible="{Binding HasNote}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" TextWrapping="Wrap" />
+                        </StackPanel>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+
+              <Grid ColumnDefinitions="220,*" Classes="settings">
+                <TextBlock Text="Start at login" VerticalAlignment="Top" />
+                <StackPanel Grid.Column="1" Spacing="4">
+                  <ToggleSwitch Name="StartAtLoginToggle" IsChecked="{Binding StartAtLogin}" OnContent="" OffContent="" />
+                  <TextBlock Name="StartAtLoginStatus" Text="{Binding StartAtLoginText}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" TextWrapping="Wrap" />
+                  <TextBlock Classes="muted" FontSize="{DynamicResource Font.Size.Small}" TextWrapping="Wrap"
+                             Text="Adds wickedd.service to your systemd user units (~/.config/systemd/user) so the daemon is running when you sit down." />
+                </StackPanel>
+              </Grid>
             </StackPanel>
           </StackPanel>
         </StackPanel>

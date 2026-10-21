@@ -8,7 +8,6 @@ using Wicked.App.Shell;
 using Wicked.Core;
 using Wicked.Core.Catalog;
 using Wicked.Core.Chat;
-using Wicked.Core.Engines;
 using Wicked.Core.Hub;
 using Wicked.Core.Models;
 using Wicked.Core.Settings;
@@ -81,6 +80,40 @@ public sealed partial class InstalledRow(string id, ModelsViewModel owner) : Obs
 
     public bool HasUpdate => UpdateText is not null;
 
+    // ── Keeping it up to date ──
+
+    /// <summary>What happens when a newer upload appears: ask (the default), update by itself, or never look.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(PolicyText), nameof(IsNotify), nameof(IsAuto), nameof(IsPinned))]
+    private UpdatePolicy _policy;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanUpdate))]
+    private bool _updating;
+
+    private bool _updatable;
+
+    public bool IsNotify => Policy == UpdatePolicy.Notify;
+
+    public bool IsAuto => Policy == UpdatePolicy.Auto;
+
+    public bool IsPinned => Policy == UpdatePolicy.Pin;
+
+    public string PolicyText => Policy switch { UpdatePolicy.Auto => "Updates itself", UpdatePolicy.Pin => "Pinned: never checked", _ => "Asks before updating" };
+
+    /// <summary>The newer upload can be applied by Wicked (its files are the same names).</summary>
+    public bool CanUpdate => _updatable && !Updating;
+
+    [RelayCommand]
+    private Task Update() => owner.UpdateAsync(this);
+
+    [RelayCommand]
+    private Task SetPolicy(string value) => owner.SetPolicyAsync(this, UpdatePolicies.Parse(value));
+
+    /// <summary>Opens "What's new in your models" on this model.</summary>
+    [RelayCommand]
+    private void WhatsNew() => owner.ShowWhatsNew();
+
     // ── Running it (the runtime's word on this model) ──
 
     /// <summary>The runtime's view of this model, or null when it does not list it (nothing to load it with).</summary>
@@ -148,6 +181,9 @@ public sealed partial class InstalledRow(string id, ModelsViewModel owner) : Obs
         var quants = string.Join(", ", model.Variants.Select(v => v.Quant));
         Details = $"{quants} · {ModelsViewModel.Size(model.SizeOnDisk)} on disk";
         UpdateText = update?.Detail;
+        _updatable = update?.CanApply == true;
+        OnPropertyChanged(nameof(CanUpdate));
+        Policy = owner.Services.PolicyOf(model);
     }
 
     [RelayCommand]
@@ -175,6 +211,7 @@ public sealed partial class ModelsViewModel : ObservableObject, IAsyncDisposable
     {
         _notices = notices;
         Services = ServicesFactory?.Invoke(paths) ?? new ModelServices(paths);
+        Services.Updates.Notices = notices;
         Services.Changed += state => Dispatcher.UIThread.Post(() => Apply(state));
         Services.Progress += p => Dispatcher.UIThread.Post(() => OnProgress(p));
         Browse = new BrowseViewModel(this);
@@ -359,6 +396,7 @@ public sealed partial class ModelsViewModel : ObservableObject, IAsyncDisposable
         try
         {
             await Services.InitializeAsync(allowNetwork);
+            if (allowNetwork) Services.Updates.Start();
         }
         catch (Exception ex)
         {
@@ -368,20 +406,7 @@ public sealed partial class ModelsViewModel : ObservableObject, IAsyncDisposable
     });
 
     /// <summary>Puts the Settings page's model choices in force (token, speed cap, install folder, backend).</summary>
-    public void Configure(WickedSettings s) => Services.Configure(new ModelOptions(
-        s.HuggingFaceToken,
-        s.DownloadLimit > 0 ? (long)(s.DownloadLimit * 1_048_576) : null,
-        s.StoreLocation,
-        Backend(s.RuntimeBackend)));
-
-    public static EngineBackendKind? Backend(string? value) => value?.ToLowerInvariant() switch
-    {
-        "cuda" => EngineBackendKind.Cuda,
-        "vulkan" => EngineBackendKind.Vulkan,
-        "rocm" => EngineBackendKind.Rocm,
-        "cpu" => EngineBackendKind.Cpu,
-        _ => null,
-    };
+    public void Configure(WickedSettings s) => Services.Configure(ModelOptionsFile.From(s));
 
     private void Apply(ModelState state)
     {
@@ -606,7 +631,7 @@ public sealed partial class ModelsViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
-    /// <summary>Asks the Hub (and the catalog) whether anything installed has something newer.</summary>
+    /// <summary>Looks at everything that can have an update, now: the models' repos, the catalog, the engine and the app. The status line says what was found about the models.</summary>
     [RelayCommand]
     private async Task CheckUpdates()
     {
@@ -614,31 +639,80 @@ public sealed partial class ModelsViewModel : ObservableObject, IAsyncDisposable
         UpdateStatus = "Checking for updates…";
         try
         {
-            var result = await Task.Run(() => Services.CheckForUpdatesAsync());
-            var note = result.Failed > 0 ? $" · could not reach {result.Failed}" : "";
-            UpdateStatus = result.Problem is { } problem ? problem
-                : Services.State.Installed.Count == 0 ? "Nothing installed to check."
-                : result.Found.Count == 0 ? $"Everything is up to date{note}"
-                : $"{result.Found.Count} update{(result.Found.Count == 1 ? "" : "s")} available{note}";
-            if (result.Found.Count > 0)
-            {
-                _notices.Post(new Notice("model-updates", UpdateStatus, NoticeKind.Action, ShellRoutes.Models));
-            }
-            else
-            {
-                _notices.Clear("model-updates");
-            }
-        }
-        catch (Exception ex)
-        {
-            Log.Error("The update check failed", ex);
-            UpdateStatus = $"Could not check: {ex.Message}";
+            UpdateStatus = await CheckNowAsync();
         }
         finally
         {
             CheckingUpdates = false;
         }
     }
+
+    /// <summary>The scheduler's look, run now (on a worker); returns the sentence that says how it went.</summary>
+    public async Task<string> CheckNowAsync()
+    {
+        try
+        {
+            var result = await Task.Run(() => Services.Updates.CheckNowAsync());
+            if (result.Skipped is { } why)
+            {
+                return why switch
+                {
+                    SweepSkip.Offline => "Offline mode is on, so nothing was asked.",
+                    SweepSkip.NoNetwork => "There is no network right now.",
+                    SweepSkip.Busy => "Another Wicked process is looking right now.",
+                    _ => "Update checks are off.",
+                };
+            }
+
+            var models = result.Models!;
+            var note = models.Failed > 0 ? $" · could not reach {models.Failed}" : "";
+            return models.Problem is { } problem ? problem
+                : Services.State.Installed.Count == 0 ? "Nothing installed to check."
+                : models.Found.Count == 0 ? $"Everything is up to date{note}"
+                : $"{models.Found.Count} update{(models.Found.Count == 1 ? "" : "s")} available{note}";
+        }
+        catch (Exception ex)
+        {
+            Log.Error("The update check failed", ex);
+            return $"Could not check: {ex.Message}";
+        }
+    }
+
+    internal async Task UpdateAsync(InstalledRow row)
+    {
+        row.Updating = true;
+        try
+        {
+            await Task.Run(() => Services.Updates.PerformAsync("model-update:" + row.Id, "update"));
+        }
+        catch (Exception ex)
+        {
+            Log.Warn($"Updating {row.Id} failed: {ex.Message}");
+            _notices.Post(new Notice("model-update:" + row.Id, $"{row.Name} could not be updated: {ex.Message}", NoticeKind.Error, ShellRoutes.Models));
+        }
+        finally
+        {
+            row.Updating = false;
+        }
+    }
+
+    internal async Task SetPolicyAsync(InstalledRow row, UpdatePolicy? policy)
+    {
+        try
+        {
+            await Task.Run(() => Services.SetUpdatePolicyAsync(row.Id, policy));
+        }
+        catch (Exception ex) when (ex is IOException or FileNotFoundException or UnauthorizedAccessException)
+        {
+            Log.Warn($"Could not set the update policy of {row.Id}: {ex.Message}");
+            _notices.Post(new Notice("policy:" + row.Id, $"{row.Name}: the update setting could not be saved ({ex.Message})", NoticeKind.Error, ShellRoutes.Models));
+        }
+    }
+
+    /// <summary>Raised when a row asks for "What's new in your models".</summary>
+    public event Action? WhatsNewRequested;
+
+    internal void ShowWhatsNew() => WhatsNewRequested?.Invoke();
 
     public static string Size(long bytes) => bytes >= 1L << 30
         ? (bytes / (double)(1L << 30)).ToString("0.0", CultureInfo.InvariantCulture) + " GB"

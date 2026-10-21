@@ -7,7 +7,8 @@ cd "$(dirname "$0")/../.."
 VERSION=1.60.0
 ICONS=(arrow-down arrow-up bot boxes brain check paperclip pencil history image text-cursor-input sliders-horizontal power case-sensitive chevron-down chevron-right chevrons-down-up circle-alert circle-check copy cpu file-code file-plus file-text files folder folder-open folder-plus git-branch message-square minus panel-left panel-right plus refresh-cw regex replace replace-all search whole-word
        settings sparkles square terminal x
-       download ellipsis external-link hard-drive key-round pause play trash-2 undo-2)
+       download ellipsis external-link hard-drive key-round pause play trash-2 undo-2
+       bell server)
 dir=scratch/lucide-$VERSION
 mkdir -p "$dir"
 for name in "${ICONS[@]}"; do

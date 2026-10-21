@@ -186,12 +186,17 @@ public sealed class UpdateSchedulerTests
         var baseline = rig.InfoRequests;
         var times = new List<TimeSpan>();
         var watch = Stopwatch.StartNew();
-        rig.Services.Updates.Swept += _ => times.Add(watch.Elapsed);
+        rig.Services.Updates.Swept += _ =>
+        {
+            lock (times) times.Add(watch.Elapsed);
+        };
         rig.Services.Updates.Start();
 
-        await WaitAsync(() => rig.InfoRequests >= baseline + 3, 8);
+        await WaitAsync(() => { lock (times) return times.Count >= 3; }, 8);
 
-        var gaps = times.Zip(times.Skip(1), (a, b) => b - a).ToList();
+        TimeSpan[] seen;
+        lock (times) seen = [.. times];
+        var gaps = seen.Zip(seen.Skip(1), (a, b) => b - a).ToList();
         Assert.True(gaps[0] >= TimeSpan.FromMilliseconds(240), gaps[0].ToString());
         Assert.True(gaps[1] >= TimeSpan.FromMilliseconds(480), gaps[1].ToString());
     }
