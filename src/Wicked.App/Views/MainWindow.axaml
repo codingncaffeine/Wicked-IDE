@@ -79,19 +79,19 @@
             </Grid>
           </Button>
           <Button Grid.Column="1" Name="RunButton" Classes="quiet" Click="OnStatusCommand" Tag="workbench.action.debug.run"
-                  ToolTip.Tip="{Binding Run.RunTip}" AutomationProperties.Name="Run">
+                  ToolTip.Tip="{Binding Run.RunTip}" AutomationProperties.Name="Run the configuration">
             <shell:Icon Data="{StaticResource Icon.Play}" Foreground="{DynamicResource Brush.Success}" />
           </Button>
           <Button Grid.Column="2" Name="DebugButton" Classes="quiet" Click="OnStatusCommand" Tag="workbench.action.debug.start"
-                  IsEnabled="{Binding Run.CanDebug}" ToolTip.Tip="{Binding Run.DebugTip}" ToolTip.ShowOnDisabled="True" AutomationProperties.Name="Debug">
+                  IsEnabled="{Binding Run.CanDebug}" ToolTip.Tip="{Binding Run.DebugTip}" ToolTip.ShowOnDisabled="True" AutomationProperties.Name="Debug the configuration">
             <shell:Icon Data="{StaticResource Icon.Bug}" Foreground="{DynamicResource Brush.Success}" />
           </Button>
           <Button Grid.Column="3" Name="StopButton" Classes="quiet" Click="OnStatusCommand" Tag="workbench.action.debug.stop"
-                  IsEnabled="{Binding Run.CanStop}" ToolTip.Tip="Stop (Shift+F5)" AutomationProperties.Name="Stop">
+                  IsEnabled="{Binding Run.CanStop}" ToolTip.Tip="Stop (Shift+F5)" AutomationProperties.Name="Stop the run">
             <shell:Icon Data="{StaticResource Icon.Square}" Foreground="{DynamicResource Brush.Danger}" />
           </Button>
           <Button Grid.Column="4" Name="BuildButton" Classes="quiet" Click="OnStatusCommand" Tag="workbench.action.tasks.build"
-                  ToolTip.Tip="Build (Ctrl+Shift+B)" AutomationProperties.Name="Build">
+                  ToolTip.Tip="Build (Ctrl+Shift+B)" AutomationProperties.Name="Build the folder">
             <shell:Icon Data="{StaticResource Icon.Hammer}" />
           </Button>
           <Rectangle Grid.Column="5" Width="1" Height="16" Margin="6,0" Fill="{DynamicResource Brush.Border}" VerticalAlignment="Center" />
