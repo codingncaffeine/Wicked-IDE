@@ -117,6 +117,9 @@ public sealed class EditorGridTests
             Assert.Equal(1, Shown());
             Keys((Key.K, ctrl), (Key.M, ctrl));
             Assert.Equal(3, Shown());
+            // The keyboard stays where it was: drawing the groups again does not hand it to another one.
+            Assert.Same(right, bench.ActiveGroup);
+            Assert.True(Ui.PumpUntil(() => b.Editor!.IsFocused, 5), "the active editor lost the keyboard");
 
             // The group below emptied (its only tab closed) leaves the grid.
             bench.Focus(below);
@@ -124,6 +127,11 @@ public sealed class EditorGridTests
             Assert.True(Ui.PumpUntil(() => close.IsCompleted, 5));
             Assert.Equal(2, bench.Groups.Count);
             Assert.True(Ui.PumpUntil(() => Shown() == 2, 5));
+
+            // An empty split shows no welcome page of its own: that is the first group's alone.
+            bench.Split(SplitDirection.Right, copyActive: false);
+            Assert.True(Ui.PumpUntil(() => Shown() == 3, 5));
+            Assert.DoesNotContain(window.GetVisualDescendants().OfType<StackPanel>(), p => p.Name == "Welcome" && p.IsEffectivelyVisible);
             window.Close();
             return 0;
         });

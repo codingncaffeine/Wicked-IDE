@@ -38,6 +38,7 @@ public partial class EditorGroupView : UserControl
                     if (e.PropertyName == nameof(Wicked.App.Workbench.Workbench.Root)) ShowRecent();
                 };
                 _group.Workbench.SettingsChanged += () => ShowCrumbs(_group?.Active);
+                _group.Workbench.Groups.CollectionChanged += (_, _) => Welcome.IsVisible = ShowsWelcome();
             }
             _ = ShowActiveAsync();
         };
@@ -48,11 +49,14 @@ public partial class EditorGroupView : UserControl
         if (e.PropertyName == nameof(EditorGroup.Active)) _ = ShowActiveAsync();
     }
 
+    /// <summary>The welcome shows once, in the first group; another empty group (a split with nothing in it yet) stays clear.</summary>
+    private bool ShowsWelcome() => _group is { Active: null } g && g.Workbench.Groups.FirstOrDefault() == g;
+
     /// <summary>Puts the active tab's editor in the host and gives it the keyboard.</summary>
     private async Task ShowActiveAsync()
     {
         var tab = _group?.Active;
-        Welcome.IsVisible = tab is null;
+        Welcome.IsVisible = ShowsWelcome();
         ShowCrumbs(tab);
         if (tab is null) ShowRecent();
         if (tab is null)
@@ -81,10 +85,11 @@ public partial class EditorGroupView : UserControl
 
         Adopt(editor);
         ShowFind(editor);
-        // Focus once the editor is in the window: a control not yet attached ignores Focus() without a word.
+        // Focus once the editor is in the window: a control not yet attached ignores Focus() without a word. Only the active
+        // group's: when the grid is drawn again every group shows its editor, and the keyboard stays where it was.
         Avalonia.Threading.Dispatcher.UIThread.Post(() =>
         {
-            if (_group?.Active == tab) editor.Focus();
+            if (_group?.Active == tab && _group.Workbench.ActiveGroup == _group) editor.Focus();
         }, Avalonia.Threading.DispatcherPriority.Loaded);
     }
 
