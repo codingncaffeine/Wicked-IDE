@@ -143,6 +143,24 @@ public sealed record WickedSettings
     [JsonPropertyName("editor.lightbulb.enabled")]
     public bool Lightbulb { get; init; } = true;
 
+    // ── AI assistance (Phase 7) ──
+
+    /// <summary>Ghost-text suggestions from a local coding model as you type (VS Code's editor.inlineSuggest.enabled).</summary>
+    [JsonPropertyName("editor.inlineSuggest.enabled")]
+    public bool InlineSuggest { get; init; } = true;
+
+    /// <summary>The model that writes them (a runtime id); empty picks an installed coding model.</summary>
+    [JsonPropertyName("wicked.completionModel")]
+    public string CompletionModel { get; init; } = "";
+
+    /// <summary>How long typing pauses before a suggestion is asked for, in milliseconds.</summary>
+    [JsonPropertyName("wicked.inlineSuggest.delay")]
+    public int InlineSuggestDelay { get; init; } = 200;
+
+    /// <summary>The model the assistant's chat, edits and agent use for code (a runtime id); empty uses the chat's choice.</summary>
+    [JsonPropertyName("wicked.assistantModel")]
+    public string AssistantModel { get; init; } = "";
+
     /// <summary>Keys this build does not know, kept so a save never drops them.</summary>
     [JsonExtensionData]
     public Dictionary<string, JsonElement>? Other { get; init; }

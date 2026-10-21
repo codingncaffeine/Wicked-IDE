@@ -190,6 +190,32 @@ internal sealed class MemoryStore : IConversationStore
     }
 }
 
+/// <summary>Fill-in-the-middle answers a test sets: the text for a request, after a delay; every request kept.</summary>
+internal sealed class FakeInfill : IInfillEngine
+{
+    private readonly Lock _gate = new();
+    private readonly List<InfillRequest> _requests = [];
+
+    public Func<InfillRequest, string> Answer { get; set; } = _ => "";
+
+    public TimeSpan Delay { get; set; } = TimeSpan.FromMilliseconds(30);
+
+    public IReadOnlyList<InfillRequest> Requests
+    {
+        get
+        {
+            lock (_gate) return [.. _requests];
+        }
+    }
+
+    public async Task<InfillResult> CompleteAsync(InfillRequest request, CancellationToken ct = default)
+    {
+        lock (_gate) _requests.Add(request);
+        await Task.Delay(Delay, ct);
+        return new InfillResult(Answer(request), 5, 120, false);
+    }
+}
+
 /// <summary>The assistant's services for one test, and the hook that hands them to the window.</summary>
 internal sealed class ChatWorld
 {
@@ -199,7 +225,9 @@ internal sealed class ChatWorld
 
     public MemoryStore Store { get; } = new();
 
-    public AssistantServices Services => new(Runtime, Engine, Store);
+    public FakeInfill Infill { get; } = new();
+
+    public AssistantServices Services => new(Runtime, Engine, Store, Infill);
 
     /// <summary>The main window on a profile of its own, its assistant wired to this world. Call inside <c>Ui.Run</c>.</summary>
     public (App.Views.MainWindow Window, App.ViewModels.ShellViewModel Shell) Start(WickedPaths paths)

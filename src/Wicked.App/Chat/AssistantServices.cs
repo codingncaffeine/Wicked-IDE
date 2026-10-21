@@ -6,7 +6,7 @@ using Wicked.Core.Settings;
 namespace Wicked.App.Chat;
 
 /// <summary>What the assistant runs on: the models, the chat engine and the saved conversations (the contract in <c>Wicked.Core.Chat</c>).</summary>
-public sealed record AssistantServices(IModelRuntime Runtime, IChatEngine Chat, IConversationStore Conversations)
+public sealed record AssistantServices(IModelRuntime Runtime, IChatEngine Chat, IConversationStore Conversations, IInfillEngine? Infill = null)
 {
     /// <summary>Lets a test supply fakes; the app leaves it null.</summary>
     public static Func<WickedPaths, AssistantServices>? Factory { get; set; }
@@ -16,7 +16,7 @@ public sealed record AssistantServices(IModelRuntime Runtime, IChatEngine Chat, 
     {
         if (Factory?.Invoke(paths) is { } supplied) return supplied;
 
-        return new(models.Runtime, models.Chat, models.Conversations);
+        return new(models.Runtime, models.Chat, models.Conversations, new InfillEngine(models.Runtime, Wicked.Core.Http.WickedHttp.Shared));
     }
 }
 

@@ -65,10 +65,12 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         BottomPanel.IsVisible = false;
         WireLanguage();
         WireSourceControl();
+        WireAssistant();
         Commands = BuildCommands();
         QuickInput = new QuickInputViewModel(this);
         Models = new ModelsViewModel(paths, Notices);
-        Chat = new ChatViewModel(AssistantServices.Resolve(paths, Models.Services), new ShellChatHost(this));
+        Assistant = AssistantServices.Resolve(paths, Models.Services);
+        Chat = new ChatViewModel(Assistant, new ShellChatHost(this));
         Models.AttachRuntime(Chat.Runtime);
         Snippets = new SnippetLibrary(Path.Combine(paths.Config, "snippets"));
         Workbench.Snippets = Snippets;
