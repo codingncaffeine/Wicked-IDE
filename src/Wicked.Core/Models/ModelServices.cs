@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Text.Json;
 using Wicked.Core.Catalog;
+using Wicked.Core.Chat;
 using Wicked.Core.Downloads;
 using Wicked.Core.Engines;
 using Wicked.Core.Hardware;
@@ -80,7 +81,19 @@ public sealed class ModelServices : IAsyncDisposable
         _store = StoreAt(_defaultRoot);
         Downloads = new DownloadManager(_http, Path.Combine(paths.State, "downloads.json"), new DownloadOptions { TokenProvider = () => Token });
         Engines = new EngineInstaller(Downloads, Path.Combine(paths.Data, "engines"), Path.Combine(paths.Cache, "engine-downloads"));
+        Runtime = new ModelRuntime(this, paths, _http);
+        Chat = new ChatEngine(Runtime, _http);
+        Conversations = new ConversationStore(Path.Combine(paths.Data, "conversations.db"));
     }
+
+    /// <summary>The installed models and what runs them (the router starts on first use, never at launch).</summary>
+    public ModelRuntime Runtime { get; }
+
+    /// <summary>Streamed chat replies from the models in <see cref="Runtime"/>.</summary>
+    public ChatEngine Chat { get; }
+
+    /// <summary>The saved conversations.</summary>
+    public ConversationStore Conversations { get; }
 
     /// <summary>Where new installs go: the store the Settings page chose, else the default one.</summary>
     public ModelStore Store
@@ -185,6 +198,7 @@ public sealed class ModelServices : IAsyncDisposable
         if (catalog.Note is { } note) Log.Info($"Catalog: {note}");
         Update(s => s with { Catalog = catalog, Picks = Recommender.Recommend(hardware, catalog.Catalog) });
         await RescanAsync(ct).ConfigureAwait(false);
+        await Runtime.InitializeAsync(ct).ConfigureAwait(false);
         Log.Info($"Models: {hardware.PrimaryGpu?.Name ?? "no GPU"}, catalog {catalog.Origin} ({catalog.Catalog.Models.Count()} models), {State.Picks.Count} picks, {State.Installed.Count} installed, engine {State.Engine?.Id ?? "none"}");
     }
 
@@ -742,7 +756,12 @@ public sealed class ModelServices : IAsyncDisposable
         Changed?.Invoke(next);
     }
 
-    public async ValueTask DisposeAsync() => await Downloads.DisposeAsync().ConfigureAwait(false);
+    public async ValueTask DisposeAsync()
+    {
+        await Runtime.DisposeAsync().ConfigureAwait(false);
+        Conversations.Dispose();
+        await Downloads.DisposeAsync().ConfigureAwait(false);
+    }
 
     /// <summary>Progress delivered on the reporting thread (Progress&lt;T&gt; would post it to the pool, out of order).</summary>
     private sealed class Relay<T>(Action<T> report) : IProgress<T>

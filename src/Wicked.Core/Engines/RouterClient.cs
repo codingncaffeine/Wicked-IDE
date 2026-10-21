@@ -50,6 +50,16 @@ public sealed class RouterClient(HttpClient http, Func<Uri> baseAddress)
         return [.. data.EnumerateArray().Select(ParseModel)];
     }
 
+    /// <summary>The context size a loaded model runs with, from its <c>/props</c> (<c>default_generation_settings.n_ctx</c>); null when it does not say.</summary>
+    public async Task<int?> GetContextSizeAsync(string model, CancellationToken ct = default)
+    {
+        using var response = await http.GetAsync(new Uri(baseAddress(), "props?model=" + Uri.EscapeDataString(model)), ct).ConfigureAwait(false);
+        if (!response.IsSuccessStatusCode) return null;
+        using var doc = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false), cancellationToken: ct).ConfigureAwait(false);
+        return doc.RootElement.TryGetProperty("default_generation_settings", out var d) && d.ValueKind == JsonValueKind.Object
+               && d.TryGetProperty("n_ctx", out var n) && n.ValueKind == JsonValueKind.Number ? n.GetInt32() : null;
+    }
+
     public Task LoadAsync(string model, CancellationToken ct = default) => PostAsync("models/load", model, ct);
 
     public Task UnloadAsync(string model, CancellationToken ct = default) => PostAsync("models/unload", model, ct);
@@ -141,8 +151,7 @@ public sealed class RouterClient(HttpClient http, Func<Uri> baseAddress)
 
     private async Task PostAsync(string path, string model, CancellationToken ct)
     {
-        using var content = new StringContent(JsonSerializer.Serialize(new { model }), Encoding.UTF8, "application/json");
-        using var response = await http.PostAsync(new Uri(baseAddress(), path), content, ct).ConfigureAwait(false);
+        using var response = await PostWithRetryAsync(new Uri(baseAddress(), path), JsonSerializer.Serialize(new { model }), ct).ConfigureAwait(false);
         var body = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
         if (!response.IsSuccessStatusCode) throw new RouterException($"{path} answered {(int)response.StatusCode}: {body}");
         try
@@ -158,4 +167,26 @@ public sealed class RouterClient(HttpClient http, Func<Uri> baseAddress)
             // A body that is not JSON with a 2xx status is treated as success.
         }
     }
+
+    /// <summary>
+    /// Posts JSON, and once more when the connection was a pooled one the server had just closed (its keep-alive is short, and a
+    /// request that never reached it is safe to send again). Loading and unloading a model are both repeatable.
+    /// </summary>
+    internal static async Task<HttpResponseMessage> PostWithRetryAsync(HttpClient http, Uri uri, string json, CancellationToken ct)
+    {
+        for (var attempt = 0; ; attempt++)
+        {
+            using var content = new StringContent(json, Encoding.UTF8, "application/json");
+            try
+            {
+                return await http.PostAsync(uri, content, ct).ConfigureAwait(false);
+            }
+            catch (HttpRequestException ex) when (attempt == 0 && ex.InnerException is HttpIOException)
+            {
+                // The pooled connection was already closed; the next one is new.
+            }
+        }
+    }
+
+    private Task<HttpResponseMessage> PostWithRetryAsync(Uri uri, string json, CancellationToken ct) => PostWithRetryAsync(http, uri, json, ct);
 }
