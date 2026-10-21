@@ -150,3 +150,43 @@ public sealed class SettingsEditorWindowTests
         });
     }
 }
+
+/// <summary>settings.json and keybindings.json through the JSON language server: its settings carry their schemas, as VS Code's do.</summary>
+public sealed class JsonServerSchemaTests
+{
+    private static readonly IReadOnlyList<(string File, string Schema)> Schemas =
+        [("/home/u/.config/wicked/settings.json", "/home/u/.local/state/wicked/schemas/settings.schema.json")];
+
+    [Fact]
+    public void TheJsonServerIsToldTheSchemasAndReadsFileSchemasItself()
+    {
+        var spec = Wicked.Core.Lsp.LanguageServerCatalog.ById("json")!;
+        var command = Wicked.App.Language.LanguageFeatures.Configured(spec, new Wicked.Core.Lsp.LanguageServerCommand("server", []), new WickedSettings(), Schemas);
+        var schema = Assert.Single(command.Settings!.Value.GetProperty("json").GetProperty("schemas").EnumerateArray());
+        Assert.Equal("file:///home/u/.local/state/wicked/schemas/settings.schema.json", schema.GetProperty("url").GetString());
+        Assert.Contains("/home/u/.config/wicked/settings.json", schema.GetProperty("fileMatch").EnumerateArray().Select(e => e.GetString()));
+        Assert.Equal("file", command.InitializationOptions!.Value.GetProperty("handledSchemaProtocols")[0].GetString());
+    }
+
+    [Fact]
+    public void AServersOwnSettingsReachItAndTheUsersJsonSchemasAreKept()
+    {
+        var user = JsonDocument.Parse("""{ "json": { "schemas": [ { "fileMatch": ["*.mine.json"], "url": "https://example.com/mine.json" } ], "format": { "enable": false } } }""").RootElement.Clone();
+        var settings = new WickedSettings { Servers = new() { ["json"] = new LanguageServerSetting { Settings = user }, ["clangd"] = new LanguageServerSetting { Settings = user } } };
+        var json = Wicked.App.Language.LanguageFeatures.Configured(Wicked.Core.Lsp.LanguageServerCatalog.ById("json")!, new Wicked.Core.Lsp.LanguageServerCommand("server", []), settings, Schemas);
+        Assert.Equal(2, json.Settings!.Value.GetProperty("json").GetProperty("schemas").GetArrayLength());
+        Assert.False(json.Settings.Value.GetProperty("json").GetProperty("format").GetProperty("enable").GetBoolean());
+        // Any other server is given the user's settings for it as they are (its workspace/configuration answers).
+        var clangd = Wicked.App.Language.LanguageFeatures.Configured(Wicked.Core.Lsp.LanguageServerCatalog.ById("clangd")!, new Wicked.Core.Lsp.LanguageServerCommand("clangd", []), settings, Schemas);
+        Assert.Equal(user.GetRawText(), clangd.Settings!.Value.GetRawText());
+    }
+
+    [Fact]
+    public void KeybindingsJsonsSchemaKnowsTheCommands()
+    {
+        using var doc = JsonDocument.Parse(JsonSchemas.Keybindings(["editor.action.toggleWordWrap", "workbench.action.files.save"]));
+        var command = doc.RootElement.GetProperty("items").GetProperty("properties").GetProperty("command");
+        Assert.Contains("workbench.action.files.save", command.GetProperty("anyOf")[0].GetProperty("enum").EnumerateArray().Select(e => e.GetString()));
+        Assert.Equal("^-", command.GetProperty("anyOf")[1].GetProperty("pattern").GetString());
+    }
+}

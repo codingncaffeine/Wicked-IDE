@@ -113,6 +113,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         };
         Models.WhatsNewRequested += WhatsNew.Open;
         Keys = new KeyDispatcher(Commands);
+        WriteSchemas();
         _ = Task.Run(() => WatchDaemonAsync(_stop.Token));
     }
 
@@ -421,6 +422,32 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         _shortcuts ??= new ShortcutsViewModel(this);
         _shortcuts.Refresh();
         Workbench.OpenView("Keyboard Shortcuts", () => new Views.ShortcutsView { DataContext = _shortcuts, OpenJson = OpenKeybindingsJsonAsync });
+    }
+
+    /// <summary>
+    /// settings.json's and keybindings.json's schemas, written by a worker into the state folder for the JSON language server
+    /// (completion, hovers and problems in both files, as in VS Code).
+    /// </summary>
+    private void WriteSchemas()
+    {
+        var ids = Commands.Select(c => c.Id).Concat(Wicked.App.Editor.EditorKeymap.Defaults.Select(d => d.Command.Id)).ToList();
+        var folder = Path.Combine(Paths.State, "schemas");
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                Directory.CreateDirectory(folder);
+                var settings = Path.Combine(folder, "settings.schema.json");
+                var keys = Path.Combine(folder, "keybindings.schema.json");
+                await File.WriteAllTextAsync(settings, Wicked.Core.Settings.SettingsSchema.JsonSchema());
+                await File.WriteAllTextAsync(keys, Wicked.Core.Settings.JsonSchemas.Keybindings(ids));
+                Language.SchemaFiles = [(Paths.SettingsFile, settings), (Paths.KeybindingsFile, keys)];
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                Log.Warn($"The settings schemas could not be written: {ex.Message}");
+            }
+        });
     }
 
     private async Task OpenKeybindingsJsonAsync()

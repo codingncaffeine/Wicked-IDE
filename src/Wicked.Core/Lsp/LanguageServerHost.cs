@@ -141,6 +141,9 @@ public sealed class LanguageServerHost : IAsyncDisposable
     /// <summary>A server's log or message line (for the Output panel), with the server's id.</summary>
     public event Action<string, string>? Output;
 
+    /// <summary>The command a server starts with, given its settings and start options (the user's, and Wicked's own for some).</summary>
+    public Func<LanguageServerSpec, LanguageServerCommand, LanguageServerCommand>? Configure { get; set; }
+
     /// <summary>A server asked the client to apply an edit (a refactoring it runs itself).</summary>
     public Func<WorkspaceEdit, Task<bool>>? ApplyEdit { get; set; }
 
@@ -172,7 +175,8 @@ public sealed class LanguageServerHost : IAsyncDisposable
             return null;
         }
 
-        var lazy = _clients.GetOrAdd(pick.Spec.Id, _ => new Lazy<Task<LanguageClient?>>(() => StartAsync(pick.Spec, pick.Command)));
+        var command = Configure?.Invoke(pick.Spec, pick.Command) ?? pick.Command;
+        var lazy = _clients.GetOrAdd(pick.Spec.Id, _ => new Lazy<Task<LanguageClient?>>(() => StartAsync(pick.Spec, command)));
         var client = await lazy.Value.WaitAsync(ct).ConfigureAwait(false);
         return client is { IsRunning: true } ? client : null;
     }

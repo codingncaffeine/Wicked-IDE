@@ -177,6 +177,26 @@ public sealed partial class LanguageFeatures : ObservableObject, IAsyncDisposabl
 
     // ── Hosts ────────────────────────────────────────────────────────────────────────────────────
 
+    /// <summary>Wicked's own files and their schemas (settings.json, keybindings.json), for the JSON server; set once they are written.</summary>
+    public IReadOnlyList<(string File, string Schema)> SchemaFiles { get; set; } = [];
+
+    /// <summary>
+    /// A server's command with the user's settings for it (<c>lsp.servers.&lt;id&gt;.settings</c>, its workspace/configuration);
+    /// the JSON server also learns the schemas of Wicked's own files, as VS Code's does.
+    /// </summary>
+    private LanguageServerCommand ConfigureServer(LanguageServerSpec spec, LanguageServerCommand command) => Configured(spec, command, _settings, SchemaFiles);
+
+    public static LanguageServerCommand Configured(LanguageServerSpec spec, LanguageServerCommand command, WickedSettings settings, IReadOnlyList<(string File, string Schema)> schemas)
+    {
+        var user = settings.Servers?.GetValueOrDefault(spec.Id)?.Settings;
+        if (spec.Id != "json") return user is null ? command : command with { Settings = user };
+        return command with
+        {
+            Settings = JsonSchemas.ServerSettings(user, schemas),
+            InitializationOptions = command.InitializationOptions ?? JsonSchemas.ServerInitializationOptions,
+        };
+    }
+
     /// <summary>The host for a file: the open folder's when the file is inside it, else one for the file's own folder.</summary>
     private LanguageServerHost HostFor(string path)
     {
@@ -189,6 +209,7 @@ public sealed partial class LanguageFeatures : ObservableObject, IAsyncDisposabl
         host.StatusChanged += status => _post(() => OnStatus(status));
         host.Output += (id, line) => _output.Write(ChannelName(id), line);
         host.Restarted += (id, client) => _post(() => Rebind(host, id, client));
+        host.Configure = ConfigureServer;
         host.ApplyEdit = edit =>
         {
             var done = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
