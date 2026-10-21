@@ -212,6 +212,17 @@ public sealed class DiffEditorView : DockPanel
         Reveal(_changeRows[_current]);
     }
 
+    /// <summary>The number of changes shown, once compared.</summary>
+    public int ChangeCount => _changeRows.Length;
+
+    /// <summary>Both sides scrolled to a change (0-based), as the review's buttons move between them.</summary>
+    public void ShowChange(int index)
+    {
+        if (_changeRows.Length == 0) return;
+        _current = Math.Clamp(index, 0, _changeRows.Length - 1);
+        Reveal(_changeRows[_current]);
+    }
+
     private void Reveal(int row)
     {
         if (_rightEditor is null || _leftEditor is null) return;

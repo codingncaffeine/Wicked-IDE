@@ -15,7 +15,7 @@ namespace Wicked.App.Assistant;
 /// folder and may not leave it. Edits go through the editors, so each is one undo step the user can take back; every tool
 /// runs on a worker and touches the editors on the UI thread.
 /// </summary>
-public sealed class WorkspaceAgentTools(ShellViewModel shell) : IAgentTools
+public sealed partial class WorkspaceAgentTools(ShellViewModel shell) : IAgentTools
 {
     private const int ReadLineCap = 400;
     private const int OutputCap = 8000;
@@ -26,7 +26,9 @@ public sealed class WorkspaceAgentTools(ShellViewModel shell) : IAgentTools
 
     private static JsonElement Schema(string json) => JsonDocument.Parse(json).RootElement.Clone();
 
-    public IReadOnlyList<ChatTool> Definitions { get; } =
+    public IReadOnlyList<ChatTool> Definitions => [.. BuiltIn, .. McpDefinitions];
+
+    private static readonly IReadOnlyList<ChatTool> BuiltIn =
     [
         new("read_file", "Read a file of the project (relative path). Lines come numbered; ask for a range for long files.",
             Schema("""{"type":"object","properties":{"path":{"type":"string"},"start_line":{"type":"integer","description":"1-based, optional"},"end_line":{"type":"integer","description":"1-based, inclusive, optional"}},"required":["path"]}""")),
@@ -61,6 +63,7 @@ public sealed class WorkspaceAgentTools(ShellViewModel shell) : IAgentTools
     public async Task<string> DescribeAsync(CancellationToken ct)
     {
         if (shell.Workbench.Root is not { } root) return "No project folder is open; the tools that read files will refuse.";
+        await StartMcpAsync(ct);
         var open = await Dispatcher.UIThread.InvokeAsync(() => shell.Workbench.AllTabs.Where(t => t.Path is not null).Select(t => t.Path!).Distinct().ToList());
         var active = await Dispatcher.UIThread.InvokeAsync(() => shell.Workbench.ActiveTab?.Path);
         var sb = new StringBuilder();
@@ -121,6 +124,7 @@ public sealed class WorkspaceAgentTools(ShellViewModel shell) : IAgentTools
                     step = await steps.AddAsync("Icon.Terminal", $"Run {Str("command")}");
                     return await CommandAsync(steps, step, Str("command"), ct);
                 default:
+                    if (McpToolFor(call.Name) is { } mcp) return await CallMcpAsync(steps, mcp, args, ct);
                     return $"There is no tool called {call.Name}.";
             }
         }

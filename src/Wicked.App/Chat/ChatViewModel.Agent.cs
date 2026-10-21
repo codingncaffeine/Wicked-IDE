@@ -62,6 +62,7 @@ public sealed partial class ChatViewModel
         try
         {
             var workspace = await tools.DescribeAsync(ct).ConfigureAwait(false);
+            if (tools is WorkspaceAgentTools workspaceTools) await workspaceTools.AskForProjectServersAsync(steps, ct).ConfigureAwait(false);
             var messages = new List<ChatMessage>();
             var system = request.Messages.FirstOrDefault(m => m.Role == ChatRole.System)?.Content;
             messages.Add(new ChatMessage(ChatRole.System, AgentInstructions + "\n" + workspace + (system is { Length: > 0 } ? "\n" + system : "")));
