@@ -135,7 +135,9 @@ public sealed class TaskService : IDisposable
     public TaskRun? RunningTask(string label) => _running.GetValueOrDefault(label);
 
     /// <summary>tasks.json and the detected tasks of the workspace folder, read on the thread pool.</summary>
-    public async Task<TaskCatalog> LoadAsync(CancellationToken ct = default)
+    public Task<TaskCatalog> LoadAsync(CancellationToken ct = default) => Task.Run(() => LoadCoreAsync(ct), ct);
+
+    private async Task<TaskCatalog> LoadCoreAsync(CancellationToken ct)
     {
         if (WorkspaceFolder is not { Length: > 0 } root) return TaskCatalog.Empty("");
         var file = await TasksFile.ReadAsync(root, ct).ConfigureAwait(false);

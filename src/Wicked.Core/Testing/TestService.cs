@@ -66,7 +66,9 @@ public sealed class TestService : IDisposable
     // ── Discovery ────────────────────────────────────────────────────────────────────────────────
 
     /// <summary>Looks for tests with every adapter; the results of the last discovery are kept for nodes that are still there.</summary>
-    public async Task DiscoverAsync(CancellationToken ct = default)
+    public Task DiscoverAsync(CancellationToken ct = default) => Task.Run(() => DiscoverCoreAsync(ct), ct);
+
+    private async Task DiscoverCoreAsync(CancellationToken ct)
     {
         if (WorkspaceFolder is not { Length: > 0 }) return;
         Busy(true);
@@ -208,19 +210,19 @@ public sealed class TestService : IDisposable
 
     // ── Running ──────────────────────────────────────────────────────────────────────────────────
 
-    public Task RunAllAsync(CancellationToken ct = default)
+    public Task RunAllAsync(CancellationToken ct = default) => Task.Run(() =>
     {
         List<string> ids;
         lock (_gate) ids = [.. _roots.Select(r => r.Id)];
-        return RunAsync(ids, ct);
-    }
+        return RunCoreAsync(ids, ct);
+    }, ct);
 
-    public Task RunFailedAsync(CancellationToken ct = default)
+    public Task RunFailedAsync(CancellationToken ct = default) => Task.Run(() =>
     {
         List<string> ids;
         lock (_gate) ids = [.. _roots.SelectMany(r => r.Leaves).Where(l => l.State == TestState.Failed && l.Kind == TestKind.Test).Select(l => l.Id)];
-        return RunAsync(ids, ct);
-    }
+        return RunCoreAsync(ids, ct);
+    }, ct);
 
     /// <summary>Stops the run in progress.</summary>
     public void Cancel()
@@ -229,7 +231,13 @@ public sealed class TestService : IDisposable
     }
 
     /// <summary>Runs the tests under the nodes given (a project, a group, a test), one project at a time.</summary>
-    public async Task RunAsync(IEnumerable<string> ids, CancellationToken ct = default)
+    public Task RunAsync(IEnumerable<string> ids, CancellationToken ct = default)
+    {
+        var picked = ids.ToList();
+        return Task.Run(() => RunCoreAsync(picked, ct), ct);
+    }
+
+    private async Task RunCoreAsync(List<string> ids, CancellationToken ct)
     {
         await _runs.WaitAsync(ct).ConfigureAwait(false);
         Busy(true);
@@ -365,6 +373,5 @@ public sealed class TestService : IDisposable
     public void Dispose()
     {
         Cancel();
-        _runs.Dispose();
     }
 }

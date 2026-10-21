@@ -12,7 +12,7 @@ public sealed class TestExplorerTests
         return service;
     }
 
-    private static void PlantTinyProject(Sandbox box)
+    internal static void PlantTinyProject(Sandbox box)
     {
         // The folder is under the checkout; an empty props file keeps the checkout's own build settings out of it.
         box.Write("Directory.Build.props", "<Project />");

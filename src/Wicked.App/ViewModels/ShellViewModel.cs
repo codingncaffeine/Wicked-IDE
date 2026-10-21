@@ -20,6 +20,7 @@ public enum SidePanel
     Search,
     SourceControl,
     Models,
+    Testing,
 }
 
 /// <summary>
@@ -65,6 +66,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         BottomPanel.IsVisible = false;
         WireLanguage();
         WireSourceControl();
+        WireTasks();
         Commands = BuildCommands();
         QuickInput = new QuickInputViewModel(this);
         Models = new ModelsViewModel(paths, Notices);
@@ -220,6 +222,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             new("workbench.action.openSnippets", "Snippets", "Configure Snippets", null, ConfigureSnippetsAsync),
             new("workbench.action.openGlobalKeybindingsFile", "Preferences", "Open Keyboard Shortcuts (JSON)", null, OpenKeybindingsJsonAsync),
             .. SourceControl.Commands,
+            .. TaskCommands(),
         ];
     }
 
@@ -552,11 +555,11 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     // ── Side panel and assistant ─────────────────────────────────────────────────────────────
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsExplorer), nameof(IsSearch), nameof(IsSourceControl), nameof(IsModels), nameof(PanelTitle), nameof(PanelEmptyTitle), nameof(PanelEmptyText), nameof(ShowsPanelPlaceholder))]
+    [NotifyPropertyChangedFor(nameof(IsExplorer), nameof(IsSearch), nameof(IsSourceControl), nameof(IsModels), nameof(IsTesting), nameof(PanelTitle), nameof(PanelEmptyTitle), nameof(PanelEmptyText), nameof(ShowsPanelPlaceholder))]
     private SidePanel _panel = SidePanel.Explorer;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsExplorer), nameof(IsSearch), nameof(IsSourceControl), nameof(IsModels))]
+    [NotifyPropertyChangedFor(nameof(IsExplorer), nameof(IsSearch), nameof(IsSourceControl), nameof(IsModels), nameof(IsTesting))]
     private bool _sidebarVisible = true;
 
     [ObservableProperty]
@@ -569,6 +572,8 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     public bool IsSourceControl => SidebarVisible && Panel == SidePanel.SourceControl;
 
     public bool IsModels => SidebarVisible && Panel == SidePanel.Models;
+
+    public bool IsTesting => SidebarVisible && Panel == SidePanel.Testing;
 
     /// <summary>Every side panel has its view now; kept for a panel added before its view is.</summary>
     public bool ShowsPanelPlaceholder => false;
@@ -591,6 +596,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         SidePanel.Search => "SEARCH",
         SidePanel.SourceControl => "SOURCE CONTROL",
         SidePanel.Models => "MODELS",
+        SidePanel.Testing => "TESTING",
         _ => "EXPLORER",
     };
 
@@ -663,6 +669,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             case ShellRoutes.Search: Panel = SidePanel.Search; SidebarVisible = true; return true;
             case ShellRoutes.SourceControl: Panel = SidePanel.SourceControl; SidebarVisible = true; return true;
             case ShellRoutes.Models: Panel = SidePanel.Models; SidebarVisible = true; return true;
+            case ShellRoutes.Testing: Panel = SidePanel.Testing; SidebarVisible = true; return true;
             case ShellRoutes.Assistant: AssistantVisible = true; return true;
             case ShellRoutes.SettingsModels: Models.Prompt = null; Models.Browse.Close(); SettingsOpen = true; SettingsSheet.RequestSection("models"); return true;
             default:
@@ -739,6 +746,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         _settingsWatcher?.Dispose();
         Snippets.Dispose();
         SourceControl.Dispose();
+        DisposeTasks();
         Workbench.Dispose();
         _ = Language.DisposeAsync().AsTask();
         _ = Models.DisposeAsync().AsTask();
