@@ -364,6 +364,8 @@ public sealed partial class CodeEditor : Control
         });
         _view.FollowPalette = settings.CodeColorTheme.Length > 0;
         _view.Theme = _services.EditorTheme;
+        _solidCaret = settings.CursorBlinking == "solid";
+        RestartBlink();
         _view.BracketColors = settings.BracketPairColorization;
         TabCompletion = settings.TabCompletion is "on" or "onlySnippets";
         _settingsWrap = WrapFrom(settings);
@@ -398,11 +400,13 @@ public sealed partial class CodeEditor : Control
         InvalidateVisual();
     }
 
+    private bool _solidCaret;
+
     private void RestartBlink()
     {
         _view.CaretsVisible = true;
         _blink.Stop();
-        if (_view.Focused) _blink.Start();
+        if (_view.Focused && !_solidCaret) _blink.Start();
     }
 
     // ── Keys and text ────────────────────────────────────────────────────────────────────────────

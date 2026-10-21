@@ -67,6 +67,10 @@ public sealed record WickedSettings
     [JsonPropertyName("files.insertFinalNewline")]
     public bool InsertFinalNewline { get; init; }
 
+    /// <summary>The caret: "blink" (the default) or "solid" (a steady caret, also what reduced motion asks for).</summary>
+    [JsonPropertyName("editor.cursorBlinking")]
+    public string CursorBlinking { get; init; } = "blink";
+
     /// <summary>The window theme by name (VS Code's workbench.colorTheme): a built-in one or a theme.json in config/themes.</summary>
     [JsonPropertyName("workbench.colorTheme")]
     public string ColorTheme { get; init; } = "Wicked Dark";

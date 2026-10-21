@@ -248,6 +248,9 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             new("workbench.action.openSettingsJson", "Preferences", "Open Settings (JSON)", null, OpenSettingsJsonAsync),
             new("workbench.action.selectTheme", "Preferences", "Color Theme", "Ctrl+K Ctrl+T", () => Sync(PickTheme)),
             new("wicked.selectCodeColours", "Preferences", "Code Colours", null, () => Sync(PickCodeColours)),
+            new("wicked.openStylePack", "Preferences", "Open Style Pack (AXAML)", null, OpenStylePackAsync),
+            new("workbench.action.focusNextPart", "View", "Focus Next Part", "F6", () => Sync(() => FocusPartRequested?.Invoke(1))),
+            new("workbench.action.focusPreviousPart", "View", "Focus Previous Part", "Shift+F6", () => Sync(() => FocusPartRequested?.Invoke(-1))),
             new("workbench.action.importTheme", "Preferences", "Import a VS Code Color Theme...", null, ImportThemeAsync),
             new("editor.foldAll", "View", "Fold All", "Ctrl+K Ctrl+D0", () => Sync(() => Workbench.ActiveTab?.Editor?.FoldAll())),
             new("editor.unfoldAll", "View", "Unfold All", "Ctrl+K Ctrl+J", () => Sync(() => Workbench.ActiveTab?.Editor?.UnfoldAll())),
@@ -498,6 +501,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         var (settings, problem) = await SettingsFile.ReadAsync(Paths.SettingsFile, CancellationToken.None);
         await Themes.LoadUserThemesAsync();
         await ApplySettingsAsync(settings);
+        await StartStylePacksAsync();
         await ReloadKeybindingsAsync();
         await Snippets.LoadAsync();
         WatchSettings();

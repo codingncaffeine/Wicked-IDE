@@ -29,6 +29,46 @@ public sealed partial class ShellViewModel
         OnPropertyChanged(nameof(Themes));
     }
 
+    /// <summary>The style packs in config/styles (hot-reloaded Avalonia styles over Wicked's).</summary>
+    public StylePacks? StylePacks { get; private set; }
+
+    /// <summary>The style packs read and watched (after the settings, once the window exists).</summary>
+    private async Task StartStylePacksAsync()
+    {
+        StylePacks ??= new StylePacks(Paths, line => Output.Write("Styles", line));
+        await StylePacks.LoadAsync();
+        StylePacks.Watch();
+    }
+
+    /// <summary>Opens a style pack to edit, writing a commented starter the first time.</summary>
+    private async Task OpenStylePackAsync()
+    {
+        var folder = StylePacks?.Folder ?? Path.Combine(Paths.Config, "styles");
+        var file = Path.Combine(folder, "my-styles.axaml");
+        if (!File.Exists(file))
+        {
+            const string Starter = """
+                <!-- A style pack: Avalonia styles over Wicked's own, applied the moment this file is saved.
+                     The tokens (Brush.Surface, Brush.Accent, Radius.Panel, …) are in Themes/Tokens.axaml; a theme sets their colours. -->
+                <Styles xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                  <!-- For example, square panels:
+                  <Style Selector="Border.panel">
+                    <Setter Property="CornerRadius" Value="0" />
+                  </Style>
+                  -->
+                </Styles>
+
+                """;
+            Directory.CreateDirectory(folder);
+            await Task.Run(() => Wicked.Core.Files.TextFile.WriteAsync(file, Starter, Wicked.Core.Files.FileEncoding.Utf8, CancellationToken.None));
+        }
+
+        await Workbench.OpenAsync(file);
+    }
+
+    /// <summary>F6 / Shift+F6: the keyboard to the next part of the window (side bar, editor, panel, assistant), as VS Code moves it.</summary>
+    public event Action<int>? FocusPartRequested;
+
     /// <summary>The theme the settings name, when it is not the one in force (a whole repaint is not free).</summary>
     private void ApplyTheme(string name, EditorServices services)
     {

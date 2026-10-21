@@ -28,6 +28,7 @@ public partial class MainWindow : Window, IWorkbenchDialogs
     public MainWindow()
     {
         StartupTimeline.Mark("platform window");
+        AccessibleNames.Register();
         InitializeComponent();
         StartupTimeline.Mark("window XAML");
         WindowFrame.Apply(this);
@@ -65,6 +66,7 @@ public partial class MainWindow : Window, IWorkbenchDialogs
             };
             ApplyPanelRows();
             _shell.PaletteRequested += OnPaletteRequested;
+            _shell.FocusPartRequested += FocusPart;
             _shell.SearchFocusRequested += () => Avalonia.Threading.Dispatcher.UIThread.Post(SearchPanel.FocusQuery, Avalonia.Threading.DispatcherPriority.Loaded);
             _shell.Workbench.Dialogs = this;
             _shell.Clipboard = text => Clipboard?.SetTextAsync(text) ?? Task.CompletedTask;
@@ -123,6 +125,25 @@ public partial class MainWindow : Window, IWorkbenchDialogs
         rows[1].Height = new GridLength(panel.IsMaximized ? 0 : 6);
         rows[2].Height = panel.IsMaximized ? GridLength.Star : new GridLength(panel.Height);
         rows[2].MinHeight = BottomPanel.MinHeight;
+    }
+
+    /// <summary>F6: the keyboard to the next part that is showing — the side bar, the editor, the panel, the assistant.</summary>
+    private void FocusPart(int direction)
+    {
+        Control[] parts = [SidePanel, Editor, PanelArea, Assistant];
+        var visible = parts.Where(p => p.IsEffectivelyVisible && p.Bounds.Width > 0 && p.Bounds.Height > 0).ToList();
+        if (visible.Count == 0) return;
+        var focused = FocusManager?.GetFocusedElement() as Visual;
+        var at = visible.FindIndex(p => focused is not null && (ReferenceEquals(p, focused) || p.IsVisualAncestorOf(focused)));
+        var next = visible[((at < 0 ? (direction > 0 ? -1 : 0) : at) + direction + visible.Count) % visible.Count];
+        if (ReferenceEquals(next, Editor) && _shell?.Workbench.ActiveTab?.Editor is { } editor)
+        {
+            editor.Focus();
+            return;
+        }
+
+        var target = next.GetVisualDescendants().OfType<InputElement>().FirstOrDefault(c => c.Focusable && c.IsEffectivelyVisible && c.IsEffectivelyEnabled);
+        target?.Focus(NavigationMethod.Tab);
     }
 
     // ── Keys ─────────────────────────────────────────────────────────────────────────────────────

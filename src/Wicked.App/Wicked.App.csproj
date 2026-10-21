@@ -28,6 +28,7 @@
     <PackageReference Include="Avalonia.Wayland" Version="$(AvaloniaVersion)" />
     <PackageReference Include="Avalonia.Fonts.Inter" Version="$(AvaloniaVersion)" />
     <PackageReference Include="Avalonia.Themes.Fluent" Version="$(AvaloniaVersion)" />
+    <PackageReference Include="Avalonia.Markup.Xaml.Loader" Version="$(AvaloniaVersion)" />
     <PackageReference Include="CommunityToolkit.Mvvm" Version="$(MvvmToolkitVersion)" />
     <PackageReference Include="Markdig" Version="$(MarkdigVersion)" />
   </ItemGroup>
