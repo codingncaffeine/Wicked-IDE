@@ -35,6 +35,9 @@
         <Button Classes="quiet" Command="{Binding NextCommand}" ToolTip.Tip="Next Match (Enter)" Padding="5">
           <shell:Icon Data="{StaticResource Icon.ArrowDown}" Size="14" />
         </Button>
+        <ToggleButton Name="FindInSelection" Classes="findopt" IsChecked="{Binding InSelection}" ToolTip.Tip="Find in Selection (Alt+L)" AutomationProperties.Name="Find in Selection">
+          <shell:Icon Data="{StaticResource Icon.ListFilter}" Size="14" />
+        </ToggleButton>
         <Button Classes="quiet" Command="{Binding CloseCommand}" ToolTip.Tip="Close (Escape)" Padding="5">
           <shell:Icon Data="{StaticResource Icon.X}" Size="14" />
         </Button>

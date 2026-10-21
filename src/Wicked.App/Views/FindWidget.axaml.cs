@@ -40,6 +40,12 @@ public partial class FindWidget : UserControl
             case Key.Enter:
                 _find.Next();
                 break;
+            case Key.Up when e.KeyModifiers == KeyModifiers.None:
+                _find.Recall(-1);
+                break;
+            case Key.Down when e.KeyModifiers == KeyModifiers.None:
+                _find.Recall(1);
+                break;
             default:
                 return;
         }
@@ -74,6 +80,7 @@ public partial class FindWidget : UserControl
         else if (alt && e.Key == Key.C) _find.MatchCase = !_find.MatchCase;
         else if (alt && e.Key == Key.W) _find.WholeWord = !_find.WholeWord;
         else if (alt && e.Key == Key.R) _find.Regex = !_find.Regex;
+        else if (alt && e.Key == Key.L) _find.InSelection = !_find.InSelection;
         else if (e.Key == Key.H && e.KeyModifiers == KeyModifiers.Control) _find.ShowReplace = true;
         else return true;
         e.Handled = true;

@@ -25,8 +25,10 @@ public sealed partial class FindViewModel : ObservableObject
             _afterEdit!.Stop();
             _ = SearchAsync(keepPosition: true);
         });
-        editor.Document.Changed += _ =>
+        editor.Document.Changed += change =>
         {
+            // The Find in Selection scope moves with the text, as VS Code's does.
+            if (_scope.Count > 0) _scope = [.. _scope.Select(s => (ChangeSet.Map(s.Start, change.Changes, stickAfter: false), ChangeSet.Map(s.End, change.Changes)))];
             if (!IsOpen) return;
             _afterEdit.Stop();
             _afterEdit.Start();
@@ -60,6 +62,21 @@ public sealed partial class FindViewModel : ObservableObject
     [ObservableProperty]
     private bool _hasError;
 
+    /// <summary>Find in Selection (Alt+L): only matches inside the selections made when it was turned on.</summary>
+    [ObservableProperty]
+    private bool _inSelection;
+
+    private List<(int Start, int End)> _scope = [];
+
+    /// <summary>The selections when Find opened, the scope Alt+L takes while the text is unchanged since.</summary>
+    private List<Selection>? _selectedAtOpen;
+    private long _selectedAtOpenVersion;
+
+    /// <summary>The queries searched for, newest last, shared by every editor (Up and Down in the box walk them).</summary>
+    private static readonly List<string> History = [];
+    private const int HistoryLimit = 20;
+    private int _historyAt = -1;
+
     /// <summary>The widget's view puts the keyboard in the query box when this fires.</summary>
     public event Action? FocusRequested;
 
@@ -73,11 +90,61 @@ public sealed partial class FindViewModel : ObservableObject
 
     partial void OnRegexChanged(bool value) => _ = SearchAsync(keepPosition: true);
 
+    partial void OnInSelectionChanged(bool value)
+    {
+        // The scope is what was selected when Find opened (searching moves the selection onto the matches since), else the
+        // selections now; a caret alone scopes its line.
+        var rope = _editor.Document.Text;
+        IReadOnlyList<Selection> selections = _selectedAtOpen is { Count: > 0 } atOpen && _selectedAtOpenVersion == _editor.Document.Version ? atOpen : _editor.Document.Selections;
+        _scope = !value ? [] : [.. selections.Select(s =>
+        {
+            if (!s.IsEmpty) return (s.Start, s.End);
+            var line = rope.LineOf(s.Active);
+            return (rope.LineStart(line), rope.LineStart(line) + rope.LineLength(line));
+        })];
+        _ = SearchAsync(keepPosition: true);
+    }
+
+    [RelayCommand]
+    private void ToggleInSelection() => InSelection = !InSelection;
+
+    /// <summary>Remembers the query when it is searched for (Enter, the arrows, closing).</summary>
+    private void Remember()
+    {
+        _historyAt = -1;
+        if (Query.Length == 0) return;
+        lock (History)
+        {
+            History.Remove(Query);
+            History.Add(Query);
+            if (History.Count > HistoryLimit) History.RemoveAt(0);
+        }
+    }
+
+    /// <summary>Up (-1) and Down (+1) in the query box: the queries searched for before, the newest first going up.</summary>
+    public void Recall(int direction)
+    {
+        string recalled;
+        lock (History)
+        {
+            if (History.Count == 0) return;
+            if (_historyAt < 0) _historyAt = History.Count;
+            _historyAt = Math.Clamp(_historyAt + direction, 0, History.Count);
+            recalled = _historyAt == History.Count ? "" : History[_historyAt];
+        }
+
+        var at = _historyAt;
+        Query = recalled;
+        _historyAt = at;
+    }
+
     /// <summary>Ctrl+F / Ctrl+H: a one-line selection becomes the query, as in VS Code.</summary>
     public void Open(bool replace)
     {
         var doc = _editor.Document;
         var primary = doc.Primary;
+        _selectedAtOpen = doc.Selections.Any(s => !s.IsEmpty) ? [.. doc.Selections] : null;
+        _selectedAtOpenVersion = doc.Version;
         if (!primary.IsEmpty && primary.Length < 200)
         {
             var selected = doc.Text.Substring(primary.Start, primary.Length);
@@ -85,6 +152,7 @@ public sealed partial class FindViewModel : ObservableObject
         }
 
         ShowReplace = replace;
+        if (InSelection) OnInSelectionChanged(true); // a new selection is the new scope
         IsOpen = true;
         FocusRequested?.Invoke();
         _ = SearchAsync(keepPosition: true);
@@ -93,6 +161,7 @@ public sealed partial class FindViewModel : ObservableObject
     [RelayCommand]
     public void Close()
     {
+        Remember();
         IsOpen = false;
         _search?.Cancel();
         _editor.View.Found = SearchResult.None;
@@ -131,6 +200,12 @@ public sealed partial class FindViewModel : ObservableObject
         }
 
         if (cts.IsCancellationRequested || !IsOpen || version != doc.Version) return;
+        if (InSelection && _scope.Count > 0)
+        {
+            var scope = _scope;
+            result = result with { Matches = [.. result.Matches.Where(m => scope.Any(s => m.Start >= s.Start && m.Start + m.Length <= s.End))] };
+        }
+
         var view = _editor.View;
         view.Found = result;
         HasError = result.Error is not null;
@@ -158,6 +233,7 @@ public sealed partial class FindViewModel : ObservableObject
 
     private void Step(bool forward)
     {
+        Remember();
         var view = _editor.View;
         var matches = view.Found.Matches;
         if (matches.IsEmpty || view.Found.Version != _editor.Document.Version) return;

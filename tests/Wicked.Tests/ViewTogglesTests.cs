@@ -155,3 +155,59 @@ public sealed class WordsAndTagsWindowTests
         });
     }
 }
+
+/// <summary>Find in Selection (Alt+L) and the find box's history (Up, Down), through the widget.</summary>
+public sealed class FindInSelectionTests
+{
+    [Trait("Tier", "Window")]
+    [Fact]
+    public async Task AltLLimitsFindAndReplaceToTheSelectionAndUpRecallsEarlierQueries()
+    {
+        using var profile = new TempProfile();
+        var root = Path.Combine(profile.Root, "project");
+        Directory.CreateDirectory(root);
+        File.WriteAllText(Path.Combine(root, "a.txt"), "one x\ntwo x x\nthree x\n");
+        await Ui.Run(() =>
+        {
+            var (window, shell) = OpenWorkbench(profile, root);
+            var tab = OpenByClicks(window, shell, "a.txt");
+            var doc = tab.Document;
+            var find = tab.Editor!.Find;
+            void Press(Avalonia.Input.Key key, Avalonia.Input.RawInputModifiers mods = Avalonia.Input.RawInputModifiers.None) => Input.Chord(window, key, mods);
+
+            // Line two selected, Ctrl+F, "x": four matches in the file.
+            doc.SetSelections([new Selection(doc.Text.LineStart(1), doc.Text.LineStart(2))]);
+            Press(Avalonia.Input.Key.F, Avalonia.Input.RawInputModifiers.Control);
+            Assert.True(Ui.PumpUntil(() => find.IsOpen, 5));
+            find.Query = "x";
+            Assert.True(Ui.PumpUntil(() => find.Status.EndsWith(" of 4", StringComparison.Ordinal), 5), $"{find.Status}, in selection {find.InSelection}, query '{find.Query}', whole word {find.WholeWord}, case {find.MatchCase}, regex {find.Regex}");
+
+            // Alt+L: only the two on line two.
+            Press(Avalonia.Input.Key.L, Avalonia.Input.RawInputModifiers.Alt);
+            Assert.True(find.InSelection);
+            Assert.True(Ui.PumpUntil(() => find.Status.EndsWith(" of 2", StringComparison.Ordinal), 5), find.Status);
+
+            // Replace All stays inside the selection.
+            find.Replacement = "Y";
+            find.ReplaceAll();
+            Assert.True(Ui.PumpUntil(() => doc.Text.ToString() == "one x\ntwo Y Y\nthree x\n", 5), doc.Text.ToString());
+
+            // History: two searches, then Up walks back through them and Down returns to an empty box.
+            Press(Avalonia.Input.Key.L, Avalonia.Input.RawInputModifiers.Alt);
+            Assert.False(find.InSelection);
+            Press(Avalonia.Input.Key.Enter);
+            find.Query = "three";
+            Press(Avalonia.Input.Key.Enter);
+            find.Query = "";
+            Press(Avalonia.Input.Key.Up);
+            Assert.Equal("three", find.Query);
+            Press(Avalonia.Input.Key.Up);
+            Assert.Equal("x", find.Query);
+            Press(Avalonia.Input.Key.Down);
+            Press(Avalonia.Input.Key.Down);
+            Assert.Equal("", find.Query);
+            window.Close();
+            return 0;
+        });
+    }
+}
