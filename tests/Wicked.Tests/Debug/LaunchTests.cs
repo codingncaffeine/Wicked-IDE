@@ -123,7 +123,9 @@ public sealed class LaunchTests
     [InlineData("${workspaceFolder} and ${fileBasename}", "/work/app and Main.cs")]
     public async Task EveryVariableVSCodeDefinesIsFilledIn(string text, string expected)
     {
-        Assert.Equal(expected, await LaunchVariables.ResolveAsync(text, Context(), Ct));
+        var actual = await LaunchVariables.ResolveAsync(text, Context(), Ct);
+        // Paths come back with the platform's separator, as VS Code gives them; the expectations are written with '/'.
+        Assert.Equal(expected, OperatingSystem.IsWindows() ? actual.Replace('\\', '/') : actual);
     }
 
     [Fact]
