@@ -181,7 +181,8 @@ public sealed class DebugWindowTests
             Assert.Contains(debug.CallStack, r => r is { Kind: StackRowKind.Thread, Title: "main" });
             Assert.Equal(["Main", "Caller"], debug.CallStack.Where(r => r.IsFrame).Select(r => r.Title));
             Assert.True(debug.CallStack.First(r => r.IsFrame).IsSelected);
-            Assert.Equal(2, tab.Document.Text.LineOf(tab.Document.Primary.Active));
+            // The editor is brought to the stopped line in a step posted after the stop: under load it lands a moment later.
+            Assert.True(Ui.PumpUntil(() => tab.Document.Text.LineOf(tab.Document.Primary.Active) == 2 && editor.IsFocused, 5), $"the caret is on line {tab.Document.Text.LineOf(tab.Document.Primary.Active)}");
             Assert.True(editor.IsFocused);
             Assert.True(shell.IsDebug, "the Run and Debug panel opens when the first session starts");
             Assert.True(window.GetVisualDescendants().OfType<Border>().First(b => b.Name == "DebugBar").IsEffectivelyVisible);
