@@ -38,7 +38,9 @@ public sealed class RouterProcess : IRouterHandle
     /// The router's tether on Unix: a POSIX shell that starts the router and holds the pipe Wicked keeps open on its standard
     /// input. However Wicked ends (closed, crashed, killed), the pipe closes, the reader sees its end and the router gets
     /// SIGTERM, so its models are unloaded instead of holding memory with nobody left to stop them. A SIGTERM to the tether
-    /// (Wicked's own stop) is passed on; the tether waits for the router and ends with its exit code.
+    /// (Wicked's own stop) is passed on; the tether waits for the router and ends with its exit code. A wait cut short by that
+    /// signal answers 128 + its number, not the router's code: when the router has gone by then, the shell is asked once more
+    /// (bash keeps the code of a child it already reaped; 127 means the shell has none, and the 143 stands).
     /// </summary>
     private const string Tether = """
         exec 3<&0
@@ -51,6 +53,11 @@ public sealed class RouterProcess : IRouterHandle
         status=0
         wait "$router" || status=$?
         while kill -0 "$router" 2>/dev/null; do wait "$router"; status=$?; done
+        if [ "$status" -gt 128 ]; then
+          wait "$router" 2>/dev/null
+          real=$?
+          [ "$real" -ne 127 ] && status=$real
+        fi
         kill "$watcher" 2>/dev/null
         exit "$status"
         """;

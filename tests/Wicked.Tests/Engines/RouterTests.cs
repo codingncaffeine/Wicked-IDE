@@ -125,7 +125,7 @@ public sealed class RouterTests : IDisposable
     {
         Assert.SkipUnless(!OperatingSystem.IsWindows(), "uses /bin/sh");
         var argsFile = Path.Combine(_profile.Root, "args.txt");
-        var script = Shell.Script(_profile.Root, "llama-server", $"printf '%s\\n' \"$@\" > '{argsFile}'; echo hello-out; echo hello-err >&2; trap 'kill $!; exit 0' TERM; sleep 30 & wait");
+        var script = Shell.Script(_profile.Root, "llama-server", $"trap 'kill $!; exit 0' TERM; printf '%s\\n' \"$@\" > '{argsFile}'; echo hello-out; echo hello-err >&2; sleep 30 & wait");
         await using var router = new RouterProcess(Options(script), _http);
 
         await router.StartAsync(Ct);
@@ -203,7 +203,7 @@ public sealed class RouterTests : IDisposable
         Assert.SkipUnless(!OperatingSystem.IsWindows(), "uses /bin/sh (Windows ties the router to a job object)");
         var pidFile = Path.Combine(_profile.Root, "router.pid");
         var termed = Path.Combine(_profile.Root, "termed");
-        var script = Shell.Script(_profile.Root, "llama-server", $"echo $$ > '{pidFile}'; trap 'touch \"{termed}\"; kill $!; exit 0' TERM; sleep 60 & wait");
+        var script = Shell.Script(_profile.Root, "llama-server", $"trap 'touch \"{termed}\"; kill $!; exit 0' TERM; echo $$ > '{pidFile}'; sleep 60 & wait");
         await using var router = new RouterProcess(Options(script, supervise: false), _http);
         await router.StartAsync(Ct);
         await WaitUntil(() => File.Exists(pidFile) && File.ReadAllText(pidFile).Trim().Length > 0);
