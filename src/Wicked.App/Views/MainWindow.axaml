@@ -4,6 +4,7 @@
         xmlns:views="using:Wicked.App.Views"
         xmlns:shell="using:Wicked.App.Shell"
         xmlns:chat="using:Wicked.App.Chat"
+        xmlns:search="using:Wicked.App.Search"
         x:Class="Wicked.App.Views.MainWindow"
         x:DataType="vm:ShellViewModel"
         Title="{Binding Title}"
@@ -98,6 +99,7 @@
             <Panel>
               <views:ExplorerView DataContext="{Binding Workbench}" IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).IsExplorer}" />
               <views:ModelsView DataContext="{Binding Models}" IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).IsModels}" />
+              <search:SearchView Name="SearchPanel" DataContext="{Binding Search}" IsVisible="{Binding $parent[Window].((vm:ShellViewModel)DataContext).IsSearch}" />
               <StackPanel Margin="14,8" Spacing="4" IsVisible="{Binding ShowsPanelPlaceholder}">
                 <TextBlock Text="{Binding PanelEmptyTitle}" />
                 <TextBlock Classes="muted" Text="{Binding PanelEmptyText}" TextWrapping="Wrap" />

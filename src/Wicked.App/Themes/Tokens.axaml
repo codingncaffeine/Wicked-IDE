@@ -32,6 +32,10 @@
   <SolidColorBrush x:Key="Brush.Warning" Color="#F2B84B" />
   <SolidColorBrush x:Key="Brush.Danger" Color="#F0616D" />
 
+  <!-- Search results: the matched text, and what a replacement would put there. -->
+  <SolidColorBrush x:Key="Brush.Match" Color="#40F2B84B" />
+  <SolidColorBrush x:Key="Brush.Inserted" Color="#402EA043" />
+
   <!-- Caption -->
   <SolidColorBrush x:Key="Brush.Caption.Close" Color="#E5484D" />
 

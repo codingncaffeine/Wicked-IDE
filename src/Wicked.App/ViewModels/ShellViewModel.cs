@@ -51,6 +51,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         };
         Output = new OutputLog();
         Language = new LanguageFeatures(Workbench, paths, Output, Notices);
+        Search = new Wicked.App.Search.SearchViewModel(this);
         Language.Problems.Opened += p => _ = OpenAtAsync(p.Path, p.Line, p.Column);
         Language.Problems.CountsChanged += () =>
         {
@@ -80,6 +81,12 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     public IReadOnlyList<WorkbenchCommand> Commands { get; }
 
     public QuickInputViewModel QuickInput { get; }
+
+    /// <summary>The Search panel.</summary>
+    public Wicked.App.Search.SearchViewModel Search { get; }
+
+    /// <summary>Asks the window to put the keyboard in the Search panel's query box.</summary>
+    public event Action? SearchFocusRequested;
 
     /// <summary>The Output panel's channels (language servers, git, tasks, …).</summary>
     public OutputLog Output { get; }
@@ -174,7 +181,12 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             new("workbench.action.toggleMaximizedPanel", "View", "Maximise Panel", null, () => Sync(() => BottomPanel.IsMaximized = !BottomPanel.IsMaximized)),
             new("wicked.toggleAssistant", "View", "Toggle Assistant", "Ctrl+L", () => Sync(ToggleAssistant)),
             new("workbench.view.explorer", "View", "Show Explorer", "Ctrl+Shift+E", () => Sync(() => Navigate(ShellRoutes.Explorer))),
-            new("workbench.view.search", "View", "Show Search", "Ctrl+Shift+F", () => Sync(() => Navigate(ShellRoutes.Search))),
+            new("workbench.view.search", "View", "Show Search", "Ctrl+Shift+F", () => Sync(ShowSearch)),
+            new("workbench.action.replaceInFiles", "Search", "Replace in Files", "Ctrl+Shift+H", () => Sync(() =>
+            {
+                Search.ShowReplace = true;
+                ShowSearch();
+            })),
             new("workbench.view.scm", "View", "Show Source Control", "Ctrl+Shift+G", () => Sync(() => Navigate(ShellRoutes.SourceControl))),
             new("wicked.showModels", "View", "Show Models", "Ctrl+Shift+M", () => Sync(() => Navigate(ShellRoutes.Models))),
             new("workbench.action.showCommands", "View", "Show All Commands", "Ctrl+Shift+P", () => Sync(() => OpenPalette(">"))),
@@ -544,7 +556,20 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     public bool IsModels => SidebarVisible && Panel == SidePanel.Models;
 
     /// <summary>The panels not built yet (search, source control) show what they will hold.</summary>
-    public bool ShowsPanelPlaceholder => Panel is SidePanel.Search or SidePanel.SourceControl;
+    public bool ShowsPanelPlaceholder => Panel is SidePanel.SourceControl;
+
+    /// <summary>Ctrl+Shift+F: the Search panel with the editor's selection (a single line of it) as the query.</summary>
+    private void ShowSearch()
+    {
+        if (Workbench.ActiveTab?.Document is { } doc && !doc.Primary.IsEmpty && doc.Primary.Length < 200)
+        {
+            var selected = doc.Text.Substring(doc.Primary.Start, doc.Primary.Length);
+            if (!selected.Contains('\n')) Search.Query = selected;
+        }
+
+        Navigate(ShellRoutes.Search);
+        SearchFocusRequested?.Invoke();
+    }
 
     public string PanelTitle => Panel switch
     {

@@ -1,0 +1,81 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:s="using:Wicked.App.Search"
+             xmlns:shell="using:Wicked.App.Shell"
+             x:Class="Wicked.App.Search.SearchView"
+             x:DataType="s:SearchViewModel">
+  <DockPanel Margin="10,0,8,0">
+    <Grid DockPanel.Dock="Top" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto" RowSpacing="4">
+      <Button Grid.RowSpan="2" Name="SearchToggleReplace" Classes="quiet findtoggle" Command="{Binding ToggleShowReplaceCommand}" ToolTip.Tip="Toggle Replace" VerticalAlignment="Stretch" Padding="2,0">
+        <Panel>
+          <shell:Icon Data="{StaticResource Icon.ChevronRight}" Size="14" IsVisible="{Binding !ShowReplace}" />
+          <shell:Icon Data="{StaticResource Icon.ChevronDown}" Size="14" IsVisible="{Binding ShowReplace}" />
+        </Panel>
+      </Button>
+      <Panel Grid.Column="1">
+        <TextBox Name="SearchQuery" Classes="find" Text="{Binding Query}" PlaceholderText="Search" Padding="6,4,80,4" />
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,4,0" Spacing="1">
+          <ToggleButton Classes="findopt" IsChecked="{Binding MatchCase}" ToolTip.Tip="Match Case (Alt+C)">
+            <shell:Icon Data="{StaticResource Icon.CaseSensitive}" Size="14" />
+          </ToggleButton>
+          <ToggleButton Classes="findopt" IsChecked="{Binding WholeWord}" ToolTip.Tip="Match Whole Word (Alt+W)">
+            <shell:Icon Data="{StaticResource Icon.WholeWord}" Size="14" />
+          </ToggleButton>
+          <ToggleButton Classes="findopt" Name="SearchRegex" IsChecked="{Binding UseRegex}" ToolTip.Tip="Use Regular Expression (Alt+R)">
+            <shell:Icon Data="{StaticResource Icon.Regex}" Size="14" />
+          </ToggleButton>
+        </StackPanel>
+      </Panel>
+      <Grid Grid.Row="1" Grid.Column="1" ColumnDefinitions="*,Auto" IsVisible="{Binding ShowReplace}">
+        <TextBox Name="SearchReplace" Classes="find" Text="{Binding Replace}" PlaceholderText="Replace" />
+        <Button Grid.Column="1" Name="SearchReplaceAll" Classes="quiet" Command="{Binding ReplaceAllCommand}" ToolTip.Tip="Replace All (Ctrl+Alt+Enter)" Padding="5">
+          <shell:Icon Data="{StaticResource Icon.ReplaceAll}" Size="15" />
+        </Button>
+      </Grid>
+    </Grid>
+    <StackPanel DockPanel.Dock="Top" Spacing="4" Margin="18,6,0,0">
+      <Button Classes="quiet" HorizontalAlignment="Right" Command="{Binding ToggleShowDetailsCommand}" ToolTip.Tip="Toggle Search Details" Padding="3">
+        <shell:Icon Data="{StaticResource Icon.Ellipsis}" Size="14" />
+      </Button>
+      <StackPanel Spacing="4" IsVisible="{Binding ShowDetails}">
+        <TextBlock Text="files to include" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" />
+        <TextBox Name="SearchInclude" Classes="find" Text="{Binding Include}" PlaceholderText="e.g. *.ts, src/**/include" />
+        <TextBlock Text="files to exclude" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" />
+        <TextBox Name="SearchExclude" Classes="find" Text="{Binding Exclude}" PlaceholderText="e.g. *.ts, src/**/exclude" />
+      </StackPanel>
+      <TextBlock Name="SearchSummary" Text="{Binding Summary}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" TextWrapping="Wrap" />
+    </StackPanel>
+    <ListBox Name="SearchResults" ItemsSource="{Binding Rows}" Classes="problems" Background="Transparent" Margin="-10,6,-8,0">
+      <ListBox.ItemsPanel>
+        <ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate>
+      </ListBox.ItemsPanel>
+      <ListBox.DataTemplates>
+        <DataTemplate DataType="s:SearchFileRow">
+          <Grid ColumnDefinitions="Auto,*,Auto">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <shell:Icon Data="{StaticResource Icon.ChevronDown}" Size="13" IsVisible="{Binding IsExpanded}" />
+              <shell:Icon Data="{StaticResource Icon.ChevronRight}" Size="13" IsVisible="{Binding !IsExpanded}" />
+              <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+            </StackPanel>
+            <TextBlock Grid.Column="1" Text="{Binding Folder}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Margin="6,0" />
+            <Border Grid.Column="2" Classes="badge"><TextBlock Text="{Binding Count}" /></Border>
+          </Grid>
+        </DataTemplate>
+        <DataTemplate DataType="s:SearchMatchRow">
+          <Grid ColumnDefinitions="*,Auto" Margin="20,0,0,0">
+            <TextBlock TextTrimming="CharacterEllipsis">
+              <Run Text="{Binding Before}" Foreground="{DynamicResource Brush.Text.Secondary}" />
+              <Run Text="{Binding Hit}" Background="{DynamicResource Brush.Match}" />
+              <Run Text="{Binding Replacement}" Background="{DynamicResource Brush.Inserted}" />
+              <Run Text="{Binding After}" Foreground="{DynamicResource Brush.Text.Secondary}" />
+            </TextBlock>
+            <Button Grid.Column="1" Classes="quiet" Padding="3" Command="{Binding $parent[UserControl].((s:SearchViewModel)DataContext).ReplaceOneCommand}" CommandParameter="{Binding}"
+                    IsVisible="{Binding ShowsReplacement}" ToolTip.Tip="Replace">
+              <shell:Icon Data="{StaticResource Icon.Replace}" Size="13" />
+            </Button>
+          </Grid>
+        </DataTemplate>
+      </ListBox.DataTemplates>
+    </ListBox>
+  </DockPanel>
+</UserControl>
