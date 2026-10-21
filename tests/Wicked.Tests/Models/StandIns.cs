@@ -18,6 +18,17 @@ internal static class StandIns
 
     public static bool CanRunEngine => !OperatingSystem.IsWindows();
 
+    /// <summary>True where the fake engine's shell wrapper runs (not Windows); it is a .NET program, so nothing else is needed.</summary>
+    public static bool CanRunFakeRouter => CanRunEngine;
+
+    /// <summary>The program the fake engine's <c>llama-server</c> wrapper starts: the same dotnet the tests run on, running the stand-in built beside them.</summary>
+    private static string FakeEngineCommand()
+    {
+        var root = Path.GetFullPath(Path.Combine(System.Runtime.InteropServices.RuntimeEnvironment.GetRuntimeDirectory(), "..", "..", ".."));
+        var dotnet = Path.Combine(root, "dotnet");
+        return $"\"{(File.Exists(dotnet) ? dotnet : "dotnet")}\" \"{Path.Combine(AppContext.BaseDirectory, "Wicked.FakeEngine.dll")}\"";
+    }
+
     /// <summary>A tar.gz holding a <c>llama-server</c> shell script that answers <c>--version</c> and <c>--list-devices</c>.</summary>
     public static byte[] EngineArchive(string tag, int build)
     {
@@ -26,8 +37,10 @@ internal static class StandIns
         using (var tar = new TarWriter(gzip, TarEntryFormat.Pax, leaveOpen: false))
         {
             tar.WriteEntry(new PaxTarEntry(TarEntryType.Directory, $"llama-{tag}/") { Mode = (UnixFileMode)0b111_101_101 });
+            // Anything but the two probes runs the scripted router stand-in (tests/Wicked.FakeEngine), told where its files are.
             var script = $"#!/bin/sh\ncase \"$1\" in\n  --version) echo \"version: 0.7.0-dev (build {build}, commit abc1234)\" >&2 ;;\n"
-                         + "  --list-devices) echo \"Available devices:\"; echo \"  Vulkan0: Test GPU (8192 MiB, 8000 MiB free)\" ;;\nesac\n";
+                         + "  --list-devices) echo \"Available devices:\"; echo \"  Vulkan0: Test GPU (8192 MiB, 8000 MiB free)\" ;;\n"
+                         + $"  *) exec {FakeEngineCommand()} --fake-dir \"$(dirname \"$0\")\" \"$@\" ;;\nesac\n";
             tar.WriteEntry(new PaxTarEntry(TarEntryType.RegularFile, $"llama-{tag}/llama-server")
             {
                 Mode = (UnixFileMode)0b111_101_101,
