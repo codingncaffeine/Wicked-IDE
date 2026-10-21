@@ -20,6 +20,7 @@ public enum SidePanel
     Search,
     SourceControl,
     Models,
+    Debug,
 }
 
 /// <summary>
@@ -65,6 +66,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         BottomPanel.IsVisible = false;
         WireLanguage();
         WireSourceControl();
+        Debugger = new Wicked.App.Debug.DebugController(this, paths, Notices, _post);
         Commands = BuildCommands();
         QuickInput = new QuickInputViewModel(this);
         Models = new ModelsViewModel(paths, Notices);
@@ -220,6 +222,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             new("workbench.action.openSnippets", "Snippets", "Configure Snippets", null, ConfigureSnippetsAsync),
             new("workbench.action.openGlobalKeybindingsFile", "Preferences", "Open Keyboard Shortcuts (JSON)", null, OpenKeybindingsJsonAsync),
             .. SourceControl.Commands,
+            .. DebugCommands(),
         ];
     }
 
@@ -552,11 +555,11 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     // ── Side panel and assistant ─────────────────────────────────────────────────────────────
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsExplorer), nameof(IsSearch), nameof(IsSourceControl), nameof(IsModels), nameof(PanelTitle), nameof(PanelEmptyTitle), nameof(PanelEmptyText), nameof(ShowsPanelPlaceholder))]
+    [NotifyPropertyChangedFor(nameof(IsExplorer), nameof(IsSearch), nameof(IsSourceControl), nameof(IsModels), nameof(IsDebug), nameof(PanelTitle), nameof(PanelEmptyTitle), nameof(PanelEmptyText), nameof(ShowsPanelPlaceholder))]
     private SidePanel _panel = SidePanel.Explorer;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(IsExplorer), nameof(IsSearch), nameof(IsSourceControl), nameof(IsModels))]
+    [NotifyPropertyChangedFor(nameof(IsExplorer), nameof(IsSearch), nameof(IsSourceControl), nameof(IsModels), nameof(IsDebug))]
     private bool _sidebarVisible = true;
 
     [ObservableProperty]
@@ -569,6 +572,8 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     public bool IsSourceControl => SidebarVisible && Panel == SidePanel.SourceControl;
 
     public bool IsModels => SidebarVisible && Panel == SidePanel.Models;
+
+    public bool IsDebug => SidebarVisible && Panel == SidePanel.Debug;
 
     /// <summary>Every side panel has its view now; kept for a panel added before its view is.</summary>
     public bool ShowsPanelPlaceholder => false;
@@ -591,6 +596,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         SidePanel.Search => "SEARCH",
         SidePanel.SourceControl => "SOURCE CONTROL",
         SidePanel.Models => "MODELS",
+        SidePanel.Debug => "RUN AND DEBUG",
         _ => "EXPLORER",
     };
 
@@ -644,6 +650,8 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             return true;
         }
 
+        if (Debugger.TryNavigate(route)) return true;
+
         if (route.StartsWith("lsp/install/", StringComparison.Ordinal))
         {
             OfferServerInstall(route["lsp/install/".Length..]);
@@ -663,6 +671,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             case ShellRoutes.Search: Panel = SidePanel.Search; SidebarVisible = true; return true;
             case ShellRoutes.SourceControl: Panel = SidePanel.SourceControl; SidebarVisible = true; return true;
             case ShellRoutes.Models: Panel = SidePanel.Models; SidebarVisible = true; return true;
+            case ShellRoutes.Debug: Panel = SidePanel.Debug; SidebarVisible = true; return true;
             case ShellRoutes.Assistant: AssistantVisible = true; return true;
             case ShellRoutes.SettingsModels: Models.Prompt = null; Models.Browse.Close(); SettingsOpen = true; SettingsSheet.RequestSection("models"); return true;
             default:
@@ -737,6 +746,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     public void Dispose()
     {
         _settingsWatcher?.Dispose();
+        Debugger.Dispose();
         Snippets.Dispose();
         SourceControl.Dispose();
         Workbench.Dispose();

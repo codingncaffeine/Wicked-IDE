@@ -32,6 +32,8 @@ public sealed class DebugSessionTests : IAsyncDisposable
         Watch? watch = null;
         _manager.SessionStarted += s =>
         {
+            // A child the adapter asks for can start before the parent finishes: only the first is the one started here.
+            if (created is not null) return;
             created = s;
             watch = new Watch(s);
         };

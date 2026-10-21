@@ -188,6 +188,18 @@ public sealed class DebugManager(BreakpointStore store, IDebugAdapterProvider ad
         if (done is not null) await done.DisposeAsync().ConfigureAwait(false);
     }
 
+    /// <summary>The user chose another session to look at (a click in the Call Stack).</summary>
+    public void Select(DebugSession session)
+    {
+        lock (_gate)
+        {
+            if (_active == session || !_sessions.Contains(session)) return;
+            _active = session;
+        }
+
+        ActiveChanged?.Invoke(session);
+    }
+
     /// <summary>Restarts a session: the adapter's own restart when it has one, otherwise stop and start again with the same configuration.</summary>
     public async Task<DebugSession> RestartAsync(DebugSession session, CancellationToken ct = default)
     {

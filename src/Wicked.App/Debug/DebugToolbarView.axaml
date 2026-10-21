@@ -1,0 +1,56 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:dbg="using:Wicked.App.Debug"
+             xmlns:shell="using:Wicked.App.Shell"
+             x:Class="Wicked.App.Debug.DebugToolbarView"
+             x:DataType="dbg:DebugController">
+  <UserControl.Resources>
+    <StreamGeometry x:Key="Icon.StepOver">M11 17a1 1 0 1 0 2 0a1 1 0 1 0 -2 0z M21 7v6h-6 M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7</StreamGeometry>
+  </UserControl.Resources>
+  <UserControl.Styles>
+    <Style Selector="Border.debugbar">
+      <Setter Property="Background" Value="{DynamicResource Brush.Raised}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Padding" Value="4,3" />
+      <Setter Property="BoxShadow" Value="{DynamicResource Shadow.Panel}" />
+    </Style>
+    <Style Selector="Button.dbg">
+      <Setter Property="Padding" Value="6,5" />
+      <Setter Property="MinWidth" Value="0" />
+      <Setter Property="MinHeight" Value="0" />
+    </Style>
+    <Style Selector="Button.dbg.stop">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Danger}" />
+    </Style>
+    <Style Selector="Button.dbg.go">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Success}" />
+    </Style>
+  </UserControl.Styles>
+  <Border Name="DebugBar" Classes="debugbar" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,8,0,0" IsVisible="{Binding HasSession}">
+    <StackPanel Orientation="Horizontal" Spacing="1">
+      <Button Name="DebugContinue" AutomationProperties.Name="Continue or pause" Classes="quiet dbg go" Click="OnContinue" IsEnabled="{Binding CanContinueOrPause}" ToolTip.Tip="{Binding ContinueTip}">
+        <Panel>
+          <shell:Icon Data="{StaticResource Icon.Play}" Size="16" IsVisible="{Binding !IsRunning}" />
+          <shell:Icon Data="{StaticResource Icon.Pause}" Size="16" IsVisible="{Binding IsRunning}" />
+        </Panel>
+      </Button>
+      <Button Name="DebugStepOver" AutomationProperties.Name="Step over" Classes="quiet dbg" Click="OnStepOver" IsEnabled="{Binding IsStopped}" ToolTip.Tip="Step Over (F10)">
+        <shell:Icon Data="{StaticResource Icon.StepOver}" Size="16" />
+      </Button>
+      <Button Name="DebugStepInto" AutomationProperties.Name="Step into" Classes="quiet dbg" Click="OnStepInto" IsEnabled="{Binding IsStopped}" ToolTip.Tip="Step Into (F11)">
+        <shell:Icon Data="{StaticResource Icon.ArrowDownToDot}" Size="16" />
+      </Button>
+      <Button Name="DebugStepOut" AutomationProperties.Name="Step out" Classes="quiet dbg" Click="OnStepOut" IsEnabled="{Binding IsStopped}" ToolTip.Tip="Step Out (Shift+F11)">
+        <shell:Icon Data="{StaticResource Icon.ArrowUpFromDot}" Size="16" />
+      </Button>
+      <Button Name="DebugRestart" AutomationProperties.Name="Restart" Classes="quiet dbg go" Click="OnRestart" ToolTip.Tip="Restart (Ctrl+Shift+F5)">
+        <shell:Icon Data="{StaticResource Icon.RotateCcw}" Size="16" />
+      </Button>
+      <Button Name="DebugStop" AutomationProperties.Name="Stop" Classes="quiet dbg stop" Click="OnStop" ToolTip.Tip="Stop (Shift+F5)">
+        <shell:Icon Data="{StaticResource Icon.Square}" Size="15" />
+      </Button>
+    </StackPanel>
+  </Border>
+</UserControl>

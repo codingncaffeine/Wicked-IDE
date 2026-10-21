@@ -146,6 +146,7 @@ public sealed class ProcessAdapterEndpoint(AdapterCommand command, string workin
             throw new IOException($"The debug adapter {command.Program} could not be started: {ex.Message}", ex);
         }
 
+        ProcessRegistry.Track(process);
         // The adapter's own messages (not the program's) go to a log tail for the error shown when it fails to start.
         process.ErrorDataReceived += (_, e) => Remember(e.Data);
         process.BeginErrorReadLine();
@@ -251,6 +252,7 @@ public sealed class ProcessAdapterEndpoint(AdapterCommand command, string workin
             }
             finally
             {
+                ProcessRegistry.Untrack(process);
                 process.Dispose();
             }
         }

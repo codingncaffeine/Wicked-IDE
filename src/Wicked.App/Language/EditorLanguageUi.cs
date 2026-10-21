@@ -137,6 +137,13 @@ public sealed partial class EditorLanguageUi
         var word = TextNavigation.WordAt(_editor.Document.Text, offset);
         if (ctrl) _ = ShowLinkAsync(offset, word);
         else ClearLink();
+        if (!ctrl && _editor.HoverTaken?.Invoke(offset) == true)
+        {
+            _hoverTimer.Stop();
+            if (_hover.IsOpen && !_hover.IsPointerOver) _hover.Hide();
+            return;
+        }
+
         if (!_features.Settings.Hover || Doc is null) return;
         if (word == _hoverWord && _hover.IsOpen) return;
         if (_hover.IsOpen && !_hover.IsPointerOver) _hover.Hide();

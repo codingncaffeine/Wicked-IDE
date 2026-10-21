@@ -31,6 +31,12 @@ public sealed partial class CodeEditor
     /// <summary>A click in the glyph margin, by line (a breakpoint toggled).</summary>
     public Action<int>? GlyphMarginClicked { get; set; }
 
+    /// <summary>A right click in the glyph margin, by line and where (the breakpoint menu).</summary>
+    public Action<int, Point>? GlyphMarginContext { get; set; }
+
+    /// <summary>Asked before the language hover opens for a text offset: true when another feature shows its own card there (the debugger's value), so the language one stays away.</summary>
+    public Func<int, bool>? HoverTaken { get; set; }
+
     /// <summary>The pointer moved over the editor: the text offset under it (-1 off the text), where, and the keys held.</summary>
     public event Action<int, Point, KeyModifiers>? PointerOverText;
 

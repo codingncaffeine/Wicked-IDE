@@ -143,6 +143,16 @@ public sealed record WickedSettings
     [JsonPropertyName("editor.lightbulb.enabled")]
     public bool Lightbulb { get; init; } = true;
 
+    // ── Debugging (Phase 13) ──
+
+    /// <summary>The value of each variable drawn after the line that uses it, while stopped.</summary>
+    [JsonPropertyName("debug.inlineValues")]
+    public bool DebugInlineValues { get; init; } = true;
+
+    /// <summary>When the Run and Debug panel opens by itself: neverOpen, openOnSessionStart, openOnFirstSessionStart or openOnDebugBreak.</summary>
+    [JsonPropertyName("debug.openDebug")]
+    public string DebugOpenDebug { get; init; } = "openOnFirstSessionStart";
+
     /// <summary>Keys this build does not know, kept so a save never drops them.</summary>
     [JsonExtensionData]
     public Dictionary<string, JsonElement>? Other { get; init; }

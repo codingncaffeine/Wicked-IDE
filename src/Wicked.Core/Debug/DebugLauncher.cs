@@ -20,15 +20,15 @@ public sealed class DebugLauncher(DebugManager manager)
     public Func<string, CancellationToken, Task<string?>>? RunTask { get; set; }
 
     /// <summary>A name from the picker: a configuration or a compound. Returns every session it started.</summary>
-    public async Task<IReadOnlyList<DebugSession>> StartAsync(LaunchFile file, string name, LaunchContext context, CancellationToken ct = default)
+    public async Task<IReadOnlyList<DebugSession>> StartAsync(LaunchFile file, string name, LaunchContext context, CancellationToken ct = default, bool noDebug = false)
     {
         context = context with { Inputs = file.Inputs };
-        if (file.Configuration(name) is { } configuration) return [await StartConfigurationAsync(configuration, context, ct).ConfigureAwait(false)];
+        if (file.Configuration(name) is { } configuration) return [await StartConfigurationAsync(configuration, context, ct, noDebug).ConfigureAwait(false)];
         if (file.Compound(name) is not { } compound) throw new LaunchException($"launch.json has no configuration or compound called \"{name}\"");
         if (compound.PreLaunchTask is { } task) await RunTaskAsync(task, ct).ConfigureAwait(false);
         var members = compound.Configurations.Select(m => file.Configuration(m) ?? throw new LaunchException($"The compound \"{name}\" names \"{m}\", which launch.json does not have")).ToList();
         var started = new List<DebugSession>();
-        foreach (var member in members) started.Add(await StartConfigurationAsync(member, context, ct).ConfigureAwait(false));
+        foreach (var member in members) started.Add(await StartConfigurationAsync(member, context, ct, noDebug).ConfigureAwait(false));
         if (compound.StopAll)
         {
             foreach (var session in started)
@@ -43,9 +43,10 @@ public sealed class DebugLauncher(DebugManager manager)
         return started;
     }
 
-    public async Task<DebugSession> StartConfigurationAsync(LaunchConfiguration configuration, LaunchContext context, CancellationToken ct = default)
+    public async Task<DebugSession> StartConfigurationAsync(LaunchConfiguration configuration, LaunchContext context, CancellationToken ct = default, bool noDebug = false)
     {
         var resolved = await LaunchVariables.ResolveAsync(configuration.Properties, context, ct).ConfigureAwait(false);
+        if (noDebug) resolved["noDebug"] = true;
         var request = BuildRequest(configuration, resolved);
         if (configuration.PreLaunchTask is { } task)
         {

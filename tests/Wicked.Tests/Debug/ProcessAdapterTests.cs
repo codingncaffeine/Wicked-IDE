@@ -165,6 +165,20 @@ public sealed class ProcessAdapterTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task WhateverIsStillRunningWhenWickedExitsIsEndedByTheRegistry()
+    {
+        var request = new RunInTerminalArguments("integrated", null, _profile.Root, ["/bin/sh", "-c", "sleep 60"], null);
+        var result = await DetachedProcess.RunAsync(request, null, Ct);
+        var before = ProcessRegistry.Count;
+        Assert.True(Alive(result.ProcessId!.Value));
+
+        ProcessRegistry.KillAll();
+
+        await DebugKit.WaitAsync(() => !Alive(result.ProcessId.Value), "the registry to end the program");
+        Assert.True(before >= 1);
+    }
+
+    [Fact]
     public void TheProcessListHasRunningProgramsWithTheirCommandLinesAndNotThisOne()
     {
         var list = ProcessLister.List();

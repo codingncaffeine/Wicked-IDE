@@ -51,6 +51,7 @@ public static class DetachedProcess
             throw new DapException($"{program} could not be started: {ex.Message}", "runInTerminal");
         }
 
+        ProcessRegistry.Track(process);
         if (output is not null)
         {
             process.OutputDataReceived += (_, e) =>
@@ -82,6 +83,7 @@ public static class DetachedProcess
             }
             finally
             {
+                ProcessRegistry.Untrack(process);
                 process.Dispose();
             }
         }

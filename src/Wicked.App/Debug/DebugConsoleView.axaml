@@ -1,0 +1,62 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:dbg="using:Wicked.App.Debug"
+             xmlns:shell="using:Wicked.App.Shell"
+             x:Class="Wicked.App.Debug.DebugConsoleView"
+             x:DataType="dbg:DebugConsoleViewModel">
+  <UserControl.Styles>
+    <Style Selector="ListBox.console">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="ListBox.console ListBoxItem">
+      <Setter Property="Padding" Value="10,1" />
+      <Setter Property="MinHeight" Value="0" />
+    </Style>
+    <Style Selector="ListBox.console ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="SelectableTextBlock.stderr, SelectableTextBlock.error">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Danger}" />
+    </Style>
+    <Style Selector="SelectableTextBlock.muted">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Muted}" />
+    </Style>
+    <Style Selector="SelectableTextBlock.input">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Accent}" />
+    </Style>
+    <Style Selector="SelectableTextBlock.important">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Warning}" />
+    </Style>
+    <Style Selector="SelectableTextBlock.result">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Text.Secondary}" />
+    </Style>
+  </UserControl.Styles>
+
+  <DockPanel>
+    <Grid DockPanel.Dock="Bottom" ColumnDefinitions="Auto,*" Margin="10,4,10,6">
+      <TextBlock Text="&gt;" Classes="muted" VerticalAlignment="Center" Margin="0,0,8,0" />
+      <TextBox Name="ConsoleInput" AutomationProperties.Name="Debug console input" Grid.Column="1" Classes="find" Text="{Binding Input, Mode=TwoWay}" PlaceholderText="Evaluate an expression in the selected frame" KeyDown="OnInputKey" />
+    </Grid>
+    <StackPanel DockPanel.Dock="Right" Margin="0,0,6,0">
+      <Button Name="ConsoleClear" AutomationProperties.Name="Clear console" Classes="quiet" Click="OnClear" ToolTip.Tip="Clear Console"><shell:Icon Data="{StaticResource Icon.Trash2}" Size="15" /></Button>
+      <Button Name="ConsoleCopy" AutomationProperties.Name="Copy console" Classes="quiet" Click="OnCopy" ToolTip.Tip="Copy All"><shell:Icon Data="{StaticResource Icon.Copy}" Size="15" /></Button>
+    </StackPanel>
+    <ListBox Name="ConsoleLines" Classes="console" ItemsSource="{Binding Lines}" FontFamily="fonts:WickedMono#JetBrains Mono">
+      <ListBox.ItemsPanel>
+        <ItemsPanelTemplate><VirtualizingStackPanel /></ItemsPanelTemplate>
+      </ListBox.ItemsPanel>
+      <ListBox.ItemTemplate>
+        <DataTemplate DataType="dbg:ConsoleLine">
+          <Grid ColumnDefinitions="*,Auto" Background="Transparent" DoubleTapped="OnLineDoubleTapped">
+            <SelectableTextBlock Text="{Binding Text}" TextWrapping="Wrap"
+                                 Classes.stderr="{Binding IsError}" Classes.muted="{Binding IsMuted}" Classes.input="{Binding IsInput}"
+                                 Classes.important="{Binding IsImportant}" Classes.result="{Binding IsResult}" />
+            <TextBlock Grid.Column="1" Text="{Binding SourceText}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" Margin="10,0,0,0" IsVisible="{Binding HasSource}" VerticalAlignment="Top" />
+          </Grid>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+  </DockPanel>
+</UserControl>
