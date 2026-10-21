@@ -6,7 +6,8 @@ namespace Wicked.Core.Settings;
 /// <param name="Keys">In Avalonia's gesture syntax ("Ctrl+Shift+D", "Ctrl+K Ctrl+O"); null when a removal names no key.</param>
 /// <param name="Command">The command id.</param>
 /// <param name="Remove">The line takes a default binding away.</param>
-public sealed record Keybinding(string? Keys, string Command, bool Remove);
+/// <param name="When">The line's "when" clause as written (shown in the Keyboard Shortcuts editor; not yet evaluated).</param>
+public sealed record Keybinding(string? Keys, string Command, bool Remove, string? When = null);
 
 /// <summary>
 /// keybindings.json in VS Code's own format (an array of { "key", "command", "when" }, comments allowed), so a file
@@ -29,7 +30,8 @@ public static class Keybindings
                 var remove = command.StartsWith('-');
                 var gesture = key is null ? null : Translate(key);
                 if (key is not null && gesture is null) continue; // a key this build does not know
-                list.Add(new Keybinding(gesture, remove ? command[1..] : command, remove));
+                var when = item.TryGetProperty("when", out var w) && w.ValueKind == JsonValueKind.String ? w.GetString() : null;
+                list.Add(new Keybinding(gesture, remove ? command[1..] : command, remove, when));
             }
 
             return (list, null);
@@ -45,6 +47,40 @@ public static class Keybindings
         if (!File.Exists(path)) return ([], null);
         return Parse(await File.ReadAllTextAsync(path, ct).ConfigureAwait(false));
     }
+
+    /// <summary>Avalonia's "Ctrl+Shift+K Ctrl+OemPlus" as VS Code writes it in keybindings.json: "ctrl+shift+k ctrl+=".</summary>
+    public static string ToVsCode(string avalonia) =>
+        string.Join(' ', avalonia.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(chord =>
+            string.Join('+', chord.Split('+').Select(VsName))));
+
+    private static string VsName(string part) => part switch
+    {
+        "Ctrl" or "Control" => "ctrl",
+        "Shift" => "shift",
+        "Alt" => "alt",
+        "Meta" or "Cmd" or "Win" => "meta",
+        "Oem2" or "OemQuestion" => "/",
+        "OemOpenBrackets" or "Oem4" => "[",
+        "OemCloseBrackets" or "Oem6" => "]",
+        "OemComma" => ",",
+        "OemPeriod" => ".",
+        "OemPlus" => "=",
+        "OemMinus" => "-",
+        "OemTilde" or "Oem3" => "`",
+        "OemPipe" or "Oem5" or "OemBackslash" => "\\",
+        "OemSemicolon" or "Oem1" => ";",
+        "OemQuotes" or "Oem7" => "'",
+        "Return" or "Enter" => "enter",
+        "Back" => "backspace",
+        "Prior" => "pageup",
+        "Next" => "pagedown",
+        "Add" => "numpad_add",
+        "Subtract" => "numpad_subtract",
+        "Multiply" => "numpad_multiply",
+        "Divide" => "numpad_divide",
+        _ when part.Length == 2 && part[0] == 'D' && char.IsAsciiDigit(part[1]) => part[1..],
+        _ => part.ToLowerInvariant(),
+    };
 
     /// <summary>VS Code's "ctrl+shift+k ctrl+o" as Avalonia's "Ctrl+Shift+K Ctrl+O"; null when a key is unknown.</summary>
     public static string? Translate(string vscode)
@@ -110,6 +146,11 @@ public static class Keybindings
             "down" => "Down",
             "left" => "Left",
             "right" => "Right",
+            "numpad_add" => "Add",
+            "numpad_subtract" => "Subtract",
+            "numpad_multiply" => "Multiply",
+            "numpad_divide" => "Divide",
+            _ when n.Length == 7 && n.StartsWith("numpad", StringComparison.Ordinal) && char.IsAsciiDigit(n[6]) => "NumPad" + n[6],
             _ => null,
         };
     }

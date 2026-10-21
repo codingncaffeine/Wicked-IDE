@@ -290,6 +290,7 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
             .. AssistantCommands(),
             .. ExtensionCommands(),
             new("workbench.action.openSnippets", "Snippets", "Configure Snippets", null, ConfigureSnippetsAsync),
+            new("workbench.action.openGlobalKeybindings", "Preferences", "Open Keyboard Shortcuts", "Ctrl+K Ctrl+S", () => Sync(OpenShortcuts)),
             new("workbench.action.openGlobalKeybindingsFile", "Preferences", "Open Keyboard Shortcuts (JSON)", null, OpenKeybindingsJsonAsync),
             .. SourceControl.Commands,
             .. TaskCommands(),
@@ -409,6 +410,17 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
 
         Notices.Clear("keybindings");
         SetUserBindings(bindings);
+    }
+
+    /// <summary>The Keyboard Shortcuts editor's list, made on first use and kept (it follows the key map as it changes).</summary>
+    private ShortcutsViewModel? _shortcuts;
+
+    /// <summary>Ctrl+K Ctrl+S: the Keyboard Shortcuts editor in a tab, as in VS Code.</summary>
+    private void OpenShortcuts()
+    {
+        _shortcuts ??= new ShortcutsViewModel(this);
+        _shortcuts.Refresh();
+        Workbench.OpenView("Keyboard Shortcuts", () => new Views.ShortcutsView { DataContext = _shortcuts, OpenJson = OpenKeybindingsJsonAsync });
     }
 
     private async Task OpenKeybindingsJsonAsync()

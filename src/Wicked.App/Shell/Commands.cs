@@ -18,6 +18,9 @@ public sealed record WorkbenchCommand(string Id, string Category, string Title, 
 
     public bool Applies => When?.Invoke() != false;
 
+    /// <summary>The "when" as VS Code writes it ("inDebugMode"), shown in the Keyboard Shortcuts editor.</summary>
+    public string? WhenText { get; init; }
+
     /// <summary>One of the code editor's own actions: its keys are the editor's (EditorKeymap), shown here, bound there.</summary>
     public bool EditorKeys { get; init; }
 
@@ -31,7 +34,7 @@ public sealed record WorkbenchCommand(string Id, string Category, string Title, 
 /// </summary>
 public sealed class KeyDispatcher
 {
-    private readonly IReadOnlyList<(KeyGesture[] Gestures, WorkbenchCommand Command)> _bindings;
+    private readonly IReadOnlyList<(KeyGesture[] Gestures, WorkbenchCommand Command, bool User)> _bindings;
     private KeyGesture? _pending;
     private readonly HashSet<string> _editorActions;
 
@@ -41,13 +44,13 @@ public sealed class KeyDispatcher
         var byId = commands.ToDictionary(c => c.Id);
         // The defaults with a "when" come before those without, so a key shared by two commands (F11: Step Into while
         // debugging, full screen otherwise) reaches the specific one first; keybindings.json's go before them all.
-        var list = commands.Where(c => c.Gestures.Length > 0).OrderBy(c => c.When is null ? 1 : 0).Select(c => (c.Gestures, Command: c)).ToList();
+        var list = commands.Where(c => c.Gestures.Length > 0).OrderBy(c => c.When is null ? 1 : 0).Select(c => (c.Gestures, Command: c, User: false)).ToList();
         foreach (var o in overrides ?? [])
         {
             if (!byId.TryGetValue(o.Command, out var command)) continue;
             var gestures = o.Keys is null ? null : o.Keys.Split(' ', StringSplitOptions.RemoveEmptyEntries).Select(KeyGesture.Parse).ToArray();
             if (o.Remove) list.RemoveAll(b => b.Command == command && (gestures is null || b.Gestures.SequenceEqual(gestures)));
-            else if (gestures is not null) list.Insert(0, (gestures, command));
+            else if (gestures is not null) list.Insert(0, (gestures, command, true));
         }
 
         _bindings = list;
@@ -59,6 +62,10 @@ public sealed class KeyDispatcher
         _bindings.FirstOrDefault(b => b.Command.Id == commandId) is { Command: not null } b ? string.Join(' ', b.Gestures.Select(g => g.ToString()))
         : _editorActions.Contains(commandId) && Wicked.App.Editor.EditorKeymap.Effective.FirstOrDefault(d => d.Command.Id == commandId) is { Command: not null } e ? e.Gesture.ToString()
         : "";
+
+    /// <summary>Every binding in force, in Avalonia's names, the ones keybindings.json added marked: the Keyboard Shortcuts editor lists these.</summary>
+    public IEnumerable<(string Keys, WorkbenchCommand Command, bool User)> Bindings =>
+        _bindings.Select(b => (string.Join(' ', b.Gestures.Select(g => g.ToString())), b.Command, b.User));
 
     /// <summary>The keys that run a command now, as people read them ("Ctrl+=", "Ctrl+1"): the palette, menus and help show these.</summary>
     public string DisplayKeysFor(string commandId) => KeyNames.Readable(KeysFor(commandId));

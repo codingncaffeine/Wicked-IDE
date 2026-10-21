@@ -1,0 +1,66 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Wicked.App.ViewModels"
+             xmlns:shell="using:Wicked.App.Shell"
+             x:Class="Wicked.App.Views.ShortcutsView"
+             x:DataType="vm:ShortcutsViewModel"
+             Background="{DynamicResource Brush.Editor}">
+  <!-- The Keyboard Shortcuts editor, as VS Code's: search by words or pressed keys, then every command with its keys. -->
+  <Grid RowDefinitions="Auto,Auto,*" Margin="16,12,16,0">
+    <Grid ColumnDefinitions="*,Auto,Auto,Auto" ColumnSpacing="8" Margin="0,0,0,10">
+      <TextBox Name="ShortcutsSearch" Text="{Binding SearchText}" Classes.keyrecorder="{Binding RecordKeys}" KeyDown="OnSearchKeyDown"
+               PlaceholderText="Type to search in keybindings" AutomationProperties.Name="Search keybindings" />
+      <ToggleButton Grid.Column="1" Name="RecordKeysToggle" Classes="findopt" IsChecked="{Binding RecordKeys}" Padding="8,4"
+                    ToolTip.Tip="Record Keys: search by the keys you press" AutomationProperties.Name="Record keys">
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <shell:Icon Data="{StaticResource Icon.Keyboard}" Size="14" />
+          <TextBlock Text="Record Keys" VerticalAlignment="Center" FontSize="{DynamicResource Font.Size.Small}" />
+        </StackPanel>
+      </ToggleButton>
+      <TextBlock Grid.Column="2" Name="ShortcutsCount" Text="{Binding ResultText}" Classes="muted" VerticalAlignment="Center" FontSize="{DynamicResource Font.Size.Small}" />
+      <Button Grid.Column="3" Name="OpenKeybindingsJson" Classes="quiet" Content="keybindings.json" Click="OnOpenJson"
+              ToolTip.Tip="Open Keyboard Shortcuts (JSON)" FontSize="{DynamicResource Font.Size.Small}" />
+    </Grid>
+
+    <Grid Grid.Row="1" ColumnDefinitions="3*,2*,1.5*,80" Margin="10,0,10,4">
+      <TextBlock Text="Command" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" />
+      <TextBlock Grid.Column="1" Text="Keybinding" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" />
+      <TextBlock Grid.Column="2" Text="When" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" />
+      <TextBlock Grid.Column="3" Text="Source" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" />
+    </Grid>
+
+    <ListBox Grid.Row="2" Name="ShortcutRows" ItemsSource="{Binding Rows}" Background="Transparent" DoubleTapped="OnRowDoubleTapped"
+             ContextRequested="OnRowsContextRequested" AutomationProperties.Name="Keybindings">
+      <ListBox.ItemTemplate>
+        <DataTemplate DataType="vm:ShortcutRow">
+          <Grid ColumnDefinitions="3*,2*,1.5*,80" Background="Transparent" ToolTip.Tip="{Binding Id}">
+            <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Foreground="{DynamicResource Brush.Text}" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+              <Border Classes="kbd" IsVisible="{Binding DisplayKeys.Length}"><TextBlock Text="{Binding DisplayKeys}" /></Border>
+              <!-- Keys another command answers to as well (Show Same Keybindings lists them). -->
+              <shell:Icon Data="{StaticResource Icon.TriangleAlert}" Size="13" Foreground="{DynamicResource Brush.Warning}" IsVisible="{Binding HasConflict}"
+                          ToolTip.Tip="Another command has these keys too" />
+            </StackPanel>
+            <TextBlock Grid.Column="2" Text="{Binding WhenText}" Classes="muted" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" FontFamily="monospace" />
+            <TextBlock Grid.Column="3" Text="{Binding Source}" Classes="muted" VerticalAlignment="Center" />
+          </Grid>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+
+    <!-- Change Keybinding: the keys are pressed into this box, Enter keeps them, Escape lets them go. -->
+    <Border Grid.RowSpan="3" Name="RecordLayer" Background="#66000000" IsVisible="False" Margin="-16,-12,-16,0">
+      <Border Name="RecordBox" Classes="dialog keyrecorder" Width="460" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,80,0,0"
+              Focusable="True" KeyDown="OnRecordKeyDown" AutomationProperties.Name="Press the keys">
+        <StackPanel Spacing="10">
+          <TextBlock Name="RecordTitle" Text="Press the keys you want, then Enter" FontWeight="SemiBold" />
+          <Border Classes="kbd" HorizontalAlignment="Left" MinWidth="120" MinHeight="26">
+            <TextBlock Name="RecordedText" Text="" />
+          </Border>
+          <TextBlock Name="RecordConflict" Classes="muted" TextWrapping="Wrap" IsVisible="False" />
+          <TextBlock Classes="muted" FontSize="{DynamicResource Font.Size.Small}" Text="A second key after the first makes a chord (Ctrl+K Ctrl+S). Escape to cancel." />
+        </StackPanel>
+      </Border>
+    </Border>
+  </Grid>
+</UserControl>

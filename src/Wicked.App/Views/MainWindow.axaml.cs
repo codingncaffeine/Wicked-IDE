@@ -82,7 +82,7 @@ public partial class MainWindow : Window, IWorkbenchDialogs
             // The window's Shift+Alt keys (Format Document is Shift+Alt+F) before the menus' underlined letters: Avalonia would
             // take Shift+Alt+F for Alt+F and open the File menu. Keys the editor or the terminal keep are not the window's.
             if (_shell is not null && e.KeyModifiers == (KeyModifiers.Shift | KeyModifiers.Alt) && !DialogLayer.IsVisible
-                && FocusManager?.GetFocusedElement() is not Terminal.TerminalView && _shell.Keys.Match(e) is { } shiftAlt)
+                && FocusManager?.GetFocusedElement() is not Terminal.TerminalView && !IsKeyRecorder() && _shell.Keys.Match(e) is { } shiftAlt)
             {
                 _ = RunAsync(shiftAlt);
                 e.Handled = true;
@@ -91,7 +91,7 @@ public partial class MainWindow : Window, IWorkbenchDialogs
 
             // Ctrl+Tab before keyboard navigation takes Tab: it opens the switcher, and while Ctrl is held Tab and Shift+Tab move
             // through it (letting go chooses, below).
-            if (_shell is not null && e.Key == Key.Tab && e.KeyModifiers.HasFlag(KeyModifiers.Control))
+            if (_shell is not null && e.Key == Key.Tab && e.KeyModifiers.HasFlag(KeyModifiers.Control) && !IsKeyRecorder())
             {
                 if (_shell.QuickInput is { IsOpen: true, IsSwitcher: true }) _shell.QuickInput.Move(e.KeyModifiers.HasFlag(KeyModifiers.Shift) ? -1 : 1);
                 else if (_shell.Keys.Match(e) is { } command) _ = RunAsync(command);
@@ -305,6 +305,9 @@ public partial class MainWindow : Window, IWorkbenchDialogs
     }
 
     // ── Keys ─────────────────────────────────────────────────────────────────────────────────────
+
+    /// <summary>The keyboard is in a box that records keys (the Keyboard Shortcuts editor's): every key is its, none the window's.</summary>
+    private bool IsKeyRecorder() => FocusManager?.GetFocusedElement() is StyledElement element && element.Classes.Contains("keyrecorder");
 
     /// <summary>Keys the focused control left alone go to the workbench's commands (the editor takes its own first).</summary>
     private void OnKeyDown(object? sender, KeyEventArgs e)

@@ -23,7 +23,7 @@ public sealed partial class ShellViewModel
             C("workbench.action.toggleAutoSave", "Auto Save", () => Settings.AutoSave != "off"),
             new SubMenu("Preferences", () =>
             [
-                C("workbench.action.openSettings", "Settings"), C("workbench.action.openGlobalKeybindingsFile", "Keyboard Shortcuts"),
+                C("workbench.action.openSettings", "Settings"), C("workbench.action.openGlobalKeybindings", "Keyboard Shortcuts"),
                 C("workbench.action.openSnippets", "Configure Snippets"), Line,
                 C("workbench.action.selectTheme", "Color Theme"), C("wicked.selectCodeColours", "Code Colours"), C("workbench.action.importTheme", "Import a VS Code Color Theme..."), Line,
                 C("workbench.action.openSettingsJson", "Settings (JSON)"), C("wicked.initScript.open", "init.csx"),

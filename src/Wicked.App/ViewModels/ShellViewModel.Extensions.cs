@@ -16,6 +16,9 @@ public sealed partial class ShellViewModel
     private readonly IReadOnlyList<WorkbenchCommand> _builtInCommands;
     private IReadOnlyList<Keybinding> _userBindings = [];
 
+    /// <summary>keybindings.json as last read: the Keyboard Shortcuts editor shows its "when" clauses.</summary>
+    public IReadOnlyList<Keybinding> UserKeybindings => _userBindings;
+
     /// <summary>Installed extensions and init.csx.</summary>
     public ExtensionsViewModel Extensions { get; private set; } = null!;
 
@@ -144,6 +147,7 @@ public sealed partial class ShellViewModel
         // The workbench key map takes the last binding first, the editor's the first: each gets the order that lets the user's win.
         Keys = new KeyDispatcher(Commands, [.. _extensionBindings, .. _userBindings]);
         EditorKeymap.Apply([.. _userBindings, .. _extensionBindings]);
+        _post(() => OnPropertyChanged(nameof(Keys)));
     }
 
     // ── Side panels that extensions add ──
