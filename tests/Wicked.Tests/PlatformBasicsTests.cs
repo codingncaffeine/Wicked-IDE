@@ -197,3 +197,34 @@ public sealed class WindowFitTests
         Assert.Equal(900, MainWindow.Fit(new Avalonia.Size(1440, 900), new Avalonia.Size(900, 560), new Avalonia.PixelRect(0, 0, 1024, 600), 1.25)!.Value.Size.Width);
     }
 }
+
+/// <summary>Settings changed quickly stay changed, however late the file watcher sees the writes.</summary>
+public sealed class SettingsWriteRaceTests
+{
+    [Trait("Tier", "Window")]
+    [Fact]
+    public async Task TheEchoOfAnOlderWriteNeverUndoesANewerChange()
+    {
+        using var profile = new TempProfile();
+        await Ui.Run(() =>
+        {
+            var (window, shell) = Ui.Start(profile.Paths);
+            var start = shell.StartAsync();
+            Assert.True(Ui.PumpUntil(() => start.IsCompleted, 30), "settings did not load");
+
+            // Two quick changes, as two presses of a toggle.
+            var first = shell.UpdateSettingsAsync(s => s with { RenderWhitespace = "none" });
+            var older = shell.Settings;
+            var second = shell.UpdateSettingsAsync(s => s with { RenderWhitespace = "all" });
+            Assert.True(Ui.PumpUntil(() => first.IsCompleted && second.IsCompleted, 10));
+            Assert.Equal("all", shell.Settings.RenderWhitespace);
+
+            // The first write's echo arrives late, as a slow disk or a busy machine delivers it: the file briefly holds it.
+            File.WriteAllText(profile.Paths.SettingsFile, System.Text.Json.JsonSerializer.Serialize(older, Wicked.Core.Settings.WickedSettings.Json) + "\n");
+            Ui.Pump(1.0); // the watcher's settle time (200 ms) and the reload
+            Assert.Equal("all", shell.Settings.RenderWhitespace);
+            window.Close();
+            return 0;
+        });
+    }
+}

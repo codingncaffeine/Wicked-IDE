@@ -321,7 +321,14 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
     [RelayCommand]
     private void OpenSettings() => SettingsOpen = true;
 
-    private string? _lastWritten;
+    /// <summary>
+    /// The texts this window wrote to settings.json lately (the newest last). The watcher's reload ignores any of them: with
+    /// two quick changes, the first write's echo could be read before the second write landed and undid the second change.
+    /// </summary>
+    private readonly List<string> _ownWrites = [];
+
+    /// <summary>One settings.json write at a time, in the order the changes were made.</summary>
+    private readonly SemaphoreSlim _settingsWrite = new(1, 1);
     private FileSystemWatcher? _settingsWatcher;
     private DispatcherTimer? _settingsSettle;
     private DispatcherTimer? _keysSettle;
@@ -358,7 +365,13 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         if (next == Settings) return;
         await ApplySettingsAsync(next);
         var text = System.Text.Json.JsonSerializer.Serialize(next, WickedSettings.Json) + "\n";
-        _lastWritten = text;
+        lock (_ownWrites)
+        {
+            _ownWrites.Add(text);
+            if (_ownWrites.Count > 16) _ownWrites.RemoveAt(0);
+        }
+
+        await _settingsWrite.WaitAsync();
         try
         {
             await Task.Run(() => Wicked.Core.Files.TextFile.WriteAsync(Paths.SettingsFile, text, Wicked.Core.Files.FileEncoding.Utf8, CancellationToken.None));
@@ -366,6 +379,10 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             Notices.Post(new Notice("settings", $"Settings could not be saved: {ex.Message}", NoticeKind.Error));
+        }
+        finally
+        {
+            _settingsWrite.Release();
         }
     }
 
@@ -475,7 +492,10 @@ public sealed partial class ShellViewModel : ObservableObject, IDisposable
         _settingsSettle?.Stop();
         var path = Paths.SettingsFile;
         var text = await Task.Run(() => File.Exists(path) ? File.ReadAllText(path) : "");
-        if (text == _lastWritten) return; // our own write coming back
+        lock (_ownWrites)
+        {
+            if (_ownWrites.Contains(text)) return; // one of our own writes coming back, perhaps an older one
+        }
         var (settings, problem) = await SettingsFile.ReadAsync(path, CancellationToken.None);
         if (problem is not null)
         {

@@ -21,7 +21,8 @@ public sealed class HotExitTests
             // An edited file and an untitled one; closing the window asks nothing and keeps both.
             var (window, shell) = OpenWorkbench(profile, root);
             var start = shell.StartAsync();
-            Assert.True(Ui.PumpUntil(() => start.IsCompleted, 10));
+            // Starting reopens the folder just opened (git, watchers): on a two-CPU Windows runner that took longer than 10 s.
+            Assert.True(Ui.PumpUntil(() => start.IsCompleted, 30), "Wicked did not finish starting");
             var a = OpenByClicks(window, shell, "a.txt");
             Edits.Type(a.Document, "edited ", EditOptions.Default);
             var untitled = shell.Workbench.NewFile();
