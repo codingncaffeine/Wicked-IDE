@@ -28,10 +28,15 @@ public sealed partial class SettingsViewModel : ObservableObject
         CodeThemes = [new("", "Wicked Dark (the theme's own)"), .. SyntaxService.Themes.Select(t => new SettingChoice(t.ToString(), ShellViewModel.Friendly(t.ToString())))];
         DownloadLimits = [new("0", "Unlimited"), .. new[] { 1, 2, 5, 10, 25, 50, 100 }.Select(n => new SettingChoice(n.ToString(CultureInfo.InvariantCulture), n + " MB/s"))];
         Runtime = new RuntimeViewModel(shell.Models, shell.UpdateSettingsAsync);
+        LanguageServers = new LanguageServersViewModel(shell);
         shell.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(ShellViewModel.Settings)) Load(shell.Settings);
-            if (e.PropertyName == nameof(ShellViewModel.SettingsOpen) && shell.SettingsOpen) _ = Runtime.RefreshAsync();
+            if (e.PropertyName == nameof(ShellViewModel.SettingsOpen) && shell.SettingsOpen)
+            {
+                _ = Runtime.RefreshAsync();
+                _ = LanguageServers.RefreshAsync();
+            }
         };
         Load(shell.Settings);
     }
@@ -47,6 +52,49 @@ public sealed partial class SettingsViewModel : ObservableObject
     public RuntimeViewModel Runtime { get; }
 
     public IReadOnlyList<SettingChoice> DownloadLimits { get; }
+
+    /// <summary>Settings → Languages: the servers, found or installable.</summary>
+    public LanguageServersViewModel LanguageServers { get; }
+
+    [ObservableProperty]
+    private bool _languageServersOn;
+
+    [ObservableProperty]
+    private bool _formatOnSave;
+
+    [ObservableProperty]
+    private bool _quickSuggestions;
+
+    [ObservableProperty]
+    private bool _parameterHints;
+
+    [ObservableProperty]
+    private bool _hover;
+
+    [ObservableProperty]
+    private SettingChoice? _inlayHints;
+
+    [ObservableProperty]
+    private bool _semanticHighlighting;
+
+    [ObservableProperty]
+    private bool _occurrencesHighlight;
+
+    partial void OnLanguageServersOnChanged(bool value) => Change(s => s with { LanguageServers = value });
+
+    partial void OnFormatOnSaveChanged(bool value) => Change(s => s with { FormatOnSave = value });
+
+    partial void OnQuickSuggestionsChanged(bool value) => Change(s => s with { QuickSuggestions = value });
+
+    partial void OnParameterHintsChanged(bool value) => Change(s => s with { ParameterHints = value });
+
+    partial void OnHoverChanged(bool value) => Change(s => s with { Hover = value });
+
+    partial void OnInlayHintsChanged(SettingChoice? value) => Change(s => s with { InlayHints = value?.Value ?? "on" });
+
+    partial void OnSemanticHighlightingChanged(bool value) => Change(s => s with { SemanticHighlighting = value });
+
+    partial void OnOccurrencesHighlightChanged(bool value) => Change(s => s with { OccurrencesHighlight = value });
 
     /// <summary>Asks the user for a folder (set by the sheet, which owns the window's storage provider); null when they decline.</summary>
     public Func<Task<string?>>? FolderPicker { get; set; }
@@ -133,6 +181,14 @@ public sealed partial class SettingsViewModel : ObservableObject
         var limit = s.DownloadLimit.ToString("0.##", CultureInfo.InvariantCulture);
         DownloadLimit = DownloadLimits.FirstOrDefault(c => c.Value == limit) ?? new SettingChoice(limit, limit + " MB/s");
         Runtime.Load(s);
+        LanguageServersOn = s.LanguageServers;
+        FormatOnSave = s.FormatOnSave;
+        QuickSuggestions = s.QuickSuggestions;
+        ParameterHints = s.ParameterHints;
+        Hover = s.Hover;
+        InlayHints = LanguageServers.InlayModes.FirstOrDefault(c => c.Value == s.InlayHints) ?? LanguageServers.InlayModes[0];
+        SemanticHighlighting = s.SemanticHighlighting;
+        OccurrencesHighlight = s.OccurrencesHighlight;
         _loading = false;
     }
 

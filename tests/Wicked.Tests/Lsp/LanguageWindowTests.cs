@@ -232,6 +232,33 @@ public sealed class LanguageWindowTests
     }
 
     [Fact]
+    public async Task SettingsListTheServersFoundAndTheirSwitchesWriteSettings()
+    {
+        Assert.SkipUnless(Clangd is not null, "clangd is not installed");
+        using var profile = new TempProfile();
+        await Ui.Run(() =>
+        {
+            var (window, shell) = Ui.Start(profile.Paths);
+            Input.Chord(window, Key.OemComma, RawInputModifiers.Control);
+            Assert.True(shell.SettingsOpen);
+            Input.Click(window, window.GetVisualDescendants().OfType<Button>().Single(b => b.Name == "JumpLanguages"));
+            var rows = shell.SettingsSheet.LanguageServers.Servers;
+            Assert.True(Ui.PumpUntil(() => rows.Single(r => r.Spec.Id == "clangd").Installed, 10), "clangd was not found");
+            Assert.False(rows.Single(r => r.Spec.Id == "clangd").CanInstall);
+            Assert.True(Ui.PumpUntil(() => window.GetVisualDescendants().OfType<ItemsControl>().Any(i => i.Name == "ServerList" && i.IsEffectivelyVisible), 5));
+
+            var formatOnSave = window.GetVisualDescendants().OfType<ToggleSwitch>().Single(t => t.Name == "FormatOnSaveSwitch");
+            formatOnSave.BringIntoView();
+            Ui.Pump(0.2);
+            Input.Click(window, formatOnSave);
+            Assert.True(Ui.PumpUntil(() => shell.Settings.FormatOnSave, 5), $"the switch did not turn it on (checked {formatOnSave.IsChecked})");
+            Assert.True(Ui.PumpUntil(() => File.Exists(profile.Paths.SettingsFile) && File.ReadAllText(profile.Paths.SettingsFile).Contains("\"editor.formatOnSave\": true", StringComparison.Ordinal), 5));
+            window.Close();
+            return 0;
+        });
+    }
+
+    [Fact]
     public async Task ShiftAltFFormatsTheFileWithTheServer()
     {
         Assert.SkipUnless(Clangd is not null, "clangd is not installed");

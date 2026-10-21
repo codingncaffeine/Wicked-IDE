@@ -18,6 +18,7 @@
         <Button Classes="quiet" Content="Appearance" Click="OnJump" Tag="appearance" />
         <Button Classes="quiet" Content="Files" Click="OnJump" Tag="files" />
         <Button Classes="quiet" Content="Session" Click="OnJump" Tag="session" />
+        <Button Name="JumpLanguages" Classes="quiet" Content="Languages" Click="OnJump" Tag="languages" />
         <Button Name="JumpModels" Classes="quiet" Content="Models" Click="OnJump" Tag="models" />
         <Button Name="JumpRuntime" Classes="quiet" Content="Runtime" Click="OnJump" Tag="runtime" />
       </StackPanel>
@@ -67,6 +68,45 @@
               <TextBlock Grid.Row="3" Text="End files with a newline" />
               <ToggleSwitch Grid.Row="3" Grid.Column="1" IsChecked="{Binding InsertFinalNewline}" OnContent="" OffContent="" />
             </Grid>
+          </StackPanel>
+
+          <StackPanel Spacing="10">
+            <TextBlock Name="SectionLanguages" Classes="heading" Text="LANGUAGES" />
+            <Grid ColumnDefinitions="220,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="10" Classes="settings">
+              <TextBlock Text="Language servers" />
+              <ToggleSwitch Grid.Column="1" Name="LanguageServersSwitch" IsChecked="{Binding LanguageServersOn}" OnContent="" OffContent="" />
+              <TextBlock Grid.Row="1" Text="Suggestions while typing" />
+              <ToggleSwitch Grid.Row="1" Grid.Column="1" IsChecked="{Binding QuickSuggestions}" OnContent="" OffContent="" />
+              <TextBlock Grid.Row="2" Text="Parameter hints" />
+              <ToggleSwitch Grid.Row="2" Grid.Column="1" IsChecked="{Binding ParameterHints}" OnContent="" OffContent="" />
+              <TextBlock Grid.Row="3" Text="Hover cards" />
+              <ToggleSwitch Grid.Row="3" Grid.Column="1" IsChecked="{Binding Hover}" OnContent="" OffContent="" />
+              <TextBlock Grid.Row="4" Text="Inlay hints" />
+              <ComboBox Grid.Row="4" Grid.Column="1" ItemsSource="{Binding LanguageServers.InlayModes}" SelectedItem="{Binding InlayHints}" Width="180" />
+              <TextBlock Grid.Row="5" Text="Semantic colours" />
+              <ToggleSwitch Grid.Row="5" Grid.Column="1" IsChecked="{Binding SemanticHighlighting}" OnContent="" OffContent="" />
+              <TextBlock Grid.Row="6" Text="Highlight other uses" />
+              <ToggleSwitch Grid.Row="6" Grid.Column="1" IsChecked="{Binding OccurrencesHighlight}" OnContent="" OffContent="" />
+              <TextBlock Grid.Row="7" Text="Format on save" />
+              <ToggleSwitch Grid.Row="7" Grid.Column="1" Name="FormatOnSaveSwitch" IsChecked="{Binding FormatOnSave}" OnContent="" OffContent="" />
+            </Grid>
+            <ItemsControl Name="ServerList" ItemsSource="{Binding LanguageServers.Servers}" Margin="0,4,0,0">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:ServerRow">
+                  <Grid ColumnDefinitions="220,*,Auto" Margin="0,3">
+                    <StackPanel>
+                      <TextBlock Text="{Binding Name}" Foreground="{DynamicResource Brush.Text}" />
+                      <TextBlock Text="{Binding Languages}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" TextTrimming="CharacterEllipsis" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                      <TextBlock Text="{Binding State}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" TextTrimming="CharacterEllipsis" />
+                      <TextBlock Text="{Binding Blocked}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" TextWrapping="Wrap" IsVisible="{Binding Blocked, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                    </StackPanel>
+                    <Button Grid.Column="2" Classes="secondary" Content="Install" Command="{Binding InstallCommand}" IsVisible="{Binding CanInstall}" VerticalAlignment="Center" />
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
           </StackPanel>
 
           <StackPanel Spacing="10">
