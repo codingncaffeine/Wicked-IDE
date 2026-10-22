@@ -37,7 +37,11 @@ public sealed partial class PickCard : ObservableObject
     /// <summary>The install this card shows and controls (shared with the Browse page).</summary>
     public InstallItem Item { get; }
 
-    public string Role => (Pick.AlsoFor.Count > 0 ? string.Join(" · ", new[] { Pick.Kind }.Concat(Pick.AlsoFor)) : Pick.Kind.ToString()).ToUpperInvariant();
+    /// <summary>A code completion model's card (its own section, its own Install), not a chat model's.</summary>
+    public bool IsCompletion => Pick.Kind == PickKind.Completion;
+
+    public string Role => IsCompletion ? "CODE COMPLETION"
+        : (Pick.AlsoFor.Count > 0 ? string.Join(" · ", new[] { Pick.Kind }.Concat(Pick.AlsoFor)) : Pick.Kind.ToString()).ToUpperInvariant();
 
     public string Name => Pick.Model.Name;
 
@@ -45,7 +49,7 @@ public sealed partial class PickCard : ObservableObject
 
     public string Reason => Pick.Reason;
 
-    public string Details => $"{ModelsViewModel.Size(Pick.Tier.Size + (Pick.Companion?.Tier.Size ?? 0))} · {Pick.Model.LicenseId}";
+    public string Details => $"{ModelsViewModel.Size(Pick.Tier.Size)} · {Pick.Model.LicenseId}";
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanInstall))]
@@ -56,7 +60,7 @@ public sealed partial class PickCard : ObservableObject
     [RelayCommand]
     private Task Install() => _owner.RequestInstallAsync(new InstallJob(
         Pick.Model.Repo, Pick.Model.Name, Pick.Model.LicenseId, Pick.Model.LicenseUrl, Pick.Model.Repo,
-        accepted => _owner.Services.InstallAsync(Pick, default, accepted)));
+        accepted => IsCompletion ? _owner.Services.InstallCatalogAsync(Pick.Model, Pick.Tier, accepted) : _owner.Services.InstallAsync(Pick, default, accepted)));
 }
 
 /// <summary>What to install, and how: the licence to check first, then the call that does the work.</summary>
@@ -334,7 +338,11 @@ public sealed partial class ModelsViewModel : ObservableObject, IAsyncDisposable
         RunSettings = null;
     }
 
+    /// <summary>The chat models recommended for this machine.</summary>
     public ObservableCollection<PickCard> Picks { get; } = [];
+
+    /// <summary>The code completion model that fits beside the coding pick, on a card of its own under its own heading.</summary>
+    public ObservableCollection<PickCard> CompletionPicks { get; } = [];
 
     public ObservableCollection<InstalledRow> Installed { get; } = [];
 
@@ -439,7 +447,14 @@ public sealed partial class ModelsViewModel : ObservableObject, IAsyncDisposable
             foreach (var pick in state.Picks) Picks.Add(new PickCard(pick, this));
         }
 
-        foreach (var card in Picks) card.Installed = state.IsInstalled(card.Pick.Model, card.Pick.Tier);
+        var completions = state.Picks.Select(p => p.Companion).OfType<Pick>().DistinctBy(p => p.Model.Id).ToList();
+        if (!completions.Select(p => $"{p.Model.Id}/{p.Tier.Quant}").SequenceEqual(CompletionPicks.Select(c => $"{c.Pick.Model.Id}/{c.Pick.Tier.Quant}")))
+        {
+            CompletionPicks.Clear();
+            foreach (var pick in completions) CompletionPicks.Add(new PickCard(pick, this));
+        }
+
+        foreach (var card in Picks.Concat(CompletionPicks)) card.Installed = state.IsInstalled(card.Pick.Model, card.Pick.Tier);
         foreach (var item in _items.Values)
         {
             item.Busy = _running.Contains(item.Id) || state.Busy.Contains(item.Id);

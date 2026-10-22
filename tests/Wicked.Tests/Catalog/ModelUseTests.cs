@@ -98,6 +98,40 @@ public sealed class ModelUseTests
         Assert.All(Find("big").Tiers, t => Assert.True(ModelFit.Usable(Find("big"), t, null)));
     }
 
+    [Theory]
+    [InlineData("bartowski/Qwen2.5-Coder-7B-Instruct-GGUF", null, NamedUse.Chat)]
+    [InlineData("bartowski/gemma-3-12b-it-GGUF", null, NamedUse.Chat)]
+    [InlineData("unsloth/Qwen3-30B-A3B-Thinking-2507-GGUF", null, NamedUse.Chat)]
+    [InlineData("someone/Qwen3-8B-Base-GGUF", null, NamedUse.Base)]
+    [InlineData("ggml-org/Qwen2.5-Coder-1.5B-Q8_0-GGUF", "Qwen/Qwen2.5-Coder-1.5B", NamedUse.Unknown)]
+    [InlineData("someone/my-quants-GGUF", "Qwen/Qwen2.5-Coder-1.5B-Instruct", NamedUse.Chat)]
+    [InlineData("someone/codebase-helper-GGUF", null, NamedUse.Unknown)]
+    public void TheNamesSayChatOrBaseOnlyByTheReleaseConvention(string repo, string? source, NamedUse expected) =>
+        Assert.Equal(expected, ModelUse.FromNames(repo, source));
+
+    [Fact]
+    public void AHuggingFaceRepoIsDescribedBeforeItIsDownloaded()
+    {
+        // The tags Hugging Face gave on 2026-10-21: the base completion model is "conversational" like the instruct one.
+        string[] baseTags = ["gguf", "code", "base_model:Qwen/Qwen2.5-Coder-1.5B", "base_model:quantized:Qwen/Qwen2.5-Coder-1.5B", "conversational"];
+        string[] instructTags = ["gguf", "chat", "base_model:quantized:Qwen/Qwen2.5-Coder-7B-Instruct", "conversational"];
+        var catalog = CatalogTestData.Catalog();
+
+        Assert.Equal("Qwen/Qwen2.5-Coder-1.5B", ModelUse.QuantizedFrom(baseTags));
+        Assert.Equal("Code completion only: fills in code as you type, cannot chat", ModelUse.DescribeRepo("test/fim-small", [], catalog));
+        Assert.Equal("Chat model that also completes code", ModelUse.DescribeRepo("test/coder-moe", [], catalog));
+        Assert.Equal("Chat model (an instruct or chat version)", ModelUse.DescribeRepo("bartowski/Qwen2.5-Coder-7B-Instruct-GGUF", instructTags, catalog));
+        Assert.StartsWith("Hugging Face does not say whether it can chat", ModelUse.DescribeRepo("someone/Qwen2.5-Coder-1.5B-GGUF", baseTags, catalog), StringComparison.Ordinal);
+        Assert.Equal("Base model: continues or fills in text, cannot chat", ModelUse.DescribeRepo("someone/Qwen3-8B-Base-GGUF", [], catalog));
+    }
+
+    [Fact]
+    public void AnInstalledModelNamedAsABaseModelIsNotOfferedToTheChat()
+    {
+        Assert.False(ModelUse.Of(Stored("someone/Qwen3-8B-Base-GGUF", Gguf(template: true)), null, null).Chats);
+        Assert.True(ModelUse.Of(Stored("someone/Qwen3-8B-GGUF", Gguf(template: true)), null, null).Chats);
+    }
+
     public static TheoryData<double?, long> Machines => new()
     {
         { 8, 32 },

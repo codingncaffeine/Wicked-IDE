@@ -9,12 +9,16 @@ public enum PickKind
     Coding,
     Fast,
     Big,
+
+    /// <summary>A code completion model: fills in code as you type, cannot chat. Offered on a card of its own, never inside a chat pick.</summary>
+    Completion,
 }
 
 /// <summary>
 /// One recommendation card: the model and quant to install, how it fits this machine, the context to run it at, and the
 /// one-line reason shown to the user. <c>AlsoFor</c> lists other roles the same model won (one card, not two).
-/// <c>Companion</c> is a small completion model that runs alongside a coding pick.
+/// <c>Companion</c> is the code completion model that fits beside the coding pick (a <see cref="PickKind.Completion"/> pick, shown and
+/// installed on a card of its own: it cannot chat).
 /// </summary>
 public sealed record Pick(
     PickKind Kind,
@@ -192,7 +196,7 @@ public static class Recommender
             var rest = new FitBudget(Math.Max(0, budget.VramBytes - (gpuMode ? partnerFit.RequiredBytes : 0)), Math.Max(0, budget.RamBytes - (gpuMode ? 0 : partnerFit.RequiredBytes)));
             var codingFit = FitCalculator.Evaluate(coding.Tier.Size, coding.Model.Shape, o.MinContext, rest, coding.Model.ContextLength, o.Kv);
             if (codingFit.Level != (gpuMode ? FitLevel.FitsInVram : FitLevel.FitsWithOffload)) continue;
-            var candidate = new Pick(PickKind.Coding, model, tier, partnerFit, o.CompanionContext, "", [], null);
+            var candidate = new Pick(PickKind.Completion, model, tier, partnerFit, o.CompanionContext, "", [], null);
             if (best is null || Better(model, score, best.Model, best.Model.Scores.Fim ?? 0)) best = candidate;
         }
 
@@ -201,8 +205,8 @@ public static class Recommender
         var remaining = new FitBudget(Math.Max(0, budget.VramBytes - (gpuMode ? partnerRequired : 0)), Math.Max(0, budget.RamBytes - (gpuMode ? 0 : partnerRequired)));
         var fit = FitCalculator.Evaluate(coding.Tier.Size, coding.Model.Shape, o.MinContext, remaining, coding.Model.ContextLength, o.Kv);
         var room = Nice(Math.Min(coding.Model.ContextLength, gpuMode ? fit.MaxContextInVram : fit.MaxContextWithOffload));
-        var reason = $"{Fits(gpuMode, budget, fit, room)}, with {best.Model.Name} alongside for code completion";
-        var companion = best with { Kind = PickKind.Fast, Reason = $"A small model for completions as you type ({best.Tier.Quant}, about {Gb(best.Fit.RequiredBytes)} GB)" };
+        var reason = $"{Fits(gpuMode, budget, fit, room)}, leaving room for the code completion model below";
+        var companion = best with { Reason = $"Fills in code as you type in the editor ({best.Tier.Quant}, about {Gb(best.Fit.RequiredBytes)} GB).{(best.Model.Has(Capability.Chat) ? "" : " It cannot chat.")}" };
         return coding with { Fit = fit, Context = DefaultContext(room, coding.Model, o), Reason = reason, Companion = companion };
     }
 

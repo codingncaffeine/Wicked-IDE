@@ -94,10 +94,12 @@ public sealed class RecommenderTests
     {
         var picks = Recommender.Recommend(CatalogTestData.Machine(16, 64), Catalog);
 
-        Assert.Equal("Fits your 16 GB GPU with room for 16k context, with fim-small alongside for code completion", picks[0].Reason);
+        Assert.Equal("Fits your 16 GB GPU with room for 16k context, leaving room for the code completion model below", picks[0].Reason);
         Assert.StartsWith("Small and quick: fits your 16 GB GPU with room for 128k context", picks[1].Reason, StringComparison.Ordinal);
         Assert.Equal("fim-small", picks[0].Companion!.Model.Id);
-        Assert.Contains("completions as you type", picks[0].Companion!.Reason, StringComparison.Ordinal);
+        Assert.Equal(PickKind.Completion, picks[0].Companion!.Kind);
+        Assert.StartsWith("Fills in code as you type in the editor", picks[0].Companion!.Reason, StringComparison.Ordinal);
+        Assert.EndsWith("It cannot chat.", picks[0].Companion!.Reason, StringComparison.Ordinal);
     }
 
     [Fact]

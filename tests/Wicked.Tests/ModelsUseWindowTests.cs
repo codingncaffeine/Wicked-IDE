@@ -27,9 +27,90 @@ public sealed class ModelsUseWindowTests
     {
         _ = shell.Models.StartAsync(allowNetwork: true);
         Input.Click(window, window.FindControl<Button>("RailModels")!);
-        Assert.True(Ui.PumpUntil(() => shell.Models.Picks.Count == 3 && ModelsUi.Cards(window).Count() == 3, 20), "no recommendations appeared");
+        Assert.True(Ui.PumpUntil(() => shell.Models.Picks.Count == 3 && ModelsUi.Cards(window).Count() == 3 + shell.Models.CompletionPicks.Count, 20), "no recommendations appeared");
         Input.Click(window, Control<Button>(window, "BrowseAll"));
         Assert.True(Ui.PumpUntil(() => Rows(window).Count > 0, 10), "the catalog did not appear");
+    }
+
+    [Trait("Tier", "Window")]
+    [Fact]
+    public async Task TheCodeCompletionRecommendationHasACardAndAnInstallOfItsOwn()
+    {
+        // Before anything is downloaded: a chat card installs its chat model only; the completion model is offered apart, said to
+        // be unable to chat, with its own size and its own Install.
+        Assert.SkipUnless(StandIns.CanRunEngine, "the stand-in engine is a shell script");
+        using var profile = new TempProfile();
+        await using var world = await ModelWorld.StartAsync(completion: true);
+        await Ui.Run(() =>
+        {
+            var (window, shell) = world.Start(profile.Paths);
+            _ = shell.Models.StartAsync(allowNetwork: true);
+            Input.Click(window, window.FindControl<Button>("RailModels")!);
+            Assert.True(Ui.PumpUntil(() => shell.Models.Picks.Count == 3 && shell.Models.CompletionPicks.Count == 1 && ModelsUi.Cards(window).Count() == 4, 20), "no recommendations appeared");
+
+            var chatCards = Control<ItemsControl>(window, "PickList").GetVisualDescendants().OfType<Border>().Where(b => b.Classes.Contains("pick")).Select(b => ((PickCard)b.DataContext!).Name).ToList();
+            Assert.DoesNotContain("Tiny Complete", chatCards);
+            var section = Control<StackPanel>(window, "CompletionPickSection");
+            Assert.Contains("CODE COMPLETION FOR THIS PC", section.GetVisualDescendantsText(), StringComparison.Ordinal);
+            Assert.Contains("It does not chat", section.GetVisualDescendantsText(), StringComparison.Ordinal);
+            var completion = section.GetVisualDescendants().OfType<Border>().Single(b => b.Classes.Contains("pick"));
+            var card = (PickCard)completion.DataContext!;
+            Assert.Equal("Tiny Complete", card.Name);
+            Assert.Equal("CODE COMPLETION", card.Role);
+            Assert.EndsWith("It cannot chat.", card.Reason, StringComparison.Ordinal);
+            var coder = (PickCard)ModelsUi.Card(window, "Tiny Coder").DataContext!;
+            Assert.Equal($"{ModelsViewModel.Size(coder.Pick.Tier.Size)} · mit", coder.Details); // its own size, nothing else folded in
+            ModelsUi.Shot(window, "picks-completion");
+
+            // The coding card installs the coding model alone; the completion card installs the completion model.
+            Input.Click(window, ModelsUi.Labelled(ModelsUi.Card(window, "Tiny Coder"), "Install")!);
+            Assert.True(Ui.PumpUntil(() => shell.Models.Installed.Count == 1 && !shell.Models.Item(ModelWorld.Coder).Busy, 30), "the coding install did not finish");
+            Ui.Pump(0.5);
+            Assert.Equal([ModelWorld.Coder], shell.Models.Installed.Select(r => r.Id));
+            Assert.True(card.CanInstall);
+            completion.BringIntoView(); // below the chat cards: scrolled to, as a person scrolls
+            Ui.Pump(0.2);
+            Input.Click(window, ModelsUi.Labelled(completion, "Install")!);
+            Assert.True(Ui.PumpUntil(() => shell.Models.Installed.Count == 2 && !shell.Models.Item(ModelWorld.Complete).Busy, 30), "the completion install did not finish");
+            Assert.True(Ui.PumpUntil(() => shell.Models.CompletionInstalled.Count == 1 && shell.Models.ChatInstalled.Count == 1, 5));
+            window.Close();
+            return 0;
+        });
+    }
+
+    [Trait("Tier", "Window")]
+    [Fact]
+    public async Task HuggingFaceReposSayWhatTheyAreForBeforeTheyAreDownloaded()
+    {
+        Assert.SkipUnless(StandIns.CanRunEngine, "the stand-in engine is a shell script");
+        using var profile = new TempProfile();
+        await using var world = await ModelWorld.StartAsync(completion: true);
+        world.Hub.Add(new HubRepo("someone/Qwen3-8B-Base-GGUF", "r1") { Downloads = 9000, Files = { ["Qwen3-8B-Base-Q4_K_M.gguf"] = StandIns.Weights(50_000) } });
+        world.Hub.Add(new HubRepo("someone/Helper-7B-Instruct-GGUF", "r1") { Downloads = 8000, Files = { ["Helper-7B-Instruct-Q4_K_M.gguf"] = StandIns.Weights(50_000) } });
+        world.Hub.Add(new HubRepo("someone/Mystery-GGUF", "r1") { Downloads = 7000, Files = { ["Mystery-Q4_K_M.gguf"] = StandIns.Weights(50_000) } });
+        await Ui.Run(() =>
+        {
+            var (window, shell) = world.Start(profile.Paths);
+            OpenBrowse(window, shell);
+            var browse = shell.Models.Browse;
+            Input.Click(window, Control<Button>(window, "HubTabButton"));
+            Assert.True(Ui.PumpUntil(() => browse.HubResults.Count >= 4, 10), browse.HubStatus);
+            string Use(string name) => browse.HubResults.Single(r => r.Name == name).Use;
+            Assert.Equal("Base model: continues or fills in text, cannot chat", Use("Qwen3-8B-Base-GGUF"));
+            Assert.Equal("Chat model (an instruct or chat version)", Use("Helper-7B-Instruct-GGUF"));
+            Assert.StartsWith("Hugging Face does not say whether it can chat", Use("Mystery-GGUF"), StringComparison.Ordinal);
+            Assert.Equal("Code completion only: fills in code as you type, cannot chat", Use("Tiny-Complete-GGUF"));
+            Assert.Contains(window.GetVisualDescendants().OfType<TextBlock>(), t => t.Name == "HubResultUse" && t.IsEffectivelyVisible && t.Text == Use("Qwen3-8B-Base-GGUF"));
+
+            // The repo page says it too, above its quants.
+            var item = Control<ListBox>(window, "HubResultList").GetVisualDescendants().OfType<ListBoxItem>().First(i => ((HubResultRow)i.DataContext!).Name == "Qwen3-8B-Base-GGUF");
+            Input.Click(window, item);
+            Assert.True(Ui.PumpUntil(() => browse.Detail is { Loading: false } d && d.Repo == "someone/Qwen3-8B-Base-GGUF", 15), "the repo did not open");
+            Assert.Equal("Base model: continues or fills in text, cannot chat", Control<TextBlock>(window, "HubDetailUse").Text);
+            ModelsUi.Shot(window, "hub-use");
+            window.Close();
+            return 0;
+        });
     }
 
     [Trait("Tier", "Window")]

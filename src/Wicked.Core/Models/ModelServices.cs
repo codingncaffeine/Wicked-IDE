@@ -368,13 +368,12 @@ public sealed partial class ModelServices : IAsyncDisposable
 
     // ── Installing ───────────────────────────────────────────────────────────────────────────────
 
-    /// <summary>Installs a pick: the engine if needed, then the model's files (verified), then its manifest; its companion too.</summary>
+    /// <summary>Installs a pick: the engine if needed, then the model's files (verified), then its manifest. A code completion companion is a pick of its own, installed from its own card.</summary>
     public async Task InstallAsync(Pick pick, CancellationToken ct = default, bool licenceAccepted = false)
     {
         using var session = Begin(pick.Model.Repo, ct);
         await EnsureEngineAsync(session.Token).ConfigureAwait(false);
         await InstallModelAsync(pick.Model, pick.Tier, licenceAccepted, session.Token).ConfigureAwait(false);
-        if (pick.Companion is { } companion) await InstallModelAsync(companion.Model, companion.Tier, licenceAccepted, session.Token).ConfigureAwait(false);
     }
 
     /// <summary>Installs one catalog model at one quant, the engine first when there is none (what the Browse page's Install does).</summary>

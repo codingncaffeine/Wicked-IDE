@@ -60,6 +60,47 @@
         </StackPanel>
       </Grid>
     </DataTemplate>
+    <!-- A recommendation: the model, why it suits this PC, and Install; used by the chat and the code completion sections. -->
+    <DataTemplate x:Key="PickCardTemplate" DataType="vm:PickCard">
+      <Border Classes="pick">
+        <StackPanel Spacing="5">
+          <Grid ColumnDefinitions="*,Auto">
+            <Border Classes="role" HorizontalAlignment="Left">
+              <TextBlock Text="{Binding Role}" />
+            </Border>
+            <TextBlock Grid.Column="1" Text="{Binding Quant}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" VerticalAlignment="Center" />
+          </Grid>
+          <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="14" />
+          <TextBlock Text="{Binding Reason}" Classes="secondary" TextWrapping="Wrap" FontSize="{DynamicResource Font.Size.Small}" />
+          <TextBlock Text="{Binding Details}" Classes="muted" TextWrapping="Wrap" FontSize="{DynamicResource Font.Size.Small}" />
+          <Grid ColumnDefinitions="*,Auto" Margin="0,4,0,0">
+            <StackPanel VerticalAlignment="Center" Spacing="4" Margin="0,0,10,0">
+              <ProgressBar Height="3" MinHeight="3" Minimum="0" Maximum="1" Value="{Binding Item.Progress}" IsVisible="{Binding Item.Busy}" />
+              <TextBlock Text="{Binding Item.Status}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+            <Button Grid.Column="1" Classes="primary" Content="Install" Command="{Binding InstallCommand}" IsVisible="{Binding CanInstall}" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2" IsVisible="{Binding Item.Busy}" VerticalAlignment="Center">
+              <Button Classes="quiet" Command="{Binding Item.PauseCommand}" IsVisible="{Binding Item.CanPause}"
+                      ToolTip.Tip="Pause the download" AutomationProperties.Name="Pause">
+                <shell:Icon Data="{StaticResource Icon.Pause}" Size="14" />
+              </Button>
+              <Button Classes="quiet" Command="{Binding Item.ResumeCommand}" IsVisible="{Binding Item.CanResume}"
+                      ToolTip.Tip="Resume the download" AutomationProperties.Name="Resume">
+                <shell:Icon Data="{StaticResource Icon.Play}" Size="14" />
+              </Button>
+              <Button Classes="quiet" Command="{Binding Item.CancelCommand}"
+                      ToolTip.Tip="Cancel and remove what was downloaded" AutomationProperties.Name="Cancel">
+                <shell:Icon Data="{StaticResource Icon.X}" Size="14" />
+              </Button>
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="5" IsVisible="{Binding Installed}" VerticalAlignment="Center">
+              <shell:Icon Data="{StaticResource Icon.CircleCheck}" Size="14" Foreground="{DynamicResource Brush.Success}" />
+              <TextBlock Text="Installed" Foreground="{DynamicResource Brush.Success}" FontSize="{DynamicResource Font.Size.Small}" />
+            </StackPanel>
+          </Grid>
+        </StackPanel>
+      </Border>
+    </DataTemplate>
   </UserControl.Resources>
   <DockPanel>
   <Button DockPanel.Dock="Bottom" Name="BrowseAll" Classes="accent-soft" Command="{Binding OpenBrowseCommand}" Margin="12,0,12,12" HorizontalAlignment="Stretch">
@@ -81,57 +122,21 @@
 
       <!-- Recommended -->
       <StackPanel Spacing="8">
-        <TextBlock Classes="heading" Text="RECOMMENDED FOR THIS PC" />
+        <TextBlock Classes="heading" Text="CHAT MODELS FOR THIS PC" />
         <TextBlock Classes="muted" Text="Finding the best fit…" IsVisible="{Binding !Ready}" />
-        <ItemsControl Name="PickList" ItemsSource="{Binding Picks}">
+        <ItemsControl Name="PickList" ItemsSource="{Binding Picks}" ItemTemplate="{StaticResource PickCardTemplate}">
           <ItemsControl.ItemsPanel>
             <ItemsPanelTemplate>
               <StackPanel Spacing="8" />
             </ItemsPanelTemplate>
           </ItemsControl.ItemsPanel>
-          <ItemsControl.ItemTemplate>
-            <DataTemplate DataType="vm:PickCard">
-              <Border Classes="pick">
-                <StackPanel Spacing="5">
-                  <Grid ColumnDefinitions="*,Auto">
-                    <Border Classes="role" HorizontalAlignment="Left">
-                      <TextBlock Text="{Binding Role}" />
-                    </Border>
-                    <TextBlock Grid.Column="1" Text="{Binding Quant}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" VerticalAlignment="Center" />
-                  </Grid>
-                  <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="14" />
-                  <TextBlock Text="{Binding Reason}" Classes="secondary" TextWrapping="Wrap" FontSize="{DynamicResource Font.Size.Small}" />
-                  <TextBlock Text="{Binding Details}" Classes="muted" TextWrapping="Wrap" FontSize="{DynamicResource Font.Size.Small}" />
-                  <Grid ColumnDefinitions="*,Auto" Margin="0,4,0,0">
-                    <StackPanel VerticalAlignment="Center" Spacing="4" Margin="0,0,10,0">
-                      <ProgressBar Height="3" MinHeight="3" Minimum="0" Maximum="1" Value="{Binding Item.Progress}" IsVisible="{Binding Item.Busy}" />
-                      <TextBlock Text="{Binding Item.Status}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" TextTrimming="CharacterEllipsis" />
-                    </StackPanel>
-                    <Button Grid.Column="1" Classes="primary" Content="Install" Command="{Binding InstallCommand}" IsVisible="{Binding CanInstall}" />
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="2" IsVisible="{Binding Item.Busy}" VerticalAlignment="Center">
-                      <Button Classes="quiet" Command="{Binding Item.PauseCommand}" IsVisible="{Binding Item.CanPause}"
-                              ToolTip.Tip="Pause the download" AutomationProperties.Name="Pause">
-                        <shell:Icon Data="{StaticResource Icon.Pause}" Size="14" />
-                      </Button>
-                      <Button Classes="quiet" Command="{Binding Item.ResumeCommand}" IsVisible="{Binding Item.CanResume}"
-                              ToolTip.Tip="Resume the download" AutomationProperties.Name="Resume">
-                        <shell:Icon Data="{StaticResource Icon.Play}" Size="14" />
-                      </Button>
-                      <Button Classes="quiet" Command="{Binding Item.CancelCommand}"
-                              ToolTip.Tip="Cancel and remove what was downloaded" AutomationProperties.Name="Cancel">
-                        <shell:Icon Data="{StaticResource Icon.X}" Size="14" />
-                      </Button>
-                    </StackPanel>
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="5" IsVisible="{Binding Installed}" VerticalAlignment="Center">
-                      <shell:Icon Data="{StaticResource Icon.CircleCheck}" Size="14" Foreground="{DynamicResource Brush.Success}" />
-                      <TextBlock Text="Installed" Foreground="{DynamicResource Brush.Success}" FontSize="{DynamicResource Font.Size.Small}" />
-                    </StackPanel>
-                  </Grid>
-                </StackPanel>
-              </Border>
-            </DataTemplate>
-          </ItemsControl.ItemTemplate>
         </ItemsControl>
+        <StackPanel Name="CompletionPickSection" Spacing="8" Margin="0,6,0,0" IsVisible="{Binding !!CompletionPicks.Count}">
+          <TextBlock Classes="heading" Text="CODE COMPLETION FOR THIS PC" />
+          <TextBlock Classes="muted" FontSize="{DynamicResource Font.Size.Small}" TextWrapping="Wrap"
+                     Text="Optional. A small model that suggests the rest of a line as you type in the editor. It does not chat." />
+          <ItemsControl Name="CompletionPickList" ItemsSource="{Binding CompletionPicks}" ItemTemplate="{StaticResource PickCardTemplate}" />
+        </StackPanel>
       </StackPanel>
 
       <!-- Installed -->

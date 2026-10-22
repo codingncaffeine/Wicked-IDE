@@ -115,6 +115,7 @@
                       <TextBlock Grid.Column="1" Text="Gated" IsVisible="{Binding Gated}" Foreground="{DynamicResource Brush.Warning}" FontSize="10" FontWeight="SemiBold" VerticalAlignment="Center" />
                     </Grid>
                     <TextBlock Text="{Binding Facts}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Name="HubResultUse" Text="{Binding Use}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" FontStyle="Italic" TextWrapping="Wrap" />
                   </StackPanel>
                 </DataTemplate>
               </ListBox.ItemTemplate>
@@ -127,6 +128,8 @@
                          IsVisible="{Binding Detail, Converter={x:Static ObjectConverters.IsNull}}" />
               <StackPanel Name="HubDetail" DataContext="{Binding Detail}" x:DataType="vm:HubDetailView" Spacing="8" IsVisible="{Binding $self.DataContext, Converter={x:Static ObjectConverters.IsNotNull}}">
                 <TextBlock Name="HubDetailTitle" Text="{Binding Title}" FontSize="16" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                <TextBlock Name="HubDetailUse" Text="{Binding Use}" FontWeight="SemiBold" FontSize="{DynamicResource Font.Size.Small}" Foreground="{DynamicResource Brush.Accent.Hover}" TextWrapping="Wrap"
+                           IsVisible="{Binding Use, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                 <TextBlock Text="{Binding Summary}" Classes="secondary" FontSize="{DynamicResource Font.Size.Small}" TextWrapping="Wrap" />
                 <TextBlock Text="{Binding FitNote}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" TextWrapping="Wrap" />
                 <TextBlock Text="Reading the repo…" Classes="muted" IsVisible="{Binding Loading}" />

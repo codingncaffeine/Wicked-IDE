@@ -182,8 +182,8 @@ public sealed partial class RoleChip(string label, Func<CatalogModel, bool> matc
     partial void OnSelectedChanged(bool value) => owner.Refilter();
 }
 
-/// <summary>One search hit on the Hugging Face tab.</summary>
-public sealed record HubResultRow(HubSearchResult Result)
+/// <summary>One search hit on the Hugging Face tab, with what it is for as far as can be told before a download (<see cref="ModelUse.DescribeRepo"/>).</summary>
+public sealed record HubResultRow(HubSearchResult Result, string Use)
 {
     public string Id => Result.Id;
 
@@ -268,6 +268,10 @@ public sealed partial class HubDetailView(string repo) : ObservableObject
     public string Title => Repo[(Repo.IndexOf('/') + 1)..]; // not a path: a repo id
 
     public ObservableCollection<HubVariantRow> Variants { get; } = [];
+
+    /// <summary>What the model is for (chat, base, code completion), said before it is downloaded.</summary>
+    [ObservableProperty]
+    private string _use = "";
 
     [ObservableProperty]
     private bool _loading = true;
@@ -480,7 +484,8 @@ public sealed partial class BrowseViewModel : ObservableObject
                 {
                     if (cts.IsCancellationRequested) return;
                     HubResults.Clear();
-                    foreach (var hit in found) HubResults.Add(new HubResultRow(hit));
+                    var catalog = _catalog?.Catalog;
+                    foreach (var hit in found) HubResults.Add(new HubResultRow(hit, ModelUse.DescribeRepo(hit.Id, hit.Tags, catalog)));
                     HubStatus = found.Count == 0 ? "No GGUF models match" : query.Length == 0 ? "Most downloaded GGUF models" : found.Count == 1 ? "1 GGUF repo" : $"{found.Count} GGUF repos";
                     HubBusy = false;
                 });
@@ -526,6 +531,7 @@ public sealed partial class BrowseViewModel : ObservableObject
                     var hidden = rows.Count(r => !r.Usable);
                     detail.Summary = $"{value.Publisher} · {Licenses.Display(repo.Model.License)} · {value.Facts.Split(" · ", 2)[1]}";
                     detail.Gated = repo.Model.Gated != Gating.None;
+                    detail.Use = ModelUse.DescribeRepo(repo.Model.Id, repo.Model.Tags, _catalog?.Catalog);
                     var tooBig = hidden == 0 ? "" : $" · {hidden} quant{(hidden == 1 ? "" : "s")} too large for this PC hidden";
                     detail.FitNote = repo.Shape is null ? $"Fit unknown: {repo.ShapeSource}" : $"Fit judged from the {repo.ShapeSource}, at {Math.Min(16384, repo.NativeContext > 0 ? repo.NativeContext : 8192) / 1024}k of context{tooBig}";
                     detail.Message = repo.Variants.Count == 0 ? "This repo has no GGUF files Wicked can install." : rows.Count > 0 && hidden == rows.Count ? "Every quant of this model is too large for this PC." : detail.Gated ? "Gated: accept its terms on huggingface.co and add your token in Settings → Models, then install." : "";

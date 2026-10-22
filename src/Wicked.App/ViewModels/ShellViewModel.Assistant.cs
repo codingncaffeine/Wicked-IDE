@@ -172,8 +172,8 @@ public sealed partial class ShellViewModel
     }
 
     /// <summary>
-    /// The coding pack (D18): the Coding pick for this machine with its small completion companion, installed in one go
-    /// (licences asked for first), from the Models panel.
+    /// The coding pack (D18): the Coding pick for this machine and the code completion model beside it, each on its own card in
+    /// the Models panel, installed one after the other (licences asked for first).
     /// </summary>
     private async Task InstallCodingPackAsync()
     {
@@ -185,8 +185,15 @@ public sealed partial class ShellViewModel
             return;
         }
 
-        if (card.Installed) Notices.Post(new Wicked.Core.Notice("coding-pack", $"The coding pack ({card.Name}) is installed", Wicked.Core.NoticeKind.Success));
-        else await card.InstallCommand.ExecuteAsync(null);
+        var completion = Models.CompletionPicks.FirstOrDefault(c => c.Pick.Model.Id == card.Pick.Companion?.Model.Id);
+        if (card.Installed && completion is null or { Installed: true })
+        {
+            Notices.Post(new Wicked.Core.Notice("coding-pack", $"The coding pack ({card.Name}{(completion is null ? "" : " and " + completion.Name)}) is installed", Wicked.Core.NoticeKind.Success));
+            return;
+        }
+
+        if (!card.Installed) await card.InstallCommand.ExecuteAsync(null);
+        if (completion is { Installed: false }) await completion.InstallCommand.ExecuteAsync(null);
     }
 
     private void WireAssistant()
