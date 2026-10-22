@@ -392,10 +392,19 @@ public partial class MainWindow : Window, IWorkbenchDialogs
 
     private void OnDialogCancel(object? sender, RoutedEventArgs e) => Answer(SaveChoice.Cancel);
 
+    /// <summary>The desktop's folder picker (on Linux the portal's, else Avalonia's own); what it did is logged, as it varies by desktop.</summary>
     public async Task<string?> PickFolderAsync()
     {
-        if (StorageProvider is not { CanPickFolder: true } storage) return null;
+        if (StorageProvider is not { CanPickFolder: true } storage)
+        {
+            Log.Warn("Folder picker: this desktop offers none");
+            _shell?.Notices.Post(new Notice("folder-picker", "This desktop offers no folder picker: type the folder's path instead", NoticeKind.Warning));
+            return null;
+        }
+
+        Log.Info($"Folder picker: asking {storage.GetType().Name}");
         var picked = await storage.OpenFolderPickerAsync(new FolderPickerOpenOptions { Title = "Open Folder", AllowMultiple = false });
+        Log.Info(picked.Count > 0 ? "Folder picker: a folder was chosen" : "Folder picker: cancelled");
         return picked.Count > 0 ? picked[0].TryGetLocalPath() : null;
     }
 

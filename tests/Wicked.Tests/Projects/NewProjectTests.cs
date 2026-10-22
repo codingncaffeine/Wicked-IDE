@@ -126,3 +126,63 @@ public sealed class NewProjectTests
         });
     }
 }
+
+/// <summary>Browse… in New Project, with a desktop folder picker that never answers or fails (reported on native Wayland).</summary>
+public sealed class NewProjectBrowseTests
+{
+    /// <summary>The window's dialogs, with a folder picker the test controls.</summary>
+    private sealed class Dialogs(Func<Task<string?>> pick) : Wicked.App.Workbench.IWorkbenchDialogs
+    {
+        public int Asked { get; private set; }
+
+        public Task<string?> PickFolderAsync()
+        {
+            Asked++;
+            return pick();
+        }
+
+        public Task<Wicked.App.Workbench.SaveChoice> AskSaveAsync(string message, string detail) => Task.FromResult(Wicked.App.Workbench.SaveChoice.Cancel);
+
+        public Task<IReadOnlyList<string>> PickFilesAsync() => Task.FromResult<IReadOnlyList<string>>([]);
+
+        public Task<string?> PickSaveFileAsync(string suggestedName) => Task.FromResult<string?>(null);
+
+        public Task<bool> ConfirmAsync(string message, string detail, string confirm) => Task.FromResult(false);
+
+        public Task<string?> AskNameAsync(string prompt, string initial) => Task.FromResult<string?>(null);
+    }
+
+    [Trait("Tier", "Window")]
+    [Fact]
+    public async Task BrowseNeverGreysOutWhenAPickerNeverAnswersAndAFailedPickerSaysSo()
+    {
+        using var profile = new TempProfile();
+        await Ui.Run(() =>
+        {
+            var (window, shell) = Ui.Start(profile.Paths);
+            var never = new TaskCompletionSource<string?>();
+            var answers = new Queue<Func<Task<string?>>>([() => never.Task, () => Task.FromResult<string?>("/home/u/elsewhere"), () => throw new InvalidOperationException("no portal")]);
+            var dialogs = new Dialogs(() => answers.Dequeue()());
+            shell.Workbench.Dialogs = dialogs;
+            Input.Click(window, window.GetVisualDescendants().OfType<Button>().First(b => b.Name == "WelcomeNewProject" && b.IsEffectivelyVisible));
+            Assert.True(Ui.PumpUntil(() => shell.NewProject.IsOpen && shell.NewProject.Templates.Count > 0, 10), "New Project did not open");
+            var browse = window.GetVisualDescendants().OfType<Button>().Single(b => b.Name == "BrowseLocation");
+            Assert.True(browse.IsEffectivelyEnabled, "greyed out before anything was clicked");
+
+            // The first picker never answers: Browse stays usable, and a second click asks again and is answered.
+            Input.Click(window, browse);
+            Ui.Pump(0.2);
+            Assert.Equal(1, dialogs.Asked);
+            Assert.True(browse.IsEffectivelyEnabled, "greyed out while a picker hangs");
+            Input.Click(window, browse);
+            Assert.True(Ui.PumpUntil(() => shell.NewProject.Location == "/home/u/elsewhere", 5), shell.NewProject.Location);
+
+            // A picker that fails: a notice that says so, and Browse still works.
+            Input.Click(window, browse);
+            Assert.True(Ui.PumpUntil(() => shell.Notices.All.Any(n => n.Key == "folder-picker"), 5), "no notice for a failed picker");
+            Assert.True(browse.IsEffectivelyEnabled);
+            window.Close();
+            return 0;
+        });
+    }
+}

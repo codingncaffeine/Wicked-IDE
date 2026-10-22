@@ -48,7 +48,7 @@
           <TextBlock Classes="heading" Text="LOCATION" />
           <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
             <TextBox Name="ProjectLocationBox" Text="{Binding Location}" AutomationProperties.Name="Project location" />
-            <Button Grid.Column="1" Classes="secondary" Content="Browse…" Command="{Binding BrowseCommand}" />
+            <Button Grid.Column="1" Name="BrowseLocation" Classes="secondary" Content="Browse…" Command="{Binding BrowseCommand}" />
           </Grid>
           <CheckBox Name="CreateGitBox" IsChecked="{Binding CreateGit}" Content="Create a git repository" />
           <TextBlock Name="ProjectTarget" Text="{Binding TargetText}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" TextWrapping="Wrap" />

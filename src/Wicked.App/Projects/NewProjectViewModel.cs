@@ -105,10 +105,24 @@ public sealed partial class NewProjectViewModel : ObservableObject
         return Path.Combine(home, "Projects");
     }
 
-    [RelayCommand]
+    /// <summary>
+    /// Browse… never greys out. An async command is disabled while it runs, so a desktop folder picker that never answered
+    /// (reported on native Wayland, where it goes through the portal) left the button greyed for good: a second click now asks
+    /// again. A picker that fails says so, and the box can be typed in.
+    /// </summary>
+    [RelayCommand(AllowConcurrentExecutions = true)]
     private async Task BrowseAsync()
     {
-        if (_shell.Workbench.Dialogs is { } dialogs && await dialogs.PickFolderAsync() is { } folder) Location = folder;
+        if (_shell.Workbench.Dialogs is not { } dialogs) return;
+        try
+        {
+            if (await dialogs.PickFolderAsync() is { } folder) Location = folder;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            Log.Warn($"The folder picker failed: {ex.Message}");
+            _shell.Notices.Post(new Notice("folder-picker", "The desktop's folder picker did not open: type the folder in the Location box", NoticeKind.Warning));
+        }
     }
 
     [RelayCommand]
