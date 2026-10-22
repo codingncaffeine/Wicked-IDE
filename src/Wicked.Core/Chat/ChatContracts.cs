@@ -65,8 +65,8 @@ public enum RunState
     Failed,
 }
 
-/// <summary>An installed model as the runtime sees it. <c>Error</c> is set when <c>State</c> is <see cref="RunState.Failed"/>.</summary>
-public sealed record RunningModel(string Id, string DisplayName, RunState State, double? LoadProgress, bool AcceptsImages, bool Reasons, int? ContextSize, string? Error);
+/// <summary>An installed model as the runtime sees it. <c>Error</c> is set when <c>State</c> is <see cref="RunState.Failed"/>; <c>Chats</c> and <c>Completes</c> are its <see cref="Catalog.ModelUse"/>.</summary>
+public sealed record RunningModel(string Id, string DisplayName, RunState State, double? LoadProgress, bool AcceptsImages, bool Reasons, int? ContextSize, string? Error, bool Chats = true, bool Completes = false);
 
 /// <summary>
 /// The user's choices for running one model (the router preset, D3). Null = automatic: Wicked picks from the machine and the

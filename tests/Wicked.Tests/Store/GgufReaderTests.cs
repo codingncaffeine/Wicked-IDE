@@ -68,6 +68,16 @@ public sealed class GgufReaderTests
     }
 
     [Fact]
+    public async Task SaysWhetherTheFileCarriesAChatTemplate()
+    {
+        var with = new GgufBuilder().Str("general.architecture", "qwen2").Str("tokenizer.chat_template", "{{ messages }}");
+        var without = new GgufBuilder().Str("general.architecture", "qwen2");
+
+        Assert.True(GgufInfo.From(await GgufReader.ReadHeaderAsync(new MemoryStream(with.Build()), Ct)).HasChatTemplate);
+        Assert.False(GgufInfo.From(await GgufReader.ReadHeaderAsync(new MemoryStream(without.Build()), Ct)).HasChatTemplate);
+    }
+
+    [Fact]
     public async Task ReadsOnlyTheHeaderOfAFile()
     {
         using var dir = new TempProfile();

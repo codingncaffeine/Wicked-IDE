@@ -172,9 +172,9 @@
       <StackPanel Name="NoModelState" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="8" Margin="28,0"
                   IsVisible="{Binding !HasModels}">
         <shell:Icon Data="{StaticResource Icon.Bot}" Size="30" StrokeWidth="1.4" Foreground="{DynamicResource Brush.Text.Muted}" />
-        <TextBlock Text="No model yet" HorizontalAlignment="Center" FontWeight="SemiBold" />
+        <TextBlock Name="NoModelTitle" Text="{Binding NoModelTitle}" HorizontalAlignment="Center" FontWeight="SemiBold" />
         <TextBlock Classes="muted" TextAlignment="Center" TextWrapping="Wrap"
-                   Text="Wicked will suggest two or three models that fit this PC, and keep them up to date." />
+                   Name="NoModelText" Text="{Binding NoModelText}" />
         <Button Name="OpenModelsButton" Classes="accent-soft" Command="{Binding ShowModelsCommand}" HorizontalAlignment="Center" Margin="0,6,0,0">
           <StackPanel Orientation="Horizontal" Spacing="7">
             <shell:Icon Data="{StaticResource Icon.Boxes}" Size="14" />

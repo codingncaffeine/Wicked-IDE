@@ -57,7 +57,8 @@ public sealed partial class CatalogRow : ObservableObject, IInstallable
         FamilyName = familyName;
         _owner = owner;
         _hardware = hardware;
-        Tiers = [.. model.Tiers.OrderByDescending(t => t.Quality).Select(t => new TierChoice(t))];
+        // Only the quants this machine can use (the recommender's rule); a row with none is not shown at all.
+        Tiers = [.. model.Tiers.Where(t => ModelFit.Usable(model, t, hardware)).OrderByDescending(t => t.Quality).Select(t => new TierChoice(t))];
         Item = owner.Item(model.Repo);
         Item.PropertyChanged += (_, e) =>
         {
@@ -76,6 +77,21 @@ public sealed partial class CatalogRow : ObservableObject, IInstallable
     public InstallItem Item { get; }
 
     public IReadOnlyList<TierChoice> Tiers { get; }
+
+    /// <summary>This machine can run at least one of its quants.</summary>
+    public bool Usable => Tiers.Count > 0;
+
+    public ModelUse Use => ModelUse.Of(Model);
+
+    /// <summary>What the model is for, said plainly where it is not just a chat model.</summary>
+    public string UseNote => Use switch
+    {
+        { CompletionOnly: true } => "Code completion only: fills in code as you type, cannot chat",
+        { Chats: true, Completes: true } => "Chats, and completes code as you type",
+        _ => "",
+    };
+
+    public bool HasUseNote => UseNote.Length > 0;
 
     public string Roles => string.Join(" · ", RoleNames());
 
@@ -201,11 +217,17 @@ public sealed partial class HubVariantRow : ObservableObject, IInstallable
             if (e.PropertyName == nameof(InstallItem.Busy)) OnPropertyChanged(nameof(CanInstall));
         };
         var fit = detail.Shape is { } shape ? ModelFit.For(shape, variant.TotalSize, detail.NativeContext > 0 ? detail.NativeContext : 8192, owner.Services.State.Hardware) : null;
+        // A repo says nothing of mixture-of-experts or its parameter count, so it is judged as a dense model of unknown size.
+        var hardware = owner.Services.State.Hardware;
+        Usable = fit is null || hardware is null || ModelFit.Usable(fit, detail.Shape!.Layers, false, null, Recommender.BudgetFor(hardware));
         Fit = FitBadge.Of(fit, $"The fit is unknown: {detail.ShapeSource}");
         Refresh(owner.Services.State);
     }
 
     public GgufVariant Variant { get; }
+
+    /// <summary>This machine can run the quant usefully (or its fit is unknown); the others are not listed.</summary>
+    public bool Usable { get; }
 
     public InstallItem Item { get; }
 
@@ -272,6 +294,7 @@ public sealed partial class BrowseViewModel : ObservableObject
     private readonly ModelsViewModel _owner;
     private readonly Dictionary<string, CatalogRow> _rows = new(StringComparer.Ordinal);
     private CatalogLoad? _catalog;
+    private HardwareInfo? _hardware;
     private CancellationTokenSource? _search;
     private CancellationTokenSource? _detailLoad;
 
@@ -283,7 +306,6 @@ public sealed partial class BrowseViewModel : ObservableObject
             new("Everyday", m => m.Scores.Everyday is not null, this),
             new("Coding", m => m.Scores.Coding is not null, this),
             new("Fast", m => m.Scores.Fast is not null, this),
-            new("Completion", m => m.Scores.Fim is not null, this),
             new("Vision", m => m.Has(Capability.Vision), this),
         ];
         owner.Applied += OnApplied;
@@ -302,10 +324,19 @@ public sealed partial class BrowseViewModel : ObservableObject
     private bool _isOpen;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ShowCatalog))]
+    [NotifyPropertyChangedFor(nameof(ShowCatalog), nameof(ShowChatModels), nameof(ShowCompletionModels))]
     private bool _showHub;
 
     public bool ShowCatalog => !ShowHub;
+
+    /// <summary>The catalog tab lists the code completion models instead of the chat models.</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ShowChatModels), nameof(ShowCompletionModels))]
+    private bool _showCompletion;
+
+    public bool ShowChatModels => !ShowHub && !ShowCompletion;
+
+    public bool ShowCompletionModels => !ShowHub && ShowCompletion;
 
     [ObservableProperty]
     private string _filter = "";
@@ -339,7 +370,18 @@ public sealed partial class BrowseViewModel : ObservableObject
     public void Close() => IsOpen = false;
 
     [RelayCommand]
-    private void SelectCatalog() => ShowHub = false;
+    private void SelectCatalog()
+    {
+        ShowHub = false;
+        ShowCompletion = false;
+    }
+
+    [RelayCommand]
+    private void SelectCompletion()
+    {
+        ShowHub = false;
+        ShowCompletion = true;
+    }
 
     [RelayCommand]
     private void SelectHub()
@@ -352,9 +394,12 @@ public sealed partial class BrowseViewModel : ObservableObject
 
     partial void OnFilterChanged(string value) => Refilter();
 
+    partial void OnShowCompletionChanged(bool value) => Refilter();
+
     private void OnApplied(ModelState state)
     {
-        if (!ReferenceEquals(state.Catalog, _catalog) || _rows.Count == 0 && state.Catalog is not null)
+        // A new hardware report changes which quants this machine can use, so the rows are built again.
+        if (!ReferenceEquals(state.Catalog, _catalog) || !ReferenceEquals(state.Hardware, _hardware) || _rows.Count == 0 && state.Catalog is not null)
         {
             Rebuild(state);
             return;
@@ -367,6 +412,7 @@ public sealed partial class BrowseViewModel : ObservableObject
     private void Rebuild(ModelState state)
     {
         _catalog = state.Catalog;
+        _hardware = state.Hardware;
         _rows.Clear();
         if (state.Catalog is { } load)
         {
@@ -381,13 +427,19 @@ public sealed partial class BrowseViewModel : ObservableObject
         Refilter();
     }
 
-    /// <summary>Applies the filter box (fuzzy by name) and the role chips: families by their newest model, each family newest first.</summary>
+    /// <summary>
+    /// The chat models or the code completion models, by the filter box (fuzzy by name) and the role chips: families by their
+    /// newest model, each family newest first. A model this machine cannot run usefully is not listed; the note counts them.
+    /// </summary>
     public void Refilter()
     {
         var roles = Chips.Where(c => c.Selected).ToList();
         var query = Filter.Trim();
+        var completion = ShowCompletion;
+        bool OfKind(CatalogRow r) => completion ? r.Use.Completes : r.Use.Chats && !r.Model.Has(Capability.Embeddings);
         bool Keep(CatalogRow r) =>
-            (roles.Count == 0 || roles.Any(c => c.Matches(r.Model)))
+            OfKind(r) && r.Usable
+            && (completion || roles.Count == 0 || roles.Any(c => c.Matches(r.Model)))
             && (query.Length == 0 || FuzzyMatch.Score(query, $"{r.FamilyName} {r.Name}") >= 0);
 
         var groups = _catalog?.Catalog.Families
@@ -399,9 +451,12 @@ public sealed partial class BrowseViewModel : ObservableObject
         Families.Clear();
         foreach (var (family, rows) in groups) Families.Add(new FamilyGroup(family.Name, family.Publisher, new ObservableCollection<CatalogRow>(rows)));
         var total = groups.Sum(g => g.Rows.Count);
+        var hidden = _rows.Values.Count(r => OfKind(r) && !r.Usable);
+        var kind = completion ? "code completion model" : "chat model";
+        var tooBig = hidden == 0 ? "" : $" · {hidden} too large for this PC {(hidden == 1 ? "is" : "are")} hidden";
         CatalogNote = _catalog is null ? "Loading the catalog…"
-            : total == 0 ? "No model matches"
-            : $"{total} model{(total == 1 ? "" : "s")}";
+            : total == 0 ? (hidden > 0 && roles.Count == 0 && query.Length == 0 ? $"None of these fit this PC{tooBig}" : $"No model matches{tooBig}")
+            : $"{total} {kind}{(total == 1 ? "" : "s")}{tooBig}";
     }
 
     // ── Hugging Face tab ─────────────────────────────────────────────────────────────────────────
@@ -466,11 +521,14 @@ public sealed partial class BrowseViewModel : ObservableObject
                 Dispatcher.UIThread.Post(() =>
                 {
                     if (cts.IsCancellationRequested) return;
-                    foreach (var variant in repo.Variants) detail.Variants.Add(new HubVariantRow(variant, repo, _owner));
+                    var rows = repo.Variants.Select(v => new HubVariantRow(v, repo, _owner)).ToList();
+                    foreach (var row in rows.Where(r => r.Usable)) detail.Variants.Add(row);
+                    var hidden = rows.Count(r => !r.Usable);
                     detail.Summary = $"{value.Publisher} · {Licenses.Display(repo.Model.License)} · {value.Facts.Split(" · ", 2)[1]}";
                     detail.Gated = repo.Model.Gated != Gating.None;
-                    detail.FitNote = repo.Shape is null ? $"Fit unknown: {repo.ShapeSource}" : $"Fit judged from the {repo.ShapeSource}, at {Math.Min(16384, repo.NativeContext > 0 ? repo.NativeContext : 8192) / 1024}k of context";
-                    detail.Message = repo.Variants.Count == 0 ? "This repo has no GGUF files Wicked can install." : detail.Gated ? "Gated: accept its terms on huggingface.co and add your token in Settings → Models, then install." : "";
+                    var tooBig = hidden == 0 ? "" : $" · {hidden} quant{(hidden == 1 ? "" : "s")} too large for this PC hidden";
+                    detail.FitNote = repo.Shape is null ? $"Fit unknown: {repo.ShapeSource}" : $"Fit judged from the {repo.ShapeSource}, at {Math.Min(16384, repo.NativeContext > 0 ? repo.NativeContext : 8192) / 1024}k of context{tooBig}";
+                    detail.Message = repo.Variants.Count == 0 ? "This repo has no GGUF files Wicked can install." : rows.Count > 0 && hidden == rows.Count ? "Every quant of this model is too large for this PC." : detail.Gated ? "Gated: accept its terms on huggingface.co and add your token in Settings → Models, then install." : "";
                     detail.Loading = false;
                 });
             }

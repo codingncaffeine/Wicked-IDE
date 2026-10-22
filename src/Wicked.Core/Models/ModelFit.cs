@@ -49,6 +49,26 @@ public static class ModelFit
         return tiers[^1];
     }
 
+    /// <summary>
+    /// Whether this machine can run the quant usefully, by the recommender's own rule: fully in video memory; offloaded to the CPU
+    /// only when that stays quick (a mixture-of-experts model, or most layers still on the GPU); on a machine without a usable
+    /// GPU, a model small enough for the CPU. Browse hides what fails it. True when the machine is not known yet.
+    /// </summary>
+    public static bool Usable(CatalogModel model, QuantTier tier, HardwareInfo? hardware) =>
+        hardware is null || Usable(For(model, tier, hardware)!, model.Shape.Layers, model.Parameters.IsMoe, model.Parameters.Active ?? model.Parameters.Total, Recommender.BudgetFor(hardware));
+
+    /// <summary>The same rule for a fit already judged; <paramref name="activeBillions"/> is null when the parameter count is not known (a Hugging Face repo).</summary>
+    public static bool Usable(FitResult fit, int layers, bool moe, double? activeBillions, FitBudget budget)
+    {
+        if (budget.VramBytes >= Recommender.GpuModeVram)
+        {
+            return fit.Level == FitLevel.FitsInVram
+                || fit.Level == FitLevel.FitsWithOffload && (moe || fit.GpuLayers >= layers * Recommender.MostlyOnGpu);
+        }
+
+        return fit.Level != FitLevel.WontFit && (activeBillions is not { } active || active <= new RecommenderOptions().CpuOnlyMaxActive);
+    }
+
     public static string Describe(FitLevel level) => level switch
     {
         FitLevel.FitsInVram => "Fits in video memory",

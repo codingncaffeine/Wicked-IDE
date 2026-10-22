@@ -902,7 +902,7 @@ public sealed class ModelRuntime : IModelRuntime, IAsyncDisposable
                     _ => live.Error is not null ? RunState.Failed : RunState.Unloaded,
                 };
                 list.Add(new RunningModel(m.Id, m.DisplayName, state, state == RunState.Loading ? live?.Progress : null, m.MmprojPath is not null, m.Reasons,
-                    state is RunState.Loaded or RunState.Sleeping ? m.Context ?? live?.Context : m.Context, state == RunState.Failed ? live?.Error : null));
+                    state is RunState.Loaded or RunState.Sleeping ? m.Context ?? live?.Context : m.Context, state == RunState.Failed ? live?.Error : null, m.Use.Chats, m.Use.Completes));
             }
 
             _models = list;

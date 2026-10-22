@@ -16,12 +16,12 @@ public sealed partial class ShellViewModel
     public InlineEdit? InlineEditFor(CodeEditor? editor) => editor is not null && _inlineEdits.TryGetValue(editor, out var e) ? e : null;
 
     /// <summary>
-    /// The model for the assistant's code work (inline edits, reviews): the one the settings name, else the chat's, else a
-    /// loaded model, else an installed one.
+    /// The model for the assistant's code work (inline edits, reviews), always one that chats: the one the settings name, else the
+    /// chat's, else a loaded chat model, else an installed one. A completion-only model is never used for it.
     /// </summary>
     public string? AssistantModel()
     {
-        var models = Assistant.Runtime.Models;
+        var models = Assistant.Runtime.Models.Where(m => m.Chats).ToList();
         if (Settings.AssistantModel is { Length: > 0 } chosen && models.Any(m => m.Id == chosen)) return chosen;
         if (Chat.SelectedModel?.Id is { } selected) return selected;
         return models.OrderByDescending(m => m.State == RunState.Loaded).Select(m => m.Id).FirstOrDefault();
@@ -217,8 +217,8 @@ public sealed partial class ShellViewModel
     }
 
     /// <summary>
-    /// The model that writes suggestions: the one the settings name, else a loaded model built for code, else an installed
-    /// one (it loads on the first suggestion). Null when there is none: the assistant says so when asked directly.
+    /// The model that writes suggestions: the one the settings name, else a completion model (the catalog's word; a loaded one first),
+    /// else a model whose name says it is built for code. Null when there is none: the assistant says so when asked directly.
     /// </summary>
     public string? CompletionModel()
     {
@@ -226,7 +226,7 @@ public sealed partial class ShellViewModel
         if (Settings.CompletionModel is { Length: > 0 } chosen) return models.Any(m => m.Id == chosen) ? chosen : null;
         static bool Coder(RunningModel m) =>
             new[] { "coder", "starcoder", "codegemma", "codellama", "fim", "codestral", "devstral" }.Any(k => m.Id.Contains(k, StringComparison.OrdinalIgnoreCase) || m.DisplayName.Contains(k, StringComparison.OrdinalIgnoreCase));
-        return models.Where(Coder).OrderByDescending(m => m.State == RunState.Loaded).Select(m => m.Id).FirstOrDefault();
+        return models.Where(m => m.Completes).Concat(models.Where(Coder)).OrderByDescending(m => m.Completes).ThenByDescending(m => m.State == RunState.Loaded).Select(m => m.Id).FirstOrDefault();
     }
 
     /// <summary>Up to three other open files as context, those of the same language first (their text read on the worker).</summary>

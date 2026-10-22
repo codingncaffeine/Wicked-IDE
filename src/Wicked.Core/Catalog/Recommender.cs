@@ -65,11 +65,17 @@ public static class Recommender
     /// <summary>The least video memory left for the desktop and the engine's spare (see <see cref="BudgetFor"/>).</summary>
     private const long VramReserve = 3 * Gib / 2;
 
+    /// <summary>A dense model offloaded to the CPU stays quick enough only with at least this share of its layers on the GPU.</summary>
+    public const double MostlyOnGpu = 0.75;
+
+    /// <summary>Below this much video memory a machine runs models the CPU way (see <see cref="BudgetFor"/>).</summary>
+    public const long GpuModeVram = 2 * Gib;
+
     public static IReadOnlyList<Pick> Recommend(HardwareInfo hardware, ModelCatalog catalog, RecommenderOptions? options = null)
     {
         options ??= new RecommenderOptions();
         var budget = BudgetFor(hardware);
-        var gpuMode = budget.VramBytes >= 2 * Gib;
+        var gpuMode = budget.VramBytes >= GpuModeVram;
         var chat = catalog.Models.Where(m => m.Has(Capability.Chat) && !m.Has(Capability.Embeddings)).ToList();
         var picks = new List<Pick>();
 
@@ -227,7 +233,7 @@ public static class Recommender
         {
             var fit = FitCalculator.Evaluate(tier.Size, model.Shape, o.MinContext, budget, model.ContextLength, o.Kv);
             if (fit.Level != FitLevel.FitsWithOffload) continue;
-            var mostlyOnGpu = fit.GpuLayers >= model.Shape.Layers * 0.75;
+            var mostlyOnGpu = fit.GpuLayers >= model.Shape.Layers * MostlyOnGpu;
             if (model.Parameters.IsMoe || mostlyOnGpu) return (tier, fit);
         }
 

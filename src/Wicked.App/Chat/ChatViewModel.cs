@@ -219,6 +219,9 @@ public sealed partial class ChatViewModel : ObservableObject, ICodeActions, IDis
     [ObservableProperty]
     private SystemPromptsViewModel? _promptEditor;
 
+    /// <summary>An installed model that only completes code, named when no chat model is installed: the empty state says why the chat is empty.</summary>
+    private string? _completionOnly;
+
     public bool IsIdle => !IsStreaming;
 
     public bool HasModels => Models.Count > 0;
@@ -233,7 +236,14 @@ public sealed partial class ChatViewModel : ObservableObject, ICodeActions, IDis
 
     public string ModelLabel => SelectedModel is null ? "No model" : SelectedModel.Name;
 
-    public string ComposerHint => SelectedModel is null ? "Install a model to start chatting" : "Ask anything · Enter sends · /clear starts over";
+    public string ComposerHint => SelectedModel is not null ? "Ask anything · Enter sends · /clear starts over"
+        : _completionOnly is not null ? "Install a chat model to start chatting" : "Install a model to start chatting";
+
+    public string NoModelTitle => _completionOnly is null ? "No model yet" : "No chat model yet";
+
+    public string NoModelText => _completionOnly is { } name
+        ? $"{name} only completes code as you type: it cannot hold a conversation. Choose a chat model that fits this PC."
+        : "Wicked will suggest two or three models that fit this PC, and keep them up to date.";
 
     // ── Starting ─────────────────────────────────────────────────────────────────────────────────
 
@@ -273,10 +283,12 @@ public sealed partial class ChatViewModel : ObservableObject, ICodeActions, IDis
 
     // ── Models ───────────────────────────────────────────────────────────────────────────────────
 
-    /// <summary>Follows the runtime's snapshot: each model's state, and which one the chat is using.</summary>
+    /// <summary>Follows the runtime's snapshot: each chat model's state, and which one the chat is using. Completion-only models are not listed.</summary>
     internal void RefreshModels()
     {
-        var snapshot = _services.Runtime.Models;
+        var all = _services.Runtime.Models;
+        var snapshot = all.Where(m => m.Chats).ToList();
+        _completionOnly = snapshot.Count == 0 ? all.FirstOrDefault(m => m.Completes)?.DisplayName : null;
         for (var i = Models.Count - 1; i >= 0; i--)
         {
             if (snapshot.All(m => m.Id != Models[i].Id)) Models.RemoveAt(i);
@@ -307,6 +319,9 @@ public sealed partial class ChatViewModel : ObservableObject, ICodeActions, IDis
 
         if (wanted is not null && _modelId is null) _modelId = wanted.Id;
         OnPropertyChanged(nameof(HasModels));
+        OnPropertyChanged(nameof(NoModelTitle));
+        OnPropertyChanged(nameof(NoModelText));
+        OnPropertyChanged(nameof(ComposerHint));
         OnPropertyChanged(nameof(CanSend));
         if (IsStreaming && Messages.LastOrDefault() is { IsAssistant: true, IsStreaming: true } last) last.Status = WaitingText();
         if (SelectedModel?.ContextSize is { } size && _promptTokens > 0) ShowContext(_promptTokens, size);

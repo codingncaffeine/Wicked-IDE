@@ -4,6 +4,63 @@
              xmlns:shell="using:Wicked.App.Shell"
              x:Class="Wicked.App.Views.ModelsView"
              x:DataType="vm:ModelsViewModel">
+  <UserControl.Resources>
+    <!-- One installed model: its state, update and run controls; used by the chat list and the code completion list. -->
+    <DataTemplate x:Key="InstalledRowTemplate" DataType="vm:InstalledRow">
+      <Grid ColumnDefinitions="*,Auto" Margin="0,3" Classes="installed">
+        <StackPanel Spacing="1">
+          <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+          <TextBlock Text="{Binding Details}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" TextTrimming="CharacterEllipsis" />
+          <TextBlock Classes="update" Text="{Binding UpdateText}" IsVisible="{Binding HasUpdate}" FontSize="{DynamicResource Font.Size.Small}"
+                     Foreground="{DynamicResource Brush.Accent.Hover}" TextWrapping="Wrap" />
+          <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding HasUpdate}">
+            <Button Name="UpdateModel" Classes="accent-soft" Content="Update" Command="{Binding UpdateCommand}" IsVisible="{Binding CanUpdate}" Padding="8,2" FontSize="{DynamicResource Font.Size.Small}" />
+            <Button Name="WhatsNewLink" Classes="link" Content="What's new" Command="{Binding WhatsNewCommand}" FontSize="{DynamicResource Font.Size.Small}" />
+          </StackPanel>
+          <TextBlock Text="Updating…" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" IsVisible="{Binding Updating}" />
+          <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding HasState}" Margin="0,2,0,0">
+            <Ellipse Classes="state" Classes.loaded="{Binding IsLoaded}" Classes.loading="{Binding IsLoading}" Classes.failed="{Binding IsFailed}" />
+            <TextBlock Name="RunStateText" Text="{Binding StateText}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" TextWrapping="Wrap" MaxWidth="190" />
+          </StackPanel>
+          <ProgressBar Height="3" MinHeight="3" Minimum="0" Maximum="1" Value="{Binding LoadProgress}" IsIndeterminate="{Binding !LoadProgressKnown}"
+                       IsVisible="{Binding IsLoading}" Margin="0,3,0,0" />
+        </StackPanel>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
+          <Button Classes="quiet" Padding="5" Command="{Binding LoadCommand}" IsVisible="{Binding CanLoad}" ToolTip.Tip="Load into memory" AutomationProperties.Name="Load">
+            <shell:Icon Data="{StaticResource Icon.Play}" Size="14" />
+          </Button>
+          <Button Classes="quiet" Padding="5" Command="{Binding UnloadCommand}" IsVisible="{Binding CanUnload}" ToolTip.Tip="Unload from memory" AutomationProperties.Name="Unload">
+            <shell:Icon Data="{StaticResource Icon.Power}" Size="14" />
+          </Button>
+          <Button Classes="quiet" Padding="5" Command="{Binding RunSettingsCommand}" IsVisible="{Binding CanRun}" ToolTip.Tip="Run settings" AutomationProperties.Name="Run settings">
+            <shell:Icon Data="{StaticResource Icon.SlidersHorizontal}" Size="14" />
+          </Button>
+          <Button Classes="quiet" Padding="5" VerticalAlignment="Top" ToolTip.Tip="More" AutomationProperties.Name="More">
+          <shell:Icon Data="{StaticResource Icon.Ellipsis}" Size="15" />
+          <Button.Flyout>
+            <MenuFlyout Placement="BottomEdgeAlignedRight">
+              <MenuItem Header="Show in folder" Command="{Binding ShowInFolderCommand}">
+                <MenuItem.Icon>
+                  <shell:Icon Data="{StaticResource Icon.FolderOpen}" Size="14" />
+                </MenuItem.Icon>
+              </MenuItem>
+              <MenuItem Header="Updates" Name="UpdatesMenu">
+                <MenuItem Header="Ask me first" Command="{Binding SetPolicyCommand}" CommandParameter="notify" ToggleType="Radio" GroupName="policy" IsChecked="{Binding IsNotify, Mode=OneWay}" />
+                <MenuItem Header="Update automatically" Command="{Binding SetPolicyCommand}" CommandParameter="auto" ToggleType="Radio" GroupName="policy" IsChecked="{Binding IsAuto, Mode=OneWay}" />
+                <MenuItem Header="Never (pin this version)" Command="{Binding SetPolicyCommand}" CommandParameter="pin" ToggleType="Radio" GroupName="policy" IsChecked="{Binding IsPinned, Mode=OneWay}" />
+              </MenuItem>
+              <MenuItem Header="Delete…" Command="{Binding DeleteCommand}">
+                <MenuItem.Icon>
+                  <shell:Icon Data="{StaticResource Icon.Trash2}" Size="14" />
+                </MenuItem.Icon>
+              </MenuItem>
+            </MenuFlyout>
+          </Button.Flyout>
+        </Button>
+        </StackPanel>
+      </Grid>
+    </DataTemplate>
+  </UserControl.Resources>
   <DockPanel>
   <Button DockPanel.Dock="Bottom" Name="BrowseAll" Classes="accent-soft" Command="{Binding OpenBrowseCommand}" Margin="12,0,12,12" HorizontalAlignment="Stretch">
     <StackPanel Orientation="Horizontal" Spacing="7" HorizontalAlignment="Center">
@@ -92,64 +149,13 @@
         <TextBlock Name="UpdateStatus" Classes="muted" Text="{Binding UpdateStatus}" FontSize="{DynamicResource Font.Size.Small}" TextWrapping="Wrap"
                    IsVisible="{Binding UpdateStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
         <TextBlock Classes="muted" Text="Nothing yet." IsVisible="{Binding !Installed.Count}" />
-        <ItemsControl Name="InstalledList" ItemsSource="{Binding Installed}">
-          <ItemsControl.ItemTemplate>
-            <DataTemplate DataType="vm:InstalledRow">
-              <Grid ColumnDefinitions="*,Auto" Margin="0,3" Classes="installed">
-                <StackPanel Spacing="1">
-                  <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
-                  <TextBlock Text="{Binding Details}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" TextTrimming="CharacterEllipsis" />
-                  <TextBlock Classes="update" Text="{Binding UpdateText}" IsVisible="{Binding HasUpdate}" FontSize="{DynamicResource Font.Size.Small}"
-                             Foreground="{DynamicResource Brush.Accent.Hover}" TextWrapping="Wrap" />
-                  <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding HasUpdate}">
-                    <Button Name="UpdateModel" Classes="accent-soft" Content="Update" Command="{Binding UpdateCommand}" IsVisible="{Binding CanUpdate}" Padding="8,2" FontSize="{DynamicResource Font.Size.Small}" />
-                    <Button Name="WhatsNewLink" Classes="link" Content="What's new" Command="{Binding WhatsNewCommand}" FontSize="{DynamicResource Font.Size.Small}" />
-                  </StackPanel>
-                  <TextBlock Text="Updating…" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" IsVisible="{Binding Updating}" />
-                  <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding HasState}" Margin="0,2,0,0">
-                    <Ellipse Classes="state" Classes.loaded="{Binding IsLoaded}" Classes.loading="{Binding IsLoading}" Classes.failed="{Binding IsFailed}" />
-                    <TextBlock Name="RunStateText" Text="{Binding StateText}" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" TextWrapping="Wrap" MaxWidth="190" />
-                  </StackPanel>
-                  <ProgressBar Height="3" MinHeight="3" Minimum="0" Maximum="1" Value="{Binding LoadProgress}" IsIndeterminate="{Binding !LoadProgressKnown}"
-                               IsVisible="{Binding IsLoading}" Margin="0,3,0,0" />
-                </StackPanel>
-                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
-                  <Button Classes="quiet" Padding="5" Command="{Binding LoadCommand}" IsVisible="{Binding CanLoad}" ToolTip.Tip="Load into memory" AutomationProperties.Name="Load">
-                    <shell:Icon Data="{StaticResource Icon.Play}" Size="14" />
-                  </Button>
-                  <Button Classes="quiet" Padding="5" Command="{Binding UnloadCommand}" IsVisible="{Binding CanUnload}" ToolTip.Tip="Unload from memory" AutomationProperties.Name="Unload">
-                    <shell:Icon Data="{StaticResource Icon.Power}" Size="14" />
-                  </Button>
-                  <Button Classes="quiet" Padding="5" Command="{Binding RunSettingsCommand}" IsVisible="{Binding CanRun}" ToolTip.Tip="Run settings" AutomationProperties.Name="Run settings">
-                    <shell:Icon Data="{StaticResource Icon.SlidersHorizontal}" Size="14" />
-                  </Button>
-                  <Button Classes="quiet" Padding="5" VerticalAlignment="Top" ToolTip.Tip="More" AutomationProperties.Name="More">
-                  <shell:Icon Data="{StaticResource Icon.Ellipsis}" Size="15" />
-                  <Button.Flyout>
-                    <MenuFlyout Placement="BottomEdgeAlignedRight">
-                      <MenuItem Header="Show in folder" Command="{Binding ShowInFolderCommand}">
-                        <MenuItem.Icon>
-                          <shell:Icon Data="{StaticResource Icon.FolderOpen}" Size="14" />
-                        </MenuItem.Icon>
-                      </MenuItem>
-                      <MenuItem Header="Updates" Name="UpdatesMenu">
-                        <MenuItem Header="Ask me first" Command="{Binding SetPolicyCommand}" CommandParameter="notify" ToggleType="Radio" GroupName="policy" IsChecked="{Binding IsNotify, Mode=OneWay}" />
-                        <MenuItem Header="Update automatically" Command="{Binding SetPolicyCommand}" CommandParameter="auto" ToggleType="Radio" GroupName="policy" IsChecked="{Binding IsAuto, Mode=OneWay}" />
-                        <MenuItem Header="Never (pin this version)" Command="{Binding SetPolicyCommand}" CommandParameter="pin" ToggleType="Radio" GroupName="policy" IsChecked="{Binding IsPinned, Mode=OneWay}" />
-                      </MenuItem>
-                      <MenuItem Header="Delete…" Command="{Binding DeleteCommand}">
-                        <MenuItem.Icon>
-                          <shell:Icon Data="{StaticResource Icon.Trash2}" Size="14" />
-                        </MenuItem.Icon>
-                      </MenuItem>
-                    </MenuFlyout>
-                  </Button.Flyout>
-                </Button>
-                </StackPanel>
-              </Grid>
-            </DataTemplate>
-          </ItemsControl.ItemTemplate>
-        </ItemsControl>
+        <ItemsControl Name="InstalledList" ItemsSource="{Binding ChatInstalled}" ItemTemplate="{StaticResource InstalledRowTemplate}" />
+        <StackPanel Name="CompletionSection" Spacing="4" Margin="0,8,0,0" IsVisible="{Binding !!CompletionInstalled.Count}">
+          <TextBlock Classes="heading" Text="CODE COMPLETION ONLY" />
+          <TextBlock Classes="muted" FontSize="{DynamicResource Font.Size.Small}" TextWrapping="Wrap"
+                     Text="These fill in code as you type in the editor. They cannot chat, so the chat does not list them." />
+          <ItemsControl Name="CompletionList" ItemsSource="{Binding CompletionInstalled}" ItemTemplate="{StaticResource InstalledRowTemplate}" />
+        </StackPanel>
       </StackPanel>
 
       <!-- Engine -->

@@ -71,6 +71,9 @@ public sealed partial class InstalledRow(string id, ModelsViewModel owner) : Obs
 
     public string Directory { get; private set; } = "";
 
+    /// <summary>A base model that fills in code as you type and cannot chat: listed under Code completion, apart from the chat models.</summary>
+    public bool CompletionOnly { get; private set; }
+
     [ObservableProperty]
     private string _details = "";
 
@@ -184,6 +187,8 @@ public sealed partial class InstalledRow(string id, ModelsViewModel owner) : Obs
         _updatable = update?.CanApply == true;
         OnPropertyChanged(nameof(CanUpdate));
         Policy = owner.Services.PolicyOf(model);
+        CompletionOnly = ModelUse.Of(model, null, owner.Services.State.Catalog?.Catalog).CompletionOnly;
+        OnPropertyChanged(nameof(CompletionOnly));
     }
 
     [RelayCommand]
@@ -333,6 +338,12 @@ public sealed partial class ModelsViewModel : ObservableObject, IAsyncDisposable
 
     public ObservableCollection<InstalledRow> Installed { get; } = [];
 
+    /// <summary>The installed models that chat, in the order of <see cref="Installed"/>.</summary>
+    public ObservableCollection<InstalledRow> ChatInstalled { get; } = [];
+
+    /// <summary>The installed models that only complete code, shown in a section of their own.</summary>
+    public ObservableCollection<InstalledRow> CompletionInstalled { get; } = [];
+
     /// <summary>Opens a folder in the desktop's file manager (replaced in tests, which must not open windows).</summary>
     public Action<string> OpenPath { get; set; } = Opener.Open;
 
@@ -450,9 +461,28 @@ public sealed partial class ModelsViewModel : ObservableObject, IAsyncDisposable
             row.Set(model, state.UpdateFor(model.Id));
         }
 
+        Follow(ChatInstalled, Installed.Where(r => !r.CompletionOnly).ToList());
+        Follow(CompletionInstalled, Installed.Where(r => r.CompletionOnly).ToList());
+
         Ready = state.Catalog is not null;
         ApplyRuntime();
         Applied?.Invoke(state);
+    }
+
+    /// <summary>Makes <paramref name="list"/> hold <paramref name="rows"/> in order, moving rather than replacing, so an open menu survives.</summary>
+    private static void Follow(ObservableCollection<InstalledRow> list, List<InstalledRow> rows)
+    {
+        for (var i = list.Count - 1; i >= 0; i--)
+        {
+            if (!rows.Contains(list[i])) list.RemoveAt(i);
+        }
+
+        for (var i = 0; i < rows.Count; i++)
+        {
+            var at = list.IndexOf(rows[i]);
+            if (at < 0) list.Insert(i, rows[i]);
+            else if (at != i) list.Move(at, i);
+        }
     }
 
     /// <summary>Raised on the UI thread after each state is applied (the Browse page follows it).</summary>

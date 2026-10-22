@@ -74,6 +74,7 @@ internal sealed class ModelWorld : IAsyncDisposable
     public const string Quick = "test/Tiny-Quick-GGUF";
     public const string Gated = "test/Tiny-Gated-GGUF";
     public const string Old = "test/Tiny-Chat-1-GGUF";
+    public const string Complete = "test/Tiny-Complete-GGUF";
 
     /// <summary>The bytes of a model's file in this world.</summary>
     public static byte[] Weights(string repo, string quant) => StandIns.Weights(Size(repo, quant), (byte)(repo.Length + quant.Length));
@@ -111,7 +112,8 @@ internal sealed class ModelWorld : IAsyncDisposable
         "huge", "Huge Model", Huge, "rev1", "apache-2.0", null, false, [Capability.Chat], 131072, new ParameterCount(900), new(2026, 5, 1), new(Everyday: 99), [], Shape,
         [new QuantTier("Q4_K_M", [new CatalogFile("huge-Q4_K_M.gguf", 900L << 30, new string('a', 64))], 90), new QuantTier("Q8_0", [new CatalogFile("huge-Q8_0.gguf", 1000L << 30, new string('b', 64))], 99)]);
 
-    public static async Task<ModelWorld> StartAsync()
+    /// <summary>The world; <paramref name="completion"/> adds a completion-only model (fills in code, cannot chat) in a family of its own.</summary>
+    public static async Task<ModelWorld> StartAsync(bool completion = false)
     {
         var models = new[]
         {
@@ -121,11 +123,17 @@ internal sealed class ModelWorld : IAsyncDisposable
             Model("tiny-quick", "Tiny Quick", Quick, "gemma", "https://example.test/gemma-terms", false, new(2026, 7, 1), new(Everyday: 40, Fast: 90)),
             Model("tiny-gated", "Tiny Gated", Gated, "mit", null, true, new(2026, 6, 1), new(Fast: 20)),
         };
+        if (completion)
+        {
+            models = [.. models, Model("tiny-complete", "Tiny Complete", Complete, "apache-2.0", null, false, new(2026, 2, 1), new(Fim: 70)) with { Capabilities = [Capability.Fim] }];
+        }
+
         var catalog = new ModelCatalog(1, DateTimeOffset.UtcNow.AddYears(1),
         [
             new CatalogFamily("tiny", "Tiny", "Tests", "Small models for tests", [models[0], models[3], models[2], models[1]]),
             new CatalogFamily("gate", "Gated", "Tests", null, [models[4]]),
             new CatalogFamily("huge", "Huge", "Tests", null, [HugeModel()]),
+            .. completion ? new[] { new CatalogFamily("complete", "Complete", "Tests", null, [models[5]]) } : [],
         ]);
 
         var repos = models.Select(m => new HubRepo(m.Repo, "rev1") { License = m.LicenseId, Gated = m.Gated ? "manual" : null }).ToList();

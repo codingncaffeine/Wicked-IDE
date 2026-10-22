@@ -14,7 +14,8 @@ internal sealed record PlannedModel(
     string? MmprojPath,
     bool Reasons,
     int? Context,
-    PresetSection Section);
+    PresetSection Section,
+    ModelUse Use);
 
 /// <summary>The preset for a router: the shared block, one section per model, and the models-loaded-at-once limit the router starts with.</summary>
 internal sealed record RunPlan(int ModelsMax, IReadOnlyDictionary<string, string> Globals, IReadOnlyList<PlannedModel> Models)
@@ -69,7 +70,7 @@ internal static class RunPlanner
         {
             var settings = settingsFor(variant.Id);
             var catalogModel = catalog?.Models.FirstOrDefault(m => string.Equals(m.Repo, model.Id, StringComparison.OrdinalIgnoreCase));
-            planned.Add(PlanOne(model, variant, catalogModel, settings, byId, backend));
+            planned.Add(PlanOne(model, variant, catalogModel, settings, byId, backend, catalog));
         }
 
         return new RunPlan(modelsMax, globals, planned);
@@ -77,7 +78,7 @@ internal static class RunPlanner
 
     private static PlannedModel PlanOne(
         StoredModel model, StoredVariant variant, CatalogModel? catalogModel, ModelRunSettings settings,
-        Dictionary<string, StoredVariant> byId, EngineBackendKind? backend)
+        Dictionary<string, StoredVariant> byId, EngineBackendKind? backend, ModelCatalog? catalog)
     {
         var extra = new Dictionary<string, string>(StringComparer.Ordinal);
         // The context and the GPU layers the user did not choose are left unset: the engine's --fit sets them at load time from
@@ -130,7 +131,7 @@ internal static class RunPlanner
         var name = catalogModel?.Name ?? RepoName(model.Id);
         var display = variant.Quant.Length > 0 && variant.Id != model.Id ? $"{name} ({variant.Quant})" : name;
         var reasons = catalogModel?.Has(Capability.Reasoning) == true;
-        return new PlannedModel(variant.Id, display, variant.PrimaryPath, variant.MmprojPath, reasons, context, section);
+        return new PlannedModel(variant.Id, display, variant.PrimaryPath, variant.MmprojPath, reasons, context, section, ModelUse.Of(model, variant, catalog));
     }
 
     /// <summary>One model at a time unless video memory clearly holds the largest few together (each with a modest context).</summary>

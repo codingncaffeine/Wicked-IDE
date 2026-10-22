@@ -55,24 +55,22 @@ public sealed class ModelsBrowseWindowTests
             OpenBrowse(window, shell);
             var browse = shell.Models.Browse;
 
-            // Every family and model, the family with the newest model first, each family newest first.
-            Assert.Equal(["Tiny", "Gated", "Huge"], browse.Families.Select(f => f.Name));
+            // Every family and chat model this PC can run, the family with the newest model first, each family newest first; the
+            // 900 GB model is not listed at all, and the note says one was hidden.
+            Assert.Equal(["Tiny", "Gated"], browse.Families.Select(f => f.Name));
             Assert.Equal(["Tiny Chat", "Tiny Coder", "Tiny Quick", "Tiny Chat 1"], browse.Families[0].Models.Select(m => m.Name));
-            Assert.Equal(6, Rows(window).Count);
+            Assert.Equal(5, Rows(window).Count);
+            Assert.Equal("5 chat models · 1 too large for this PC is hidden", browse.CatalogNote);
+            Assert.DoesNotContain(Rows(window), r => ((CatalogRow)r.DataContext!).Name == "Huge Model");
             var chat = Row(window, "Tiny Chat");
             Assert.Contains("EVERYDAY", ((CatalogRow)chat.DataContext!).Roles, StringComparison.Ordinal);
             Assert.Contains("3B", ((CatalogRow)chat.DataContext!).Facts, StringComparison.Ordinal);
             Assert.Contains("32k context", ((CatalogRow)chat.DataContext!).Facts, StringComparison.Ordinal);
 
-            // Fit badges: tiny models fit (in VRAM with a GPU, with offload without one); the 900 GB model never does.
+            // Fit badges: tiny models fit (in VRAM with a GPU, with offload without one).
             var badge = ((CatalogRow)chat.DataContext!).Fit;
             Assert.True(badge.Ok || badge.Offload, badge.Text);
             Assert.True(badge.Text is "Fits in VRAM" or "CPU offload");
-            var huge = (CatalogRow)Row(window, "Huge Model").DataContext!;
-            Assert.Equal("Won't fit", huge.Fit.Text);
-            Assert.True(huge.Fit.No);
-            var hugeBadge = Row(window, "Huge Model").GetVisualDescendants().OfType<Border>().First(b => b.Classes.Contains("fit"));
-            Assert.Contains("no", hugeBadge.Classes);
             ModelsUi.Shot(window, "browse-catalog");
 
             // The quant chooser defaults to the recommender's quant (the same one the card offers), and changing it changes the size and the install.
@@ -89,15 +87,15 @@ public sealed class ModelsBrowseWindowTests
             Assert.True(Ui.PumpUntil(() => Rows(window).Count == 1, 5), "the filter did not narrow the list");
             Assert.Equal("Tiny Coder", ((CatalogRow)Rows(window)[0].DataContext!).Name);
             Type(window, Control<TextBox>(window, "CatalogFilter"), "zzzz");
-            Assert.True(Ui.PumpUntil(() => browse.CatalogNote == "No model matches", 5));
+            Assert.True(Ui.PumpUntil(() => browse.CatalogNote == "No model matches · 1 too large for this PC is hidden", 5), browse.CatalogNote);
             Type(window, Control<TextBox>(window, "CatalogFilter"), "");
-            Assert.True(Ui.PumpUntil(() => Rows(window).Count == 6, 5));
+            Assert.True(Ui.PumpUntil(() => Rows(window).Count == 5, 5));
             var chips = Control<ItemsControl>(window, "RoleChips").GetVisualDescendants().OfType<ToggleButton>().ToList();
             Input.Click(window, chips.Single(c => c.Content as string == "Coding"));
             Assert.True(Ui.PumpUntil(() => Rows(window).Count == 2, 5));
             Assert.Equal(["Tiny Chat", "Tiny Coder"], Rows(window).Select(r => ((CatalogRow)r.DataContext!).Name));
             Input.Click(window, chips.Single(c => c.Content as string == "Coding"));
-            Assert.True(Ui.PumpUntil(() => Rows(window).Count == 6, 5));
+            Assert.True(Ui.PumpUntil(() => Rows(window).Count == 5, 5));
 
             // Install the smaller quant from the page: the row follows the download and ends Installed; the card (another quant) still offers Install.
             chat = Row(window, "Tiny Chat"); // the rows were rebuilt by the filters; the chosen quant is remembered

@@ -191,7 +191,8 @@ public sealed record GgufInfo(
     int? FullAttentionInterval = null,
     int? SharedKvLayers = null,
     int? KeyLengthSwa = null,
-    int? ValueLengthSwa = null)
+    int? ValueLengthSwa = null,
+    bool? HasChatTemplate = null)
 {
     public static GgufInfo From(GgufHeader h)
     {
@@ -236,7 +237,8 @@ public sealed record GgufInfo(
             GetInt("full_attention_interval"),
             GetInt("attention.shared_kv_layers"),
             GetInt("attention.key_length_swa"),
-            GetInt("attention.value_length_swa"));
+            GetInt("attention.value_length_swa"),
+            h.Metadata.ContainsKey("tokenizer.chat_template"));
     }
 
     /// <summary>Key (and value) width per head: stated in the file, else the embedding width divided by the head count.</summary>
