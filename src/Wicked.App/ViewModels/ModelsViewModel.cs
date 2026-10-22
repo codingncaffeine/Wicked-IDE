@@ -344,6 +344,12 @@ public sealed partial class ModelsViewModel : ObservableObject, IAsyncDisposable
     /// <summary>The code completion model that fits beside the coding pick, on a card of its own under its own heading.</summary>
     public ObservableCollection<PickCard> CompletionPicks { get; } = [];
 
+    /// <summary>Why the code completion section has no card: the coding pick completes code itself, or nothing fits beside it.</summary>
+    [ObservableProperty]
+    private string _completionPickNote = "";
+
+    public bool ShowCompletionPicks => CompletionPicks.Count > 0 || CompletionPickNote.Length > 0;
+
     public ObservableCollection<InstalledRow> Installed { get; } = [];
 
     /// <summary>The installed models that chat, in the order of <see cref="Installed"/>.</summary>
@@ -454,6 +460,12 @@ public sealed partial class ModelsViewModel : ObservableObject, IAsyncDisposable
             foreach (var pick in completions) CompletionPicks.Add(new PickCard(pick, this));
         }
 
+        var coding = state.Picks.FirstOrDefault(p => p.Kind == PickKind.Coding || p.AlsoFor.Contains(PickKind.Coding));
+        var anyCompletion = state.Catalog?.Catalog.Models.Any(m => m.Has(Capability.Fim)) == true;
+        CompletionPickNote = completions.Count > 0 || coding is null || !anyCompletion ? ""
+            : coding.Model.Has(Capability.Fim) ? $"{coding.Model.Name} completes code as you type itself."
+            : $"None fits beside {coding.Model.Name} in this PC's memory. Browse lists code completion models on a tab of their own.";
+        OnPropertyChanged(nameof(ShowCompletionPicks));
         foreach (var card in Picks.Concat(CompletionPicks)) card.Installed = state.IsInstalled(card.Pick.Model, card.Pick.Tier);
         foreach (var item in _items.Values)
         {

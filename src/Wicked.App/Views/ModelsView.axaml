@@ -131,11 +131,13 @@
             </ItemsPanelTemplate>
           </ItemsControl.ItemsPanel>
         </ItemsControl>
-        <StackPanel Name="CompletionPickSection" Spacing="8" Margin="0,6,0,0" IsVisible="{Binding !!CompletionPicks.Count}">
+        <StackPanel Name="CompletionPickSection" Spacing="8" Margin="0,6,0,0" IsVisible="{Binding ShowCompletionPicks}">
           <TextBlock Classes="heading" Text="CODE COMPLETION FOR THIS PC" />
           <TextBlock Classes="muted" FontSize="{DynamicResource Font.Size.Small}" TextWrapping="Wrap"
                      Text="Optional. A small model that suggests the rest of a line as you type in the editor. It does not chat." />
           <ItemsControl Name="CompletionPickList" ItemsSource="{Binding CompletionPicks}" ItemTemplate="{StaticResource PickCardTemplate}" />
+          <TextBlock Name="CompletionPickNote" Classes="muted" FontSize="{DynamicResource Font.Size.Small}" TextWrapping="Wrap" Text="{Binding CompletionPickNote}"
+                     IsVisible="{Binding CompletionPickNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
         </StackPanel>
       </StackPanel>
 
