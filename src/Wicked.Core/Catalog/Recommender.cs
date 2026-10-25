@@ -109,7 +109,29 @@ public static class Recommender
         var taken = picks.Select(p => p.Model.Id).ToHashSet(StringComparer.Ordinal);
         var third = ThirdPick(chat.Where(m => !taken.Contains(m.Id)).ToList(), everyday, budget, gpuMode, options);
         if (third is not null) picks.Add(third);
+
+        // No coding model to sit beside: the completion model that fits on its own, a pick of its own (it cannot chat).
+        if (coding is null && CompletionAlone(catalog, budget, gpuMode, options) is { } alone) picks.Add(alone);
         return picks;
+    }
+
+    /// <summary>The best code completion model that fits this machine by itself, for when no chat model takes the coding role.</summary>
+    private static Pick? CompletionAlone(ModelCatalog catalog, FitBudget budget, bool gpuMode, RecommenderOptions o)
+    {
+        Pick? best = null;
+        foreach (var model in catalog.Models.Where(m => m.Has(Capability.Fim) && !m.Has(Capability.Chat)))
+        {
+            if (model.Scores.Fim is not { } score) continue;
+            if (!gpuMode && (model.Parameters.Active ?? model.Parameters.Total) > 4) continue;
+            var choice = ChooseTier(model, budget, gpuMode, o, o.SmallQualityFloor, o.CompanionContext, o.CompanionContext);
+            if (choice is null) continue;
+            var (tier, fit) = choice.Value;
+            var reason = $"Fills in code as you type in the editor ({tier.Quant}, about {Gb(fit.RequiredBytes)} GB). It cannot chat or work as the agent.";
+            var candidate = new Pick(PickKind.Completion, model, tier, fit, o.CompanionContext, reason, []);
+            if (best is null || Better(model, score, best.Model, best.Model.Scores.Fim ?? 0)) best = candidate;
+        }
+
+        return best;
     }
 
     /// <summary>

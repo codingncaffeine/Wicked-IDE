@@ -40,7 +40,7 @@ public sealed partial class PickCard : ObservableObject
     /// <summary>A code completion model's card (its own section, its own Install), not a chat model's.</summary>
     public bool IsCompletion => Pick.Kind == PickKind.Completion;
 
-    public string Role => IsCompletion ? "CODE COMPLETION"
+    public string Role => IsCompletion ? "CODE COMPLETION ONLY"
         : (Pick.AlsoFor.Count > 0 ? string.Join(" · ", new[] { Pick.Kind }.Concat(Pick.AlsoFor)) : Pick.Kind.ToString()).ToUpperInvariant();
 
     public string Name => Pick.Model.Name;
@@ -341,7 +341,11 @@ public sealed partial class ModelsViewModel : ObservableObject, IAsyncDisposable
     /// <summary>The chat models recommended for this machine.</summary>
     public ObservableCollection<PickCard> Picks { get; } = [];
 
-    /// <summary>The code completion model that fits beside the coding pick, on a card of its own under its own heading.</summary>
+    /// <summary>Said when no chat model fits this machine, so the code completion card below is not taken for one.</summary>
+    [ObservableProperty]
+    private string _chatPickNote = "";
+
+    /// <summary>The code completion model that fits beside the coding pick (or alone), on a card of its own under its own heading.</summary>
     public ObservableCollection<PickCard> CompletionPicks { get; } = [];
 
     /// <summary>Why the code completion section has no card: the coding pick completes code itself, or nothing fits beside it.</summary>
@@ -446,14 +450,17 @@ public sealed partial class ModelsViewModel : ObservableObject, IAsyncDisposable
         EngineText = state.Engine is { } engine ? $"llama.cpp {engine.Id}" : "Installs itself with your first model";
 
         // Cards are kept while the same picks stand, so a card's progress survives a rescan.
-        var keys = state.Picks.Select(p => $"{p.Model.Id}/{p.Tier.Quant}").ToList();
+        var chats = state.Picks.Where(p => p.Kind != PickKind.Completion).ToList();
+        var keys = chats.Select(p => $"{p.Model.Id}/{p.Tier.Quant}").ToList();
         if (!keys.SequenceEqual(Picks.Select(c => $"{c.Pick.Model.Id}/{c.Pick.Tier.Quant}")))
         {
             Picks.Clear();
-            foreach (var pick in state.Picks) Picks.Add(new PickCard(pick, this));
+            foreach (var pick in chats) Picks.Add(new PickCard(pick, this));
         }
 
-        var completions = state.Picks.Select(p => p.Companion).OfType<Pick>().DistinctBy(p => p.Model.Id).ToList();
+        var completions = state.Picks.Select(p => p.Companion).OfType<Pick>().Concat(state.Picks.Where(p => p.Kind == PickKind.Completion)).DistinctBy(p => p.Model.Id).ToList();
+        ChatPickNote = chats.Count > 0 || state.Catalog is null || state.Hardware is null ? ""
+            : "No chat model fits this PC's memory, so none is recommended." + (completions.Count > 0 ? " The model below only completes code as you type: it cannot chat or work as the agent." : "");
         if (!completions.Select(p => $"{p.Model.Id}/{p.Tier.Quant}").SequenceEqual(CompletionPicks.Select(c => $"{c.Pick.Model.Id}/{c.Pick.Tier.Quant}")))
         {
             CompletionPicks.Clear();

@@ -12,7 +12,7 @@
         <TextBlock Text="Browse models" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center">
           <Button Name="CatalogTabButton" Classes="segment" Classes.active="{Binding ShowChatModels}" Content="Chat models" Command="{Binding SelectCatalogCommand}" />
-          <Button Name="CompletionTabButton" Classes="segment" Classes.active="{Binding ShowCompletionModels}" Content="Code completion" Command="{Binding SelectCompletionCommand}" />
+          <Button Name="CompletionTabButton" Classes="segment" Classes.active="{Binding ShowCompletionModels}" Content="Completion only" Command="{Binding SelectCompletionCommand}" />
           <Button Name="HubTabButton" Classes="segment" Classes.active="{Binding ShowHub}" Content="Hugging Face" Command="{Binding SelectHubCommand}" />
         </StackPanel>
         <Button Grid.Column="2" Name="CloseBrowse" Classes="quiet" Command="{Binding CloseCommand}" ToolTip.Tip="Close (Escape)">

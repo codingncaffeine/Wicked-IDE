@@ -114,6 +114,21 @@ public sealed class RecommenderTests
     }
 
     [Fact]
+    public void WhenNoChatModelFitsTheCompletionModelThatFitsIsAPickOfItsOwn()
+    {
+        // Only the 14B and 32B chat models: neither fits a 6 GiB card (4.5 GiB to use), so there is no chat pick; fim-small
+        // (1.6 GiB) fits alone, fim-mid (8 GiB) does not.
+        var bigOnly = Catalog with { Families = [.. Catalog.Families.Select(f => f with { Models = [.. f.Models.Where(m => m.Id is "big" or "mid" or "fim-small" or "fim-mid")] })] };
+
+        var picks = Recommender.Recommend(CatalogTestData.Machine(6, 16), bigOnly);
+
+        Assert.Equal("Completion:fim-small:Q8_0:8192", Summary(picks));
+        Assert.EndsWith("It cannot chat or work as the agent.", picks[0].Reason, StringComparison.Ordinal);
+        // With a coding pick the completion model rides beside it, never as a pick of its own.
+        Assert.DoesNotContain(Recommender.Recommend(CatalogTestData.Machine(16, 64), Catalog), p => p.Kind == PickKind.Completion);
+    }
+
+    [Fact]
     public void ATinyMachineStillGetsAnAnswerOrNothingNeverAnException()
     {
         Assert.Empty(Recommender.Recommend(CatalogTestData.Machine(null, 2), Catalog));

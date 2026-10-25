@@ -258,7 +258,7 @@ public sealed partial class ModelServices
         var better = new List<Pick>();
         foreach (var pick in picks)
         {
-            if (State.IsInstalled(pick.Model, pick.Tier)) continue;
+            if (pick.Kind == PickKind.Completion || State.IsInstalled(pick.Model, pick.Tier)) continue;
             if (owned.Any(o => pick.Model.Supersedes.Contains(o.Id, StringComparer.Ordinal))) continue; // reported as "superseded" already
             var role = pick.Kind switch { PickKind.Coding => Role.Coding, PickKind.Fast => Role.Fast, _ => Role.Everyday };
             var best = owned.Select(o => o.Scores.For(role)).Where(s => s.HasValue).Select(s => s!.Value).DefaultIfEmpty(-1).Max();

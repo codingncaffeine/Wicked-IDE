@@ -123,7 +123,11 @@
       <!-- Recommended -->
       <StackPanel Spacing="8">
         <TextBlock Classes="heading" Text="CHAT MODELS FOR THIS PC" />
+        <TextBlock Classes="muted" FontSize="{DynamicResource Font.Size.Small}" TextWrapping="Wrap"
+                   Text="Conversation models: they answer questions, chat, and work as the agent in your project." />
         <TextBlock Classes="muted" Text="Finding the best fit…" IsVisible="{Binding !Ready}" />
+        <TextBlock Name="ChatPickNote" Classes="secondary" FontSize="{DynamicResource Font.Size.Small}" TextWrapping="Wrap" Text="{Binding ChatPickNote}"
+                   IsVisible="{Binding ChatPickNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
         <ItemsControl Name="PickList" ItemsSource="{Binding Picks}" ItemTemplate="{StaticResource PickCardTemplate}">
           <ItemsControl.ItemsPanel>
             <ItemsPanelTemplate>

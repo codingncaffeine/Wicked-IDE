@@ -56,7 +56,7 @@ public sealed class ModelsUseWindowTests
             var completion = section.GetVisualDescendants().OfType<Border>().Single(b => b.Classes.Contains("pick"));
             var card = (PickCard)completion.DataContext!;
             Assert.Equal("Tiny Complete", card.Name);
-            Assert.Equal("CODE COMPLETION", card.Role);
+            Assert.Equal("CODE COMPLETION ONLY", card.Role);
             Assert.EndsWith("It cannot chat.", card.Reason, StringComparison.Ordinal);
             var coder = (PickCard)ModelsUi.Card(window, "Tiny Coder").DataContext!;
             Assert.Equal($"{ModelsViewModel.Size(coder.Pick.Tier.Size)} · mit", coder.Details); // its own size, nothing else folded in
@@ -210,6 +210,37 @@ public sealed class ModelsUseWindowTests
             Assert.Null(ChatUi.Named(window, "Coder 1.5B (completion)"));
             Assert.Equal("test/alpha:Q4_K_M", shell.AssistantModel());
             Assert.Equal("test/complete:Q8_0", shell.CompletionModel());
+            window.Close();
+            return 0;
+        });
+    }
+
+    [Trait("Tier", "Window")]
+    [Fact]
+    public async Task WithNoChatModelThatFitsThePanelSaysSoAndTheCompletionCardSaysItOnlyCompletes()
+    {
+        // The user (2026-10-25): recommend only conversation models that fit; when none does, make it obvious what is
+        // conversation and what only completes code.
+        Assert.SkipUnless(StandIns.CanRunEngine, "the stand-in engine is a shell script");
+        using var profile = new TempProfile();
+        await using var world = await ModelWorld.StartAsync(completion: true);
+        world.PublishCatalog(world.Catalog with { Families = [.. world.Catalog.Families.Select(f => f with { Models = [.. f.Models.Where(m => !m.Has(Wicked.Core.Catalog.Capability.Chat))] })] });
+        await Ui.Run(() =>
+        {
+            var (window, shell) = world.Start(profile.Paths);
+            _ = shell.Models.StartAsync(allowNetwork: true);
+            Input.Click(window, window.FindControl<Button>("RailModels")!);
+            Assert.True(Ui.PumpUntil(() => shell.Models.CompletionPicks.Count == 1 && ModelsUi.Cards(window).Count() == 1, 20), "the completion card did not appear");
+            Assert.Empty(shell.Models.Picks);
+
+            var note = Control<TextBlock>(window, "ChatPickNote");
+            Assert.StartsWith("No chat model fits this PC's memory", note.Text, StringComparison.Ordinal);
+            Assert.Contains("only completes code", note.Text, StringComparison.Ordinal);
+            var card = (PickCard)Control<StackPanel>(window, "CompletionPickSection").GetVisualDescendants().OfType<Border>().Single(b => b.Classes.Contains("pick")).DataContext!;
+            Assert.Equal("Tiny Complete", card.Name);
+            Assert.Equal("CODE COMPLETION ONLY", card.Role);
+            Assert.EndsWith("It cannot chat or work as the agent.", card.Reason, StringComparison.Ordinal);
+            ModelsUi.Shot(window, "picks-no-chat");
             window.Close();
             return 0;
         });
