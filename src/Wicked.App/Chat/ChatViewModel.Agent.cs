@@ -27,8 +27,8 @@ public sealed partial class ChatViewModel
 
     /// <summary>Told to the model in Ask mode while a project is open, so a request to write files sends the user to Agent.</summary>
     private const string AskInstructions = """
-        This chat is in Ask mode: you cannot read, create or change the user's files. When the user wants files created or
-        changed, say so in one line and tell them to switch on Agent (the Agent chip under the message box), which lets you
+        This chat is in Ask mode: you cannot read, create or change the project's files. When asked to create or change
+        files, say so in one line and suggest switching on Agent (the Agent chip under the message box), which lets you
         make the changes in the project yourself.
         """;
 

@@ -219,8 +219,8 @@ public sealed class ModelsUseWindowTests
     [Fact]
     public async Task WithNoChatModelThatFitsThePanelSaysSoAndTheCompletionCardSaysItOnlyCompletes()
     {
-        // The user (2026-10-25): recommend only conversation models that fit; when none does, make it obvious what is
-        // conversation and what only completes code.
+        // Only chat models that fit are recommended; when none does, the panel says so and the completion card cannot be
+        // taken for a chat model.
         Assert.SkipUnless(StandIns.CanRunEngine, "the stand-in engine is a shell script");
         using var profile = new TempProfile();
         await using var world = await ModelWorld.StartAsync(completion: true);

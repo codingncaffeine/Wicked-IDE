@@ -113,7 +113,7 @@ public sealed class AgentWindowTests
             var asked = world.Engine.Requests[0];
             Assert.Null(asked.Tools);
             Assert.Equal(ChatRole.System, asked.Messages[0].Role);
-            Assert.Contains("switch on Agent", asked.Messages[0].Content, StringComparison.Ordinal);
+            Assert.Contains("switching on Agent", asked.Messages[0].Content, StringComparison.Ordinal);
 
             // Closing the project and opening it again keeps the user's choice.
             var closed = shell.Workbench.CloseFolderAsync();
