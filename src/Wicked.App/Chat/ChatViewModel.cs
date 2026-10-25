@@ -159,12 +159,13 @@ public sealed partial class ChatViewModel : ObservableObject, ICodeActions, IDis
             CanInsertChanged?.Invoke(this, EventArgs.Empty);
             OnPropertyChanged(nameof(CanUseAgent));
             ActiveFileChanged();
-            if (!CanUseAgent) AgentMode = false;
+            FollowAgentAvailability();
         });
         Attachments.CollectionChanged += (_, _) => OnPropertyChanged(nameof(CanSend));
         Messages.CollectionChanged += (_, _) => OnPropertyChanged(nameof(IsEmpty));
         ApplySettings(host.Settings);
         RefreshModels();
+        FollowAgentAvailability();
     }
 
     /// <summary>The runtime the window runs models on (the Models panel loads and unloads through it too).</summary>
@@ -428,7 +429,8 @@ public sealed partial class ChatViewModel : ObservableObject, ICodeActions, IDis
     private ChatRequest BuildRequest(ModelChoice model, ChatMessageViewModel upTo)
     {
         var messages = new List<ChatMessage>();
-        if (_systemPrompt.Length > 0) messages.Add(new ChatMessage(ChatRole.System, _systemPrompt));
+        var system = !AgentMode && CanUseAgent ? (_systemPrompt.Length > 0 ? _systemPrompt + "\n\n" : "") + AskInstructions : _systemPrompt;
+        if (system.Length > 0) messages.Add(new ChatMessage(ChatRole.System, system));
         foreach (var m in Messages)
         {
             if (ReferenceEquals(m, upTo)) break;

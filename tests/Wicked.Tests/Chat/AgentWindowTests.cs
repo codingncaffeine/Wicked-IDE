@@ -50,8 +50,9 @@ public sealed class AgentWindowTests
             var chat = shell.Chat;
             Assert.True(Ui.PumpUntil(() => chat.HasSelectedModel, 5), "no model selected");
             Assert.True(chat.CanUseAgent);
-            Input.Click(window, window.GetVisualDescendants().OfType<ToggleButton>().Single(b => b.Name == "AgentToggle"));
-            Assert.True(chat.AgentMode);
+            // With a project open the chat is an agent from the start (D30): no click needed.
+            Assert.True(chat.AgentMode, "Agent was not on with a project open");
+            Assert.True(window.GetVisualDescendants().OfType<ToggleButton>().Single(b => b.Name == "AgentToggle").IsChecked);
             chat.Draft = "Change the greeting in notes.txt to say agent";
             chat.SendCommand.Execute(null);
 
@@ -79,6 +80,49 @@ public sealed class AgentWindowTests
             Assert.Contains("Keep greetings short.", last.Messages[0].Content, StringComparison.Ordinal);
             Assert.Contains(last.Messages, m => m.Role == ChatRole.Tool && m.ToolCallId == "c1" && m.Content.Contains("1: hello world", StringComparison.Ordinal));
             Assert.Contains(last.Messages, m => m.Role == ChatRole.Tool && m.ToolCallId == "c2" && m.Content.StartsWith("Edited notes.txt", StringComparison.Ordinal));
+            window.Close();
+            return 0;
+        });
+    }
+
+    [Trait("Tier", "Window")]
+    [Fact]
+    public async Task AskModeSendsTheUserToAgentAndTheChoiceOutlivesTheProject()
+    {
+        using var profile = new TempProfile();
+        var root = Path.Combine(profile.Root, "project");
+        Directory.CreateDirectory(root);
+        var world = new ChatWorld();
+        world.Runtime.Set(new RunningModel("agent:Q4", "Agent Model", RunState.Loaded, null, false, false, 8192, null));
+        await Ui.Run(() =>
+        {
+            var (window, shell) = world.Start(profile.Paths);
+            var chat = shell.Chat;
+            Assert.False(chat.AgentMode);   // no project, nothing to be an agent in
+            var opened = shell.OpenFolderAndRememberAsync(root);
+            Assert.True(Ui.PumpUntil(() => opened.IsCompleted && chat.CanUseAgent, 10));
+            Assert.True(Ui.PumpUntil(() => chat.HasSelectedModel, 5));
+            Assert.True(Ui.PumpUntil(() => chat.AgentMode, 5), "Agent was not on with a project open");
+
+            // The user turns Agent off: the question goes without tools, and the model is told how to get them.
+            Input.Click(window, window.GetVisualDescendants().OfType<ToggleButton>().Single(b => b.Name == "AgentToggle"));
+            Assert.False(chat.AgentMode);
+            chat.Draft = "write Program.cs for me";
+            chat.SendCommand.Execute(null);
+            Assert.True(Ui.PumpUntil(() => !chat.IsStreaming && world.Engine.Requests.Count == 1, 10), "the reply did not finish");
+            var asked = world.Engine.Requests[0];
+            Assert.Null(asked.Tools);
+            Assert.Equal(ChatRole.System, asked.Messages[0].Role);
+            Assert.Contains("switch on Agent", asked.Messages[0].Content, StringComparison.Ordinal);
+
+            // Closing the project and opening it again keeps the user's choice.
+            var closed = shell.Workbench.CloseFolderAsync();
+            Assert.True(Ui.PumpUntil(() => closed.IsCompleted && !chat.CanUseAgent, 10));
+            Assert.False(chat.AgentMode);
+            opened = shell.OpenFolderAndRememberAsync(root);
+            Assert.True(Ui.PumpUntil(() => opened.IsCompleted && chat.CanUseAgent, 10));
+            Ui.Pump(0.2);
+            Assert.False(chat.AgentMode, "the user's Ask was not kept");
             window.Close();
             return 0;
         });

@@ -25,9 +25,27 @@ public sealed partial class ChatViewModel
         contents: read them.
         """;
 
+    /// <summary>Told to the model in Ask mode while a project is open, so a request to write files sends the user to Agent.</summary>
+    private const string AskInstructions = """
+        This chat is in Ask mode: you cannot read, create or change the user's files. When the user wants files created or
+        changed, say so in one line and tell them to switch on Agent (the Agent chip under the message box), which lets you
+        make the changes in the project yourself.
+        """;
+
     /// <summary>Ask (a chat) or Agent (the model may read, search, edit and run in the project, asking first for changes).</summary>
     [ObservableProperty]
     private bool _agentMode;
+
+    /// <summary>The user's mode (D30): Agent until they turn it off, kept while no project is open to use it in.</summary>
+    private bool _agentWanted = true;
+
+    partial void OnAgentModeChanged(bool value)
+    {
+        if (CanUseAgent) _agentWanted = value;
+    }
+
+    /// <summary>A project came or went: Agent follows it, in the mode the user last chose.</summary>
+    private void FollowAgentAvailability() => AgentMode = CanUseAgent && _agentWanted;
 
     public bool CanUseAgent => _host.Agent is not null;
 
