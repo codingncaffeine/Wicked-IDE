@@ -4,13 +4,11 @@ name: CI
 # has run it there) and every pull request: build the whole solution on Linux and on Windows
 # with warnings as errors, and run the tests: every test but the Window tier, whose area walks
 # are the Smoke tier (tools/test-tiers.sh). The full suite, the Window tier included, runs
-# nightly and when started by hand with tier "full" (packaging/release.sh starts one).
+# when started by hand with tier "full" (packaging/release.sh runs it locally before a release).
 on:
   push:
     branches: [main, gate]
   pull_request:
-  schedule:
-    - cron: "17 9 * * *"
   workflow_dispatch:
     inputs:
       tier:
@@ -60,7 +58,7 @@ jobs:
       # run once more on its own: passing then, it is reported as flaky and the job stays green (tools/ci-test.sh).
       - name: Tests
         shell: bash
-        run: tools/ci-test.sh TestResults ${{ (github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.tier == 'full')) && 'full' || 'push' }}
+        run: tools/ci-test.sh TestResults ${{ (github.event_name == 'workflow_dispatch' && inputs.tier == 'full') && 'full' || 'push' }}
 
       - name: Keep the hang dumps
         if: failure()
